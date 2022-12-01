@@ -4,9 +4,7 @@ use std::fs;
     Advent of Code 2022: Day 1
         part1 answer: 71124
         part2 answer: 204639
-
  */
-
 
 fn main() {
     print!("Advent of Code 2022, ");
@@ -24,10 +22,7 @@ fn main() {
     let mut c_total = 0;
 
     for i in 0..l_number {
-        print!("{}\t:", i);
         let ln = lines[i];
-        println!("{}", ln);
-
         let l_num = ln.trim().parse::<i32>();
         let tot = match l_num {
             Ok(n) => n,
@@ -39,52 +34,15 @@ fn main() {
         } else {
             c_total += tot
         }
-
-        println!("\t line tot: {}" ,tot) ;
-     /*
-        if i == (l_number - 1) {
-            println!("ending c_total: {}", c_total);
-            totals.push(c_total);
-        }
-
-      */
     }
 
-
-
-
-    let mut sorted:Vec<i32> = totals.to_vec();
+    let mut sorted: Vec<i32> = totals.to_vec();
     sorted.sort();
     sorted.reverse();
 
-    let part1_answer:i32 = sorted[0];
-    let part2_answer:i32 = sorted[0] + sorted[1] + sorted[2];
-
-    for i in sorted {
-        println!("{}", i);
-    }
+    let part1_answer: i32 = sorted[0];
+    let part2_answer: i32 = sorted[0] + sorted[1] + sorted[2];
 
     println!("\t Part 1: {part1_answer}");
     println!("\t Part 2: {part2_answer}");
-
-    println!("\ndone");
 }
-
-/*
-    println!("{0}, this is {1}. {1}, this is {0}", "Alice", "Bob");
-
-    // As can named arguments.
-    println!("{subject} {verb} {object}",
-             object="the lazy dog",
-             subject="the quick brown fox",
-             verb="jumps over");
-
- */
-
-/*
-fn main() {
-    let filename = "src/input.txt";
-    let data = read_input(&filename);
-    let trimmed = data.trim();
-    let split_data: Vec<&str> = trimmed.split("\n\n").collect();
- */
