@@ -6,7 +6,7 @@
 
 | Problem |  | 1 | 2 |
 | --- | --- | -- | --- |
-| [Day 1: ](https://adventofcode.com/2022/day/1) Calorie Counting | list of number eval | * | * |
+| [Day 1: ](https://adventofcode.com/2022/day/1) Calorie Counting | manipulation of list of numbers | * | * |
 | [Day 2: ](https://adventofcode.com/2022/day/2)  |  | _ | _ |
 | [Day 3: ](https://adventofcode.com/2022/day/3)  |  | _ | _ |
 | [Day 4: ](https://adventofcode.com/2022/day/4)  |  | _ | _ |
