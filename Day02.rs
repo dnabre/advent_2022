@@ -27,19 +27,19 @@ fn main() {
     println!("\t Part 1: {answer1} ");
     println!("\t Part 2: {answer2} ");
 
-println!("----------\ndone");
+    println!("----------\ndone");
 }
 
 fn mirror(left:char) -> char {
-     return match left {
-         'A' => 'X',
-         'B' => 'Y',
-         'C' => 'Z',
-         'X' => 'A',
-         'Y' => 'B',
-         'Z' => 'C',
-         _ => '0'
-     };
+    return match left {
+        'A' => 'X',
+        'B' => 'Y',
+        'C' => 'Z',
+        'X' => 'A',
+        'Y' => 'B',
+        'Z' => 'C',
+        _ => '0'
+    };
 }
 
 fn lose(left:char) -> char {
@@ -126,7 +126,7 @@ fn part1()->i32 {
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}",p1_file));
     let lines: Vec<&str> = data1_s.split("\n").collect();
-   // println!("\t read {} lines from {}", lines.len(), p1_file);
+    // println!("\t read {} lines from {}", lines.len(), p1_file);
     let l_num = lines.len();
     let mut answer1: i32 = 0;
     for ln in lines {
@@ -147,7 +147,7 @@ fn part2() -> i32 {
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}",p1_file));
     let lines: Vec<&str> = data1_s.split("\n").collect();
-  //  println!("\t read {} lines from {}", lines.len(), p1_file);
+    //  println!("\t read {} lines from {}", lines.len(), p1_file);
     let l_num = lines.len();
     let mut answer1: i32 = 0;
     for ln in lines {
