@@ -6,9 +6,9 @@
 
 | Problem |  | 1 | 2 |
 | --- | --- | -- | --- |
-| [Day 1: ](https://adventofcode.com/2022/day/1) Calorie Counting | manipulation of list of numbers | * | * |
-| [Day 2: ](https://adventofcode.com/2022/day/2) Rock Paper Scissors | flow control? | * | * |
-| [Day 3: ](https://adventofcode.com/2022/day/3)  |  | _ | _ |
+| [Day 1:  Calorie Counting](https://adventofcode.com/2022/day/1) | manipulation of list of numbers | * | * |
+| [Day 2:  Rock Paper Scissors ](https://adventofcode.com/2022/day/2)|  | * | * |
+| [Day 3:  Rucksack Reorganization ](https://adventofcode.com/2022/day/3)| sets  | * | * |
 | [Day 4: ](https://adventofcode.com/2022/day/4)  |  | _ | _ |
 | [Day 5: ](https://adventofcode.com/2022/day/5)  |  | _ | _ |
 | [Day 6: ](https://adventofcode.com/2022/day/6)  |  | _ | _ |
