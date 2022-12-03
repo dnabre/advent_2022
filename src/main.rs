@@ -4,17 +4,14 @@
 
 use std::fs;
 use std::collections::HashSet;
+use std::time::{Duration, Instant};
+
 /*
     Advent of Code 2022: Day 03
         part1 answer: 7674
         part2 answer: 2805
  */
 
- *
- Advent of Code 2022: Day 03
-     part1 answer: 7674
-     part2 answer: 2805
-*/
 
 const TEST:bool = false;
 
@@ -24,16 +21,27 @@ const PART1_INPUT_FILENAME: &str = "data/day03/part1_input.txt";
 const PART2_TEST_FILENAME: &str  = "data/day03/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day03/part2_input.txt";
 
+/*
+let start = Instant::now();
+expensive_function();
+let duration = start.elapsed();
+
+println!("Time elapsed in expensive_function() is: {:?}", duration);
+*/
+
 fn main() {
  print!("Advent of Code 2022, ");
  println!("Day 03");
 
-
+let start1 = Instant::now();
 let answer1 = part1();
+    let duration1 = start1.elapsed();
+    let start2 = Instant::now();
  let answer2 = part2();
+    let duration2 = start2.elapsed();
 
-println!("\t Part 1: {answer1} ");
-println!("\t Part 2: {answer2} ");
+println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
 
 println!("----------\ndone");
 }
