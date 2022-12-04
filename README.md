@@ -9,7 +9,7 @@
 | [Day 1:  Calorie Counting](https://adventofcode.com/2022/day/1) | manipulation of list of numbers | * | * |
 | [Day 2:  Rock Paper Scissors ](https://adventofcode.com/2022/day/2)|  | * | * |
 | [Day 3:  Rucksack Reorganization ](https://adventofcode.com/2022/day/3)| sets  | * | * |
-| [Day 4: ](https://adventofcode.com/2022/day/4)  |  | _ | _ |
+| [Day 4: Camp Cleanup](https://adventofcode.com/2022/day/4)  |  | * | * |
 | [Day 5: ](https://adventofcode.com/2022/day/5)  |  | _ | _ |
 | [Day 6: ](https://adventofcode.com/2022/day/6)  |  | _ | _ |
 | [Day 7: ](https://adventofcode.com/2022/day/7)  |  | _ | _ |
