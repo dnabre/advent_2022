@@ -1,31 +1,23 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-
 use std::fs;
-use std::collections::HashSet;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 /*
-    Advent of Code 2022: Day
-        part1 answer:
-        part2 answer:
+    Advent of Code 2022: Day 04
+        part1 answer: 657
+        part2 answer: 938
  */
 
-
-const TEST: bool = true;
+const TEST: bool = false;
 
 const PART1_TEST_FILENAME: &str = "data/day04/part1_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day04/part1_input.txt";
-
 const PART2_TEST_FILENAME: &str = "data/day04/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day04/part2_input.txt";
 
 
 fn main() {
 	print!("Advent of Code 2022, ");
-	println!("Day ");
+	println!("Day 04");
 
 	let start1 = Instant::now();
 	let answer1 = part1();
@@ -51,10 +43,10 @@ fn parse_dash_pair(s: &str) -> (i32, i32) {
 
 fn in_range(r1: i32, r2: i32, t1: i32, t2: i32) -> bool {
 	if (r1 <= t1) && (t2 <= r2) {
-		return true;
+		return true; // second inside first
 	}
 	if (t1 <= r1) && (r2 <= t2) {
-		return true;
+		return true; // first inside second
 	}
 	return false;
 }
