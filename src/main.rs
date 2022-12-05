@@ -15,6 +15,11 @@ use std::time::{Duration, Instant};
 
 use parse_display::FromStr;
 
+#[cfg(windows)]
+const D_LINE_ENDING: &'static str ="\r\n\r\n";
+#[cfg(not(windows))]
+const D_LINE_ENDING: &'static str ="\n\n";
+
 #[derive(FromStr, Debug)]
 #[display("move {count} from {src} to {dest}")]
 struct Move {
@@ -69,13 +74,13 @@ fn part1() -> i32 {
 
 	let (initial,moves) = ("","");
 
-	let (initial, moves) = data1_s.split_once("\n\n").unwrap();
+	let (initial, moves) = data1_s.split_once(D_LINE_ENDING).unwrap();
 
-	println!("initial:\n {}", initial);
+	println!("initial:\n{}", initial);
 
 	println!("---------");
 
-	println!("moves:\n {}", moves );
+	println!("moves:\n{}", moves );
 
 	/*
 	let moves: Vec<_> = moves
