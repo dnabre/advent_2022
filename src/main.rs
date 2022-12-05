@@ -1,22 +1,14 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-
 
 use std::fs;
-use std::collections::HashSet;
-use std::time::{Duration, Instant};
-use std::iter;
-use std::ops::Index;
-use std::fmt;
+use std::time::{Instant};
+
+use parse_display::FromStr;
+
 /*
     Advent of Code 2022: Day 05
         part1 answer:   VRWBSFZWM
-        part2 answer:
+        part2 answer:   RBTWJWMCF
  */
-
-use parse_display::FromStr;
 
 #[cfg(windows)]
 const D_LINE_ENDING: &'static str = "\r\n\r\n";
@@ -47,6 +39,7 @@ const PART2_TEST_FILENAME: &str = "data/day05/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day05/part2_input.txt";
 const MAX_STACK: usize = 9;
 
+
 fn main() {
     print!("Advent of Code 2022, ");
     println!("Day 05");
@@ -56,26 +49,26 @@ fn main() {
     let duration1 = start1.elapsed();
     println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
 
-    // let start2 = Instant::now();
-    // let answer2 = part2();
-    // let duration2 = start2.elapsed();
-    // println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+    let start2 = Instant::now();
+    let answer2 = part2();
+    let duration2 = start2.elapsed();
+    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
 
     println!("----------\ndone");
 }
 
+fn parse_moves(moves: &str) -> Vec<Move> {
+    let mut moves_v: Vec<Move> = Vec::new();
+    let move_lines = moves.lines();
+    for ln in move_lines {
+        let m: Move = ln.parse().unwrap();
+        moves_v.push(m);
+    }
+    return moves_v;
+}
 
-fn part1() -> String {
-    let p1_file = match TEST {
-        true => PART1_TEST_FILENAME,
-        false => PART1_INPUT_FILENAME
-    };
-    let data1_s =
-        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let (initial, moves) = data1_s.split_once(D_LINE_ENDING).unwrap();
-    let mut stacks: [Vec<char>; MAX_STACK + 1] = Default::default();
+fn parse_inital_stack(initial: &str, stacks: &mut [Vec<char>; MAX_STACK + 1]) {
     let mut max_len_length = 0;
-
     let init_lines = initial.split(LINE_ENDING);
     let mut s_lines: Vec<&str> = Vec::new();
     for l in init_lines {
@@ -84,7 +77,6 @@ fn part1() -> String {
         s_lines.push(r);
     }
     s_lines.pop();
-
     let mut padded: Vec<String> = Vec::new();
     for l in s_lines {
         format!("{}", l);
@@ -92,10 +84,9 @@ fn part1() -> String {
         padded.push(r);
     }
 
-    let mut to_process: Vec<&str> = Vec::new();
     let num_lines = padded.len();
 
-    for i in 0..num_lines {
+    for _i in 0..num_lines {
         let ln_string = padded.pop().unwrap();
         let mut ln = ln_string.as_str();
         let mut stack_number = 1;
@@ -109,14 +100,28 @@ fn part1() -> String {
             stack_number += 1;
         }
     }
+}
 
-    let move_lines = moves.lines();
-    let mut moves_v: Vec<Move> = Vec::new();
-    for ln in move_lines {
-        let mut m: Move = ln.parse().unwrap();
-        moves_v.push(m);
+fn part1() -> String {
+    let p1_file = match TEST {
+        true => PART1_TEST_FILENAME,
+        false => PART1_INPUT_FILENAME
+    };
+    let data1_s =
+        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
+    if TEST {
+        let lines: Vec<&str> = data1_s.trim().split("\n").collect();
+        let l_num = lines.len();
+        println!("\t read {} lines from {}", l_num, p1_file);
     }
 
+    let (initial, moves) = data1_s.split_once(D_LINE_ENDING).unwrap();
+    let mut stacks: [Vec<char>; MAX_STACK + 1] = Default::default();
+
+    parse_inital_stack(initial, &mut stacks);
+    let moves_v: Vec<Move> = parse_moves(moves);
+
+    // Run moves
     for mut m in moves_v
     {
         while m.count > 0 {
@@ -131,26 +136,9 @@ fn part1() -> String {
         let ch = stacks[i].pop().unwrap();
         answer1.push(ch);
     }
-
-
     return answer1;
 }
 
-fn print_stacks(stacks: &[Vec<char>; MAX_STACK + 1]) {
-    let mut max_depth = 1;
-    for i in 1..=MAX_STACK {
-        if stacks[i].len() > max_depth {
-            max_depth = stacks[i].len();
-        }
-    }
-    println!("print stacks, max depth={max_depth} ");
-    for i in 1..=MAX_STACK {
-        println!("_\t{:>2}:\t{:?}", i, stacks[i]);
-    }
-
-
-    println!();
-}
 
 fn part2() -> String {
     let p2_file = match TEST {
@@ -159,10 +147,39 @@ fn part2() -> String {
     };
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-    let lines: Vec<&str> = data2_s.trim().split("\n").collect();
-    let l_num = lines.len();
-    if TEST { println!("\t read {} lines from {}", l_num, p2_file); }
+
+    if TEST {
+        let lines: Vec<&str> = data2_s.trim().split("\n").collect();
+        let l_num = lines.len();
+        println!("\t read {} lines from {}", l_num, p2_file);
+    }
+
+    let (initial, moves) = data2_s.split_once(D_LINE_ENDING).unwrap();
+    let mut stacks: [Vec<char>; MAX_STACK + 1] = Default::default();
+
+    parse_inital_stack(initial, &mut stacks);
+    let moves_v: Vec<Move> = parse_moves(moves);
+
+    // Run moves
+    for  m in moves_v
+    {
+        let mut buffer: Vec<char> = Vec::new();
+        // pick up m.count items from stack m.src, reversing order
+        for _c in 0..m.count {
+            let v = stacks[m.src].pop().unwrap();
+            buffer.push(v);
+        }
+        // push on m.count items from buffer to stack m.dest, reversing the order back to forward
+        for _c in 0..m.count {
+            let v: char = buffer.pop().unwrap();
+            stacks[m.dest].push(v);
+        }
+    }
 
     let mut answer2 = String::new();
+    for i in 1..=MAX_STACK {
+        let ch = stacks[i].pop().unwrap();
+        answer2.push(ch);
+    }
     return answer2;
 }
