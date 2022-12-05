@@ -8,24 +8,34 @@ use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
 /*
-    Advent of Code 2022: Day
+    Advent of Code 2022: Day 05
         part1 answer:
         part2 answer:
  */
 
+use parse_display::FromStr;
+
+#[derive(FromStr, Debug)]
+#[display("move {count} from {src} to {dest}")]
+struct Move {
+	count: i32,
+	src: i32,
+	dest: i32,
+}
+
 
 const TEST: bool = true;
 
-const PART1_TEST_FILENAME: &str = "data/day04/part1_test.txt";
-const PART1_INPUT_FILENAME: &str = "data/day04/part1_input.txt";
+const PART1_TEST_FILENAME: &str = "data/day05/part1_test.txt";
+const PART1_INPUT_FILENAME: &str = "data/day05/part1_input.txt";
 
-const PART2_TEST_FILENAME: &str = "data/day04/part2_test.txt";
-const PART2_INPUT_FILENAME: &str = "data/day04/part2_input.txt";
+const PART2_TEST_FILENAME: &str = "data/day05/part2_test.txt";
+const PART2_INPUT_FILENAME: &str = "data/day05/part2_input.txt";
 
 
 fn main() {
 	print!("Advent of Code 2022, ");
-	println!("Day ");
+	println!("Day 05");
 
 	let start1 = Instant::now();
 	let answer1 = part1();
@@ -42,30 +52,6 @@ fn main() {
 }
 
 
-fn parse_dash_pair(s: &str) -> (i32, i32) {
-	let (l, r) = s.split_once("-").unwrap();
-	let l_n: i32 = l.parse().unwrap();
-	let r_n: i32 = r.parse().unwrap();
-	return (l_n, r_n);
-}
-
-fn in_range(r1: i32, r2: i32, t1: i32, t2: i32) -> bool {
-	if (r1 <= t1) && (t2 <= r2) {
-		return true;
-	}
-	if (t1 <= r1) && (r2 <= t2) {
-		return true;
-	}
-	return false;
-}
-
-fn do_range_overlap(r1: i32, r2: i32, t1: i32, t2: i32) -> bool {
-	if (r1 <= t2) && (t1 <= r2) {
-		return true;
-	}
-	return false;
-}
-
 
 fn part1() -> i32 {
 	let p1_file = match TEST {
@@ -74,20 +60,34 @@ fn part1() -> i32 {
 	};
 	let data1_s =
 	    fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-	let lines: Vec<&str> = data1_s.trim().split("\n").collect();
-	let l_num = lines.len();
-	if TEST { println!("\t read {} lines from {}", l_num, p1_file); }
+
+
+	//let lines: Vec<&str> = data1_s.trim().split("\n").collect();
+	//let l_num = lines.len();
+	//if TEST { println!("\t read {} lines from {}", l_num, p1_file); }
+
+
+	let (initial,moves) = ("","");
+
+	let (initial, moves) = data1_s.split_once("\n\n").unwrap();
+
+	println!("initial:\n {}", initial);
+
+	println!("---------");
+
+	println!("moves:\n {}", moves );
+
+	/*
+	let moves: Vec<_> = moves
+		.lines()
+		.map(|line| line.parse::<Move>().unwrap())
+		.collect();
+*/
+
+
+
 
 	let mut answer1 = 0;
-	for ln in lines {
-		let ln = ln.trim();
-		let (left, right) = ln.split_once(",").unwrap();
-		let (f1, f2) = parse_dash_pair(left);
-		let (s1, s2) = parse_dash_pair(right);
-		let oo = in_range(f1, f2, s1, s2);
-		if oo { answer1 += 1; }
-	}
-
 	return answer1;
 }
 
@@ -103,15 +103,6 @@ fn part2() -> i32 {
 	if TEST { println!("\t read {} lines from {}", l_num, p2_file); }
 
 	let mut answer2 = 0;
-	for ln in lines {
-		let ln = ln.trim();
-		let (left, right) = ln.split_once(",").unwrap();
-		let (f1, f2) = parse_dash_pair(left);
-		let (s1, s2) = parse_dash_pair(right);
-
-		let oo = do_range_overlap(f1, f2, s1, s2);
-		if oo { answer2 += 1; }
-	}
 
 	return answer2;
 }
