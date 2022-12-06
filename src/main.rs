@@ -67,32 +67,6 @@ fn part1() -> String {
     return answer1;
 }
 
-fn index_of_first_marker(s: &str, marker_size:usize) -> usize {
-    let bytes: Vec<char> = s.chars().collect();
-    let n = bytes.len();
-    let slice_number = 0;
-    for start in 0..=bytes.len() {
-        let end = start + marker_size;
-        if end > bytes.len() { break; }
-        let sl = &bytes[start..end];
-        let is_unique = check_unique(sl);
-        if is_unique { return end; }
-        //  println!("# {slice_number:>2}:start..end: [{start:>2}..{end:>2}], len: {:>2} ,\t {:?} \t {is_unique} t:{}", sl.len(), sl,target);
-    }
-    return bytes.len();
-}
-
-fn check_unique(slice: &[char]) -> bool {
-    let end = slice.len();
-    for i in 0..end {
-        let ch = slice[i];
-        for j in i + 1..end {
-            if ch == slice[j] { return false; }
-        }
-    }
-    return true;
-}
-
 
 fn part2() -> String {
     let p2_file = match TEST {
