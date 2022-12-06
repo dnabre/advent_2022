@@ -1,11 +1,29 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(unused_mut)]
+
+
 use std::fs;
+use std::collections::HashSet;
 use std::time::Instant;
+use std::iter;
+use std::ops::Index;
+use std::fmt;
+use parse_display::FromStr;
 
 /*
-    Advent of Code 2022: Day 06
-        part1 answer: 1109
-        part2 answer: 3955
+    Advent of Code 2022: Day
+        part1 answer:
+        part2 answer:
  */
+
+
+#[cfg(windows)]
+const D_LINE_ENDING: &'static str = "\r\n\r\n";
+#[cfg(not(windows))]
+const D_LINE_ENDING: &'static str = "\n\n";
+
 
 const TEST: bool = false;
 
@@ -15,11 +33,8 @@ const PART1_INPUT_FILENAME: &str = "data/day06/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day06/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day06/part2_input.txt";
 
-const PART1_MARKER_SIZE: usize = 4;
-const PART2_MARKER_SIZE: usize = 14;
-
 fn main() {
-    print!("Advent of Code 2022, Day 06");
+    print!("Advent of Code 2022, Day ");
     println!("");                           // insert Day
 
     let start1 = Instant::now();
@@ -36,30 +51,6 @@ fn main() {
 }
 
 
-
-fn check_unique(slice: &[char]) -> bool {
-    let end = slice.len();
-    for i in 0..end {
-        let ch = slice[i];
-        for j in i + 1..end {
-            if ch == slice[j] { return false; }
-        }
-    }
-    return true;
-}
-
-fn index_of_first_marker(s: &str, marker_size: usize) -> usize {
-    let bytes: Vec<char> = s.chars().collect();
-    for start in 0..=bytes.len() {
-        let end = start + marker_size;
-        if end > bytes.len() { break; }
-        let sl = &bytes[start..end];
-        let is_unique = check_unique(sl);
-        if is_unique { return end; }
-    }
-    return bytes.len();
-}
-
 fn part1() -> String {
     let p1_file = match TEST {
         true => PART1_TEST_FILENAME,
@@ -72,16 +63,34 @@ fn part1() -> String {
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
     }
-
-    let  tests: Vec<&str> = lines.iter().map(|ln| ln.trim()).collect();
-    let mut marker = 0;
-    for t in &tests {
-        marker = index_of_first_marker(t, PART1_MARKER_SIZE);
-        if TEST { println!("len: {:>2} ,\t {} \t marker: {}", t.len(), t, marker) };
-    }
-
-    let  answer1 = marker.to_string();
+    let mut answer1 = String::new();
     return answer1;
+}
+
+fn index_of_first_marker(s: &str, marker_size:usize) -> usize {
+    let bytes: Vec<char> = s.chars().collect();
+    let n = bytes.len();
+    let slice_number = 0;
+    for start in 0..=bytes.len() {
+        let end = start + marker_size;
+        if end > bytes.len() { break; }
+        let sl = &bytes[start..end];
+        let is_unique = check_unique(sl);
+        if is_unique { return end; }
+        //  println!("# {slice_number:>2}:start..end: [{start:>2}..{end:>2}], len: {:>2} ,\t {:?} \t {is_unique} t:{}", sl.len(), sl,target);
+    }
+    return bytes.len();
+}
+
+fn check_unique(slice: &[char]) -> bool {
+    let end = slice.len();
+    for i in 0..end {
+        let ch = slice[i];
+        for j in i + 1..end {
+            if ch == slice[j] { return false; }
+        }
+    }
+    return true;
 }
 
 
@@ -93,18 +102,13 @@ fn part2() -> String {
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
 
+
     let lines: Vec<&str> = data2_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p2_file);
     }
 
-    let  tests: Vec<&str> = lines.iter().map(|ln| ln.trim()).collect();
-    let mut marker = 0;
-    for t in &tests {
-        marker = index_of_first_marker(t, PART2_MARKER_SIZE);
-        if TEST { println!("len: {:>2} ,\t {} \t marker: {}", t.len(), t, marker) };
-    }
-    let answer2 = marker.to_string();
+    let mut answer2 = String::new();
     return answer2;
 }
