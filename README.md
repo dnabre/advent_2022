@@ -11,7 +11,7 @@
 | [Day 3: Rucksack Reorganization ](https://adventofcode.com/2022/day/3)| sets  | * | * |
 | [Day 4: Camp Cleanup](https://adventofcode.com/2022/day/4)  |  | * | * |
 | [Day 5: Supply Stacks](https://adventofcode.com/2022/day/5)  | stack manipulation | * | * |
-| [Day 6: ](https://adventofcode.com/2022/day/6)  |  | _ | _ |
+| [Day 6: Tuning Trouble](https://adventofcode.com/2022/day/6)  | string manipulation  | * | * |
 | [Day 7: ](https://adventofcode.com/2022/day/7)  |  | _ | _ |
 | [Day 8: ](https://adventofcode.com/2022/day/8)  |  | _ | _ | 
 | [Day 9: ](https://adventofcode.com/2022/day/9)  |  | _ | _ |
