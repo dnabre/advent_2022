@@ -5,11 +5,12 @@
 
 
 use std::fs;
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::time::Instant;
 use std::iter;
 use std::ops::{Add, Index};
 use std::fmt;
+use std::path::PathBuf;
 use std::thread::current;
 use parse_display::FromStr;
 
@@ -62,30 +63,12 @@ struct File {
 
 #[derive(FromStr, Debug)]
 #[display("dir {name}")]
-#[from_str(default)]
 struct Dir {
     name: String,
-    files: Vec<File>,
-    dirs: Vec<Dir>,
-    size: usize,
 }
 
-impl Default for Dir {
-    fn default() -> Dir {
-        Dir {
-            name: String::from("undefined"),
-            files: Vec::new(),
-            dirs: Vec::new(),
-            size: 0,
-        }
-    }
-}
 
-impl fmt::Display for Dir {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[dir: {} f#: {} d#: {}]", self.name, self.files.len(), self.dirs.len())
-    }
-}
+
 
 
 fn part1() -> String {
@@ -105,65 +88,38 @@ fn part1() -> String {
         lines[i] = lines[i].trim();
     }
 
-    let mut files: Vec<File> = Vec::new();
-    let mut cwd: Vec<&str> = Vec::new();
-    let mut root = Dir { name: String::from("/"), ..Default::default() };
-    let mut path = Vec::new();
-    path.push(root);
 
+    let mut file_size:HashMap<PathBuf,u32> = HashMap::new();
+
+    let mut path = PathBuf::from("/");
+
+
+
+    println!("path: {:?}", path);
+    path.push("subdir");
+    println!("path: {:?}", path);
+
+
+    let pwd = "<path>";
 
     // Assume first command will be "cd /"
     for line in lines {
         if line.starts_with("$") {
             //command
             if line.starts_with("$ ls") {
-                println!("{:?}", path);
-                println!("listing in {} ", path.last().unwrap());
+                println!("listing  : {pwd}");
             } else {  // change directory command
-                //              print!("cd: {} to ", get_cwd(&cwd));
                 let (_, dir) = line.split_once("cd ").unwrap();
-                println!("change to directory name {dir}");
-                //  println!("\t\t pre : {:?}", path);
+                print!("commmand : cd from {pwd} to ");
                 match dir {
                     "/" => {
                         println!("-:\t cd /");
-                        while path.len() > 2 {
-                            path.pop();
-                        }
                     }
                     ".." => {
-                        //  println!("{:?}", path);
                         println!("-:\t cd ..");
-                        let top = path.pop();
-                        match top {
-                            None => {
-                                println!("\t\t\t path pop: gave None");
-                                panic!("!!!! 'cd ..' given at root directory");
-                            }
-                            Some(x) => {
-                                //         println!("\t\t\t path pop:  {x} (path len = {})", path.len());
-                            }
-                        }
-                        //   println!("{:?}", path);
                     }
                     d_name => {
                         println!("-:\t cd {d_name}");
-                        let current_dir = path.last().unwrap();
-                        let mut new_dir = None;
-                        for sub_dir in &(current_dir.dirs) {
-                            if sub_dir.name.eq(d_name) {
-                                new_dir = Some(sub_dir);
-                            }
-                        }
-                        match new_dir {
-                            None => {
-                                panic!("subdir {d_name} of {:?} not found", path);
-                            }
-                            Some(d) => {
-                                println!("found subdir: {d}");
-                                path.push(*d);
-                            }
-                        }
                     }
                 }
             }
@@ -173,20 +129,16 @@ fn part1() -> String {
         } else {
             //listing
             if line.starts_with("dir") {
-                println!("list_dir: {}", line);
                 let d: Dir = line.parse().unwrap();
-                //     println!("list: {:?}", d);
-                let de = path.last_mut().unwrap();
-
-                de.dirs.push(d);
+                println!("list  dir: {pwd}/{}",d.name );
             } else {
-                println!("list_file: {}", line);
                 let f: File = line.parse().unwrap();
-                path.last_mut().unwrap().files.push(f);
+                println!("list file: {pwd}/{} size: {}",f.name, f.size);
+
             }
         }
     }
-    println!("{:?}", path);
+
 
 
     let mut answer1 = String::new();
