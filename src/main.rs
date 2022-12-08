@@ -15,7 +15,7 @@ use std::thread::current;
 use parse_display::FromStr;
 
 /*
-    Advent of Code 2022: Day 07
+    Advent of Code 2022: Day 08
         part1 answer:
         part2 answer:
  */
@@ -29,15 +29,15 @@ const D_LINE_ENDING: &'static str = "\n\n";
 
 const TEST: bool = true;
 
-const PART1_TEST_FILENAME: &str = "data/day07/part1_test.txt";
-const PART1_INPUT_FILENAME: &str = "data/day07/part1_input.txt";
+const PART1_TEST_FILENAME: &str = "data/day08/part1_test.txt";
+const PART1_INPUT_FILENAME: &str = "data/day08/part1_input.txt";
 
-const PART2_TEST_FILENAME: &str = "data/day07/part2_test.txt";
-const PART2_INPUT_FILENAME: &str = "data/day07/part2_input.txt";
+const PART2_TEST_FILENAME: &str = "data/day08/part2_test.txt";
+const PART2_INPUT_FILENAME: &str = "data/day08/part2_input.txt";
 
 fn main() {
     print!("Advent of Code 2022, Day ");
-    println!("07");                           // insert Day
+    println!("08");                           // insert Day
 
     let start1 = Instant::now();
     let answer1 = part1();
@@ -51,22 +51,6 @@ fn main() {
 
     println!("----------\ndone");
 }
-
-
-#[derive(FromStr, Debug)]
-#[display("{size} {name}")]
-struct File {
-    name: String,
-    size: usize,
-}
-
-
-#[derive(FromStr, Debug)]
-#[display("dir {name}")]
-struct Dir {
-    name: String,
-}
-
 
 
 
@@ -87,60 +71,6 @@ fn part1() -> String {
     for i in 0..lines.len() {
         lines[i] = lines[i].trim();
     }
-
-
-    let mut file_size:HashMap<PathBuf,u32> = HashMap::new();
-
-    let mut path = PathBuf::from("/");
-
-
-
-    println!("path: {:?}", path);
-    path.push("subdir");
-    println!("path: {:?}", path);
-
-
-    let pwd = "<path>";
-
-    // Assume first command will be "cd /"
-    for line in lines {
-        if line.starts_with("$") {
-            //command
-            if line.starts_with("$ ls") {
-                println!("listing  : {pwd}");
-            } else {  // change directory command
-                let (_, dir) = line.split_once("cd ").unwrap();
-                print!("commmand : cd from {pwd} to ");
-                match dir {
-                    "/" => {
-                        println!("-:\t cd /");
-                    }
-                    ".." => {
-                        println!("-:\t cd ..");
-                    }
-                    d_name => {
-                        println!("-:\t cd {d_name}");
-                    }
-                }
-            }
-            //   println!("\t\t post: {:?}", path);
-
-            //end command
-        } else {
-            //listing
-            if line.starts_with("dir") {
-                let d: Dir = line.parse().unwrap();
-                println!("list  dir: {pwd}/{}",d.name );
-            } else {
-                let f: File = line.parse().unwrap();
-                println!("list file: {pwd}/{} size: {}",f.name, f.size);
-
-            }
-        }
-    }
-
-
-
     let mut answer1 = String::new();
     return answer1;
 }
