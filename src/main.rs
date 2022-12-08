@@ -58,6 +58,63 @@ fn main() {
 
 
 
+fn horizontal_sweep(tree_array: &Array2<i32>, vis: &mut ArrayBase<OwnedRepr<i32>, Dim<[usize; 2]>>)  {
+    let mut local_max_left:i32;
+    let mut local_max_right:i32;
+    let size = tree_array.dim().0;
+    // sweep left -> right
+    for i in 0..size {
+        local_max_left = tree_array[[i, 0]];
+        local_max_right = tree_array[[i, size - 1]];
+        vis[[i, 0]] = 1;
+        vis[[i, size - 1]] = 1;
+        //left->right
+        for j in 1..size {
+            if tree_array[[i, j]] > local_max_left {
+                local_max_left = tree_array[[i, j]];
+                vis[[i, j]] = 1;
+            }
+        }
+        //right->left
+        for j in (0..size).rev() {
+            if tree_array[[i, j]] > local_max_right {
+                local_max_right = tree_array[[i, j]];
+                vis[[i, j]] = 1;
+            }
+        }
+    }
+}
+
+
+fn vertical_sweep(tree_array: &Array2<i32>, vis: &mut ArrayBase<OwnedRepr<i32>, Dim<[usize; 2]>>) {
+
+    let mut local_max_up:i32;
+    let mut local_max_down:i32;
+    let size = tree_array.dim().0;
+
+    for i in 0..size {
+        local_max_up = tree_array[[0, i]];
+        vis[[0, i]] = 1;
+        local_max_down = tree_array[[size - 1, i]];
+        vis[[size - 1, i]] = 1;
+        // sweep top -> bottom
+        for j in 0..size {
+            if tree_array[[j, i]] > local_max_up {
+                local_max_up = tree_array[[j, i]];
+                vis[[j, i]] = 1;
+            }
+        }
+        // sweep bottom -> top
+        for j in (0..size).rev() {
+            if tree_array[[j, i]] > local_max_down {
+                local_max_down = tree_array[[j, i]];
+                vis[[j, i]] = 1;
+            }
+        }
+    }
+}
+
+
 
 fn part1() -> String {
     let p1_file = match TEST {
@@ -87,68 +144,16 @@ fn part1() -> String {
         }
     }
 
-    let mut tree_array = Array2::from_shape_vec ((size, size), n_array).unwrap();
-    let (rows,cols) = tree_array.dim();
+    let mut tree_array:Array2<i32> = Array2::from_shape_vec ((size, size), n_array).unwrap();
+    let (rows,cols):(usize,usize) = tree_array.dim();
 
-  //  println!("trees {rows}x{cols} : \n{}", tree_array);
+    //  println!("trees {rows}x{cols} : \n{}", tree_array);
     let mut vis: ArrayBase<OwnedRepr<i32>, Dim<[usize; 2]>> = Array::zeros((size, size));
 
 
-    //
-    // //mark outside (minus corners) as visible
-    // for p in 1..(size-1){
-    //     for c in [0,size-1] {
-    //         vis[[c,p]] = 1;
-    //         vis[[p,c]] = 1;
-    //     }
-    //  }
-   // println!("vis: {a}x{b}, contents:\n {arr}", a=vis.dim().0, b=vis.dim().1, arr=vis);
+    horizontal_sweep( &tree_array, &mut vis);
 
-    let mut local_max:i32;
-    // sweep left -> right
-    for i in 0..size {
-        local_max= tree_array[[i,0]];
-        vis[[i,0]] = 1;
-        for j in 1..size {
-            if tree_array[[i,j]] > local_max {
-                local_max = tree_array[[i,j]];
-                vis[[i,j]] = 1;
-            }
-        }
-    }
-    // sweep right -> left
-    for i in 0..size {
-        local_max = tree_array[[i,size-1]];
-        vis[[i,size-1]] = 1;
-        for j in (0..size).rev() {
-            if tree_array[[i,j]] > local_max {
-                local_max = tree_array[[i,j]];
-                vis[[i,j]] = 1;
-            }
-        }
-    }
-    // sweep top -> bottom
-    for i in 0..size {
-        local_max = tree_array[[0,i]];
-        vis[[0,i]] = 1;
-        for j in 0..size {
-            if tree_array[[j,i]] > local_max {
-                local_max = tree_array[[j,i]];
-                vis[[j,i]] = 1;
-            }
-        }
-    }
-    // sweep bottom -> top
-    for i in 0..size {
-        local_max = tree_array[[size-1,i]];
-        vis[[size-1,i]] = 1;
-        for j in (0..size).rev() {
-            if tree_array[[j,i]] > local_max {
-                local_max = tree_array[[j,i]];
-                vis[[j,i]] = 1;
-            }
-        }
-    }
+    vertical_sweep(&mut tree_array, &mut vis);
 
     let mut vis_count = 0;
     for e in &vis {
@@ -161,7 +166,6 @@ fn part1() -> String {
     let mut answer1 =vis_count.to_string();
     return answer1;
 }
-
 
 fn part2() -> String {
     let p2_file = match TEST {
