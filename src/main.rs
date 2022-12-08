@@ -4,6 +4,9 @@
 #![allow(unused_mut)]
 
 
+extern crate core;
+
+
 use std::fs;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -13,10 +16,11 @@ use std::fmt;
 use std::path::PathBuf;
 use std::thread::current;
 use parse_display::FromStr;
+use ndarray::{Array, ArrayBase, OwnedRepr, Dim, Array2, Axis, s};
 
 /*
     Advent of Code 2022: Day 08
-        part1 answer:
+        part1 answer: 1538
         part2 answer:
  */
 
@@ -27,7 +31,7 @@ const D_LINE_ENDING: &'static str = "\r\n\r\n";
 const D_LINE_ENDING: &'static str = "\n\n";
 
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 const PART1_TEST_FILENAME: &str = "data/day08/part1_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day08/part1_input.txt";
@@ -63,15 +67,98 @@ fn part1() -> String {
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
     let mut lines: Vec<&str> = data1_s.trim().split("\n").collect();
+    lines = lines.iter().map(|l| l.trim()).collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
     }
 
-    for i in 0..lines.len() {
-        lines[i] = lines[i].trim();
+    let size = lines[0].len();
+    let mut sbuffer = String::new();
+
+    for ln in lines {
+        sbuffer.push_str(ln);
     }
-    let mut answer1 = String::new();
+    let mut n_array:Vec<i32> = Vec::new();
+    let b_chars  = sbuffer.chars();
+    for ch in b_chars {
+        if let Some(digit) = ch.to_digit(10) {
+            n_array.push(digit as i32);
+        }
+    }
+
+    let mut tree_array = Array2::from_shape_vec ((size, size), n_array).unwrap();
+    let (rows,cols) = tree_array.dim();
+
+  //  println!("trees {rows}x{cols} : \n{}", tree_array);
+    let mut vis: ArrayBase<OwnedRepr<i32>, Dim<[usize; 2]>> = Array::zeros((size, size));
+
+
+    //
+    // //mark outside (minus corners) as visible
+    // for p in 1..(size-1){
+    //     for c in [0,size-1] {
+    //         vis[[c,p]] = 1;
+    //         vis[[p,c]] = 1;
+    //     }
+    //  }
+   // println!("vis: {a}x{b}, contents:\n {arr}", a=vis.dim().0, b=vis.dim().1, arr=vis);
+
+    let mut local_max:i32;
+    // sweep left -> right
+    for i in 0..size {
+        local_max= tree_array[[i,0]];
+        vis[[i,0]] = 1;
+        for j in 1..size {
+            if tree_array[[i,j]] > local_max {
+                local_max = tree_array[[i,j]];
+                vis[[i,j]] = 1;
+            }
+        }
+    }
+    // sweep right -> left
+    for i in 0..size {
+        local_max = tree_array[[i,size-1]];
+        vis[[i,size-1]] = 1;
+        for j in (0..size).rev() {
+            if tree_array[[i,j]] > local_max {
+                local_max = tree_array[[i,j]];
+                vis[[i,j]] = 1;
+            }
+        }
+    }
+    // sweep top -> bottom
+    for i in 0..size {
+        local_max = tree_array[[0,i]];
+        vis[[0,i]] = 1;
+        for j in 0..size {
+            if tree_array[[j,i]] > local_max {
+                local_max = tree_array[[j,i]];
+                vis[[j,i]] = 1;
+            }
+        }
+    }
+    // sweep bottom -> top
+    for i in 0..size {
+        local_max = tree_array[[size-1,i]];
+        vis[[size-1,i]] = 1;
+        for j in (0..size).rev() {
+            if tree_array[[j,i]] > local_max {
+                local_max = tree_array[[j,i]];
+                vis[[j,i]] = 1;
+            }
+        }
+    }
+
+    let mut vis_count = 0;
+    for e in &vis {
+        if *e==1 {
+            vis_count += 1;
+        }
+    }
+
+
+    let mut answer1 =vis_count.to_string();
     return answer1;
 }
 
