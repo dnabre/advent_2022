@@ -1,19 +1,12 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
 
-
-use std::fs;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fs;
 use std::time::Instant;
-use std::iter;
-use std::ops::{Add, Index};
-use std::fmt;
-use std::thread::current;
-use thousands::Separable;
+
 use parse_display::FromStr;
+
+
 
 /*
     Advent of Code 2022: Day 07
@@ -22,9 +15,8 @@ use parse_display::FromStr;
 
  */
 
-const TEST_ANSWER:(u32,u32) =(95437,24933642);
-const INPUT_ANSWER:(u32,u32) = (1581595,1544176);
-
+const TEST_ANSWER: (u32, u32) = (95437, 24933642);
+const INPUT_ANSWER: (u32, u32) = (1581595, 1544176);
 
 
 const PART1_TEST_FILENAME: &str = "data/day07/part1_test.txt";
@@ -40,7 +32,6 @@ const PART2_TOTAL_SPACE: u32 = 70_000_000;
 const PART2_TARGET_UNUSED_SPACE: u32 = 30_000_000;
 
 
-
 const TEST: bool = false;
 
 fn main() {
@@ -48,7 +39,7 @@ fn main() {
     println!("07");                           // insert Day
 
 
-   // test();
+    // test();
     let start1 = Instant::now();
     let answer1 = part1();
     let duration1 = start1.elapsed();
@@ -89,7 +80,6 @@ struct Dir {
 }
 
 
-
 fn part1() -> String {
     let p1_file = match TEST {
         true => PART1_TEST_FILENAME,
@@ -108,14 +98,14 @@ fn part1() -> String {
     }
 
 
-    let (mut dir_size, mut directory_set):(HashMap<String,u32>,HashSet<String> )
+    let (mut dir_size, mut directory_set): (HashMap<String, u32>, HashSet<String>)
         = parse_into_directories(&mut lines);
 
 
-    let cum_dir_sizes:HashMap<String,u32> =
+    let cum_dir_sizes: HashMap<String, u32> =
         get_cumulative_directory_sizes(&directory_set, &dir_size);
 
-    let mut total_size:u32 = 0;
+    let mut total_size: u32 = 0;
 
     //println!("\n directory list:");
     for d in &directory_set {
@@ -126,14 +116,12 @@ fn part1() -> String {
                 panic!("directory {d} should have known size");
             }
             Some(&s) => {
-                if s < PART1_DIR_SIZE_CAP{
+                if s < PART1_DIR_SIZE_CAP {
                     total_size += s;
-
                 }
-       //        println!("\t{d:<20}  \t size: {s}");
+                //        println!("\t{d:<20}  \t size: {s}");
             }
         }
-
     }
 
 
@@ -145,7 +133,7 @@ fn part1() -> String {
 
 // ctor_set):(HashMap<String,u32>,HashSet<String> )
 
-fn parse_into_directories(lines: &mut Vec<&str>) -> (HashMap<String,u32>, HashSet<String>){
+fn parse_into_directories(lines: &mut Vec<&str>) -> (HashMap<String, u32>, HashSet<String>) {
     let mut dir_size: HashMap<String, u32> = HashMap::new();
     let mut directory_set: HashSet<String> = HashSet::new();
 
@@ -153,10 +141,8 @@ fn parse_into_directories(lines: &mut Vec<&str>) -> (HashMap<String,u32>, HashSe
     directory_set.insert(cwd.clone());
     dir_size.insert(cwd.clone(), 0);
 
-    let mut line_count = 0;
     // Assume first command will be "cd /"
     for line in lines {
-        line_count += 1;
         //       println!("cwd: {cwd} \t line: {line} \t\t l_num: {line_count}");
         if line.starts_with("$") {
             //command
@@ -180,15 +166,14 @@ fn parse_into_directories(lines: &mut Vec<&str>) -> (HashMap<String,u32>, HashSe
                     }
                     d_name => {
                         if debug { println!("\t cd __ branch, cwd: {cwd}, d_name: {d_name}") };
-                        //    if cwd.ne("/") { cwd.push('/'); }
+
                         cwd.push_str(d_name);
-                        if debug { println!("push_str d_name ({d_name}) onto cwd, resulting in {cwd}") };
+
                         cwd.push('/');
-                        if debug { println!("pushed slash onto cwd, resulting {cwd}") };
-                        let rr = directory_set.insert(cwd.clone());
-                        if debug { println!("inserted clone of cwd into directory_set, result {}", rr) };
-                        let rr2 = dir_size.insert(cwd.clone(), 0);
-                        if debug { println!("insert cwd = 0 , {cwd} into dir_size, result {:?}", rr2) };
+
+                        directory_set.insert(cwd.clone());
+                        dir_size.insert(cwd.clone(), 0);
+
                     }
                 }
                 //          println!("moved to {cwd}");
@@ -215,23 +200,23 @@ fn parse_into_directories(lines: &mut Vec<&str>) -> (HashMap<String,u32>, HashSe
         }
     }
 
-   return (dir_size,directory_set);
+    return (dir_size, directory_set);
 }
 
 
 fn get_cumulative_directory_sizes(dirs_set: &HashSet<String>, dir_size: &HashMap<String, u32>) -> HashMap<String, u32> {
-    let mut cum_size_map:HashMap<String,u32> = HashMap::new();
+    let mut cum_size_map: HashMap<String, u32> = HashMap::new();
 
     for dir in dirs_set {
         let cwd = dir.clone();
-        let mut size:u32 = 0;
+        let mut size: u32 = 0;
         // println!("scanning for subdirs of {cwd}");
         for sub_dir in dirs_set {
             let sd_size = match dir_size.get(sub_dir) {
                 None => {
                     panic!("can't find size for {sub_dir}");
                 }
-                Some(x) => {x}
+                Some(x) => { x }
             };
             // println!("\t subdir: {sub_dir:<20} \t size: {sd_size} ");
             if sub_dir.starts_with(&cwd) {
@@ -241,16 +226,15 @@ fn get_cumulative_directory_sizes(dirs_set: &HashSet<String>, dir_size: &HashMap
             }
         }
         cum_size_map.insert(cwd, size);
-
     }
 
     return cum_size_map;
 }
 
 
-fn last_char_is(s:&String, ch: char)->bool {
+fn last_char_is(s: &String, ch: char) -> bool {
     let c = s.chars().last().unwrap();
-    if c==ch {
+    if c == ch {
         return true;
     } else {
         return false;
@@ -270,7 +254,7 @@ fn last_char_is(s:&String, ch: char)->bool {
     return p_cwd
 }
 */
-fn dir_up(cwd: & String) -> String {
+fn dir_up(cwd: &String) -> String {
     let mut p_cwd = cwd.clone();
     p_cwd.pop();
     let (left, _) = p_cwd.rsplit_once("/").unwrap();
@@ -280,7 +264,7 @@ fn dir_up(cwd: & String) -> String {
         p_cwd = String::from(left);
     }
     p_cwd.push('/');
-      return p_cwd;
+    return p_cwd;
 }
 
 fn part2() -> String {
@@ -303,23 +287,22 @@ fn part2() -> String {
     }
 
 
-    let (mut dir_size, mut directory_set):(HashMap<String,u32>,HashSet<String> )
+    let (mut dir_size, mut directory_set): (HashMap<String, u32>, HashSet<String>)
         = parse_into_directories(&mut lines);
 
 
-    let cum_dir_sizes:HashMap<String,u32> =
+    let cum_dir_sizes: HashMap<String, u32> =
         get_cumulative_directory_sizes(&directory_set, &dir_size);
     let mut root_used = cum_dir_sizes.get("/").unwrap();
     let mut free_space = PART2_TOTAL_SPACE - root_used;
-   let mut need_to_free =   PART2_TARGET_UNUSED_SPACE - free_space;
+    let mut need_to_free = PART2_TARGET_UNUSED_SPACE - free_space;
 
 
+    let mut dir_size_totals: Vec<&u32> = cum_dir_sizes.values().collect();
+    //   println!("{:?}", dir_size_totals);
 
-    let mut dir_size_totals:Vec<&u32> = cum_dir_sizes.values().collect();
- //   println!("{:?}", dir_size_totals);
 
-
-    let mut size_values:Vec<u32> = dir_size_totals.iter().map(|x| **x).collect();
+    let mut size_values: Vec<u32> = dir_size_totals.iter().map(|x| **x).collect();
     size_values.sort();
 
     let mut to_free = 0;
