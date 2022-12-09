@@ -25,6 +25,9 @@ use parse_display::FromStr;
         part1, other guy:
             194
             1581595
+            Total sum of directories < 100000: 1581595
+Directory to free: ////bcfwbq/gpbswq/tnsjg/jrflhz 1544176
+
  */
 
 
@@ -39,7 +42,7 @@ const P_DELIMIT: &'static str = "\\";
 const P_DELIMIT: &'static str = "/";
 
 
-const TEST: bool = false;
+const TEST: bool = true;
 
 const PART1_TEST_FILENAME: &str = "data/day07/part1_test.txt";
 const PART1_TEST2_FILENAME: &str = "data/day07/part1_test_2.txt";
@@ -48,8 +51,12 @@ const PART1_INPUT_FILENAME: &str = "data/day07/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day07/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day07/part2_input.txt";
 
-
 const PART1_DIR_SIZE_CAP: u32 = 100_000;
+
+const PART2_TOTAL_SPACE: u32 = 70_000_000;
+const PART2_TARGET_UNUSED_SPACE: u32 = 30_000_000;
+
+
 fn main() {
     print!("Advent of Code 2022, Day ");
     println!("07");                           // insert Day
@@ -84,22 +91,6 @@ struct Dir {
     name: String,
 }
 
-fn test() {
-    let strings = ["/bcfwbq/bsbpc/", "/", "gpbswq","/bcfwbq/bsbpc","gpbswq/" ];
-    for s in strings {
-        let mut ss = String::from(s);
-
-        println!("plain {ss}");
-        let ch:char = ss.chars().last().unwrap();
-        println!("last char: |{}|", ch);
-        println!("result of last_char_is(&ss, '/') ->  {}", last_char_is(&ss, '/'));
-
-        println!("--------------\n\n");
-    }
-
-
-}
-
 
 
 fn part1() -> String {
@@ -121,7 +112,6 @@ fn part1() -> String {
 
     let mut dir_size: HashMap<String, u32> = HashMap::new();
 
-  //  let mut directory_list:Vec<String> = Vec::new();
     let mut directory_set:HashSet<String> = HashSet::new();
 
 
@@ -134,24 +124,15 @@ fn part1() -> String {
     // Assume first command will be "cd /"
     for line in lines {
         line_count += 1;
-  //      if line_count > 40  {break};
-        println!("cwd: {cwd} \t line: {line} \t\t l_num: {line_count}");
+ //       println!("cwd: {cwd} \t line: {line} \t\t l_num: {line_count}");
         if line.starts_with("$") {
             //command
             if line.starts_with("$ ls") {
-                println!("listing  : {cwd}");
+   //             println!("listing  : {cwd}");
             } else {  // change directory command
-                if !cwd.ends_with("/") {
-                    println!("{cwd} doesn't end with /  , while processing {line_count}");
-             //       panic!();
-                }
                 let mut debug = false;
                 let (_, dir) = line.split_once("cd ").unwrap();
-                println!("cd from {cwd}, {dir}");
-                if dir.ends_with("gpbswq") {
-                    println!("error here");
-                    debug = true;
-                }
+            //    println!("cd from {cwd}, {dir}");
                 match dir {
                     "/" => {
                         cwd = String::from("/");
@@ -179,7 +160,7 @@ fn part1() -> String {
                     }
 
                 }
-                println!("moved to {cwd}");
+      //          println!("moved to {cwd}");
             }
             //end command
         } else {
@@ -189,7 +170,7 @@ fn part1() -> String {
 
             if line.starts_with("dir") {
                 let d: Dir = line.parse().unwrap();
-                println!("list  dir: {} \t -:- {cwd} ", d.name);
+        //        println!("list  dir: {} \t -:- {cwd} ", d.name);
 
             } else {
                 let mut c_size =  match dir_size.get(&cwd) {
@@ -197,7 +178,7 @@ fn part1() -> String {
                     Some(&x) => {x}
                 };
                 let f: File = line.parse().unwrap();
-                println!("\t File: {cwd} <|> {} \t{}", f.name,f.size);
+          //      println!("\t File: {cwd} <|> {} \t{}", f.name,f.size);
                 c_size = c_size +  f.size;
                 let r = dir_size.insert(cwd.clone(),c_size);
 
@@ -205,7 +186,7 @@ fn part1() -> String {
         }
     }
 
-    println!("\n directory list:");
+  //  println!("\n directory list:");
     for d in &directory_set {
         let size = dir_size.get(d);
         match size {
@@ -226,7 +207,7 @@ fn part1() -> String {
 
     let mut total_size:u32 = 0;
 
-    println!("\n directory list:");
+    //println!("\n directory list:");
     for d in &directory_set {
         let size = cum_dir_sizes.get(d);
         match size {
@@ -245,16 +226,6 @@ fn part1() -> String {
 
     }
 
-    let mut with_slash=0;
-    let mut without_slash = 0;
-    for d in &directory_set {
-        if last_char_is(d, '/') {
-            with_slash +=1 ;
-        } else {
-            without_slash +=1;
-        }
-    }
-    println!("directories ending with slash: {with_slash}, those without: {without_slash}");
 
     println!("directory entries: {}", directory_set.len());
     let mut answer1 = total_size.to_string();
@@ -308,12 +279,6 @@ fn dir_up(cwd: & String) -> String {
         p_cwd = String::from("/");
     } else {
         p_cwd = String::from(left);
-    }
-    if !last_char_is(&p_cwd, '/') {
-        println!("-----------------------------> doing 'cd ..' and result {p_cwd} doesn't end in /");
-        p_cwd.push('/');
-    } else {
-        println!("--------------> doing 'cd ..' and result {p_cwd}, end with slash properly");
     }
     return p_cwd
 }
