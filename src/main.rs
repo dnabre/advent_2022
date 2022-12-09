@@ -96,12 +96,12 @@ fn part1() -> String {
 
     let mut path: PathBuf;
     if P_DELIMIT.eq("\\") {
-        path = PathBuf::from(r"\\");
+        path = PathBuf::from(r"\");
     } else {
         path = PathBuf::from(r"/");
     }
     let root = path.clone();
-
+    println!("root: {:?}", root);
 
     // Assume first command will be "cd /"
     for line in lines {
@@ -111,20 +111,18 @@ fn part1() -> String {
                 println!("listing  : {:?}", path);
             } else {  // change directory command
                 let (_, dir) = line.split_once("cd ").unwrap();
-                print!("commmand : cd from {:?} to ", path);
+                print!("cd from {:?} to ", path);
                 match dir {
                     "/" => {
-                        print!("-: \t cd / -> ");
                         path = root.clone();
                         println!("{:?}", path);
                     }
                     ".." => {
-                        print!("-:\t cd ..");
-                        path.pop();
+                         path.pop();
                         println!("{:?}", path);
                     }
                     d_name => {
-                        print!("-:\t cd {d_name}");
+
                         path.push(d_name);
                         println!("{:?}", path);
                     }
@@ -138,12 +136,7 @@ fn part1() -> String {
             if line.starts_with("dir") {
                 let d: Dir = line.parse().unwrap();
                 println!("list  dir: {} \t -:- {:?} ", d.name, path);
-                path.push(d.name);
-                if dir_size.contains_key(&path) {
-                    println!("\t!\t dir_size already contains {:?}", path);
-                } else {
-                    dir_size.insert(path.clone(), 0);
-                }
+
             } else {
                 let f: File = line.parse().unwrap();
                 println!("list file: {} \t -:- {:?} size: {}", f.name, path, f.size);
