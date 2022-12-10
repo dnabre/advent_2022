@@ -16,7 +16,7 @@ use parse_display::FromStr;
 /*
     Advent of Code 2022: Day 10
         part1 answer: 15220
-        part2 answer:
+        part2 answer: RFZEKBFA
 
  */
 
@@ -31,7 +31,7 @@ const PART1_INPUT_FILENAME: &str = "data/day10/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day10/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day10/part2_input.txt";
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -160,7 +160,8 @@ fn part1() -> String {
 
     let mut m: Machine = Default::default();
     //   println!("inital machine: {m}\n");
-
+    let mut r_max = std::i32::MIN;
+    let mut r_min = std::i32::MAX;
     let mut total_ss = 0;
     for i in code {
         match i {
@@ -168,13 +169,15 @@ fn part1() -> String {
             Instruction::Addx(x) => { m.register = m.register  + x; }
             Instruction::WaitState => {}
         }
+        r_max = std::cmp::max(r_max,m.register);
+        r_min = std::cmp::min(r_min,m.register);
         m.cycle_counter += 1;
         if m.cycle_counter % 40 == 20 {
             let ss = m.cycle_counter * (m.register as usize);
             total_ss += ss;
         }
     }
-
+    println!("register range: {r_min} - {r_max}");
     //   println!("\nfinal machine: {m}");
     //   println!("total signal strength: {total_ss}");
     let mut answer1 = total_ss.to_string();
@@ -216,7 +219,7 @@ fn part2() -> String {
     let mut m: Machine = Default::default();
 
     println!("inital machine: {m}\n");
-m.register+=1;
+
     let mut total_ss = 0;
     let mut crt_position: usize=0;
     let mut r_max = std::i32::MIN;
@@ -232,8 +235,8 @@ m.register+=1;
 
     for i in code {
 
-        // let new_crt_char = sprite_vec[crt_position % SCREEN_WIDTH];
-        // crt.push(new_crt_char);
+        let new_crt_char = sprite_vec[crt_position % SCREEN_WIDTH];
+        crt.push(new_crt_char);
 
         match i {
             Instruction::Noop => {}
@@ -242,24 +245,30 @@ m.register+=1;
         }
         r_max = std::cmp::max(r_max,m.register);
         r_min = std::cmp::min(r_min,m.register);
-        // if m.register < 0  {
-        //     println!("{}",crt);
-        // }
-        // println!("{m}\n {i}");
-        // match i {
-        //     Instruction::Addx(x) => {
-        //         sprite_vec = get_sprite_vec(m.register);
-        //     }
-        //     _ => {
-        //     }
-        // }
-        //
-        //
+         // if m.register < 0  {
+         //     println!("{}",crt);
+         //     panic!("{m}");
+         //
+         // }
+
+
+        println!("{m}\n {i}");
+        match i {
+            Instruction::Addx(x) => {
+                if(m.register >= 0) {
+                    sprite_vec = get_sprite_vec(m.register);
+                }
+            }
+            _ => {
+            }
+        }
+
+
          m.cycle_counter += 1;
-        // crt_position +=1 ;
-        // if crt_position % 40 == 0 {
-        //     crt.push('\n');
-        // }
+        crt_position +=1 ;
+        if crt_position % 40 == 0 {
+            crt.push('\n');
+        }
 
     }
 
