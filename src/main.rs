@@ -66,7 +66,7 @@ fn main() {
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 struct Machine {
-    register: usize,
+    register: i32,
     cycle_counter: usize,
 }
 
@@ -165,12 +165,12 @@ fn part1() -> String {
     for i in code {
         match i {
             Instruction::Noop => {}
-            Instruction::Addx(x) => { m.register = (m.register as i32 + x) as usize; }
+            Instruction::Addx(x) => { m.register = m.register  + x; }
             Instruction::WaitState => {}
         }
         m.cycle_counter += 1;
         if m.cycle_counter % 40 == 20 {
-            let ss = m.cycle_counter * m.register;
+            let ss = m.cycle_counter * (m.register as usize);
             total_ss += ss;
         }
     }
@@ -216,11 +216,11 @@ fn part2() -> String {
     let mut m: Machine = Default::default();
 
     println!("inital machine: {m}\n");
-
+m.register+=1;
     let mut total_ss = 0;
     let mut crt_position: usize=0;
-    let mut r_max = -1;
-    let mut r_min = 50;
+    let mut r_max = std::i32::MIN;
+    let mut r_min = std::i32::MAX;
 
 
     let mut sprite_vec = get_sprite_vec(m.register);
@@ -231,47 +231,39 @@ fn part2() -> String {
 
 
     for i in code {
-        println!();
-        println!("Start Cycle {:>4}: {i} reg: {:>5}", m.cycle_counter, m.register);
-        println!("During Cycle {:>3}: CRT draws position {crt_position}", m.cycle_counter);
 
-        let new_crt_char = sprite_vec[crt_position];
-        println!("Selecting char to write, ch: {}, register: {}", new_crt_char,m.register);
+        // let new_crt_char = sprite_vec[crt_position % SCREEN_WIDTH];
+        // crt.push(new_crt_char);
 
         match i {
             Instruction::Noop => {}
-            Instruction::Addx(x) => { m.register = (m.register as i32 + x) as usize; }
+            Instruction::Addx(x) => { m.register = m.register + x; }
             Instruction::WaitState => {}
         }
+        r_max = std::cmp::max(r_max,m.register);
+        r_min = std::cmp::min(r_min,m.register);
+        // if m.register < 0  {
+        //     println!("{}",crt);
+        // }
+        // println!("{m}\n {i}");
+        // match i {
+        //     Instruction::Addx(x) => {
+        //         sprite_vec = get_sprite_vec(m.register);
+        //     }
+        //     _ => {
+        //     }
+        // }
+        //
+        //
+         m.cycle_counter += 1;
+        // crt_position +=1 ;
+        // if crt_position % 40 == 0 {
+        //     crt.push('\n');
+        // }
 
-        crt.push(new_crt_char);
-        println!("Current CRT row : {}",crt);
-
-        println!("crt_position: {}, register: {}, ch: {}",crt_position,m.register, sprite_vec[crt_position] );
-
-        match i {
-            Instruction::Addx(x) => {
-                println!("End of cycle{:>3}: finish executing addx {x} (Register X is now {})",
-                         m.cycle_counter, m.register
-                );
-                sprite_vec = get_sprite_vec(m.register);
-                print!("Sprite position: ");
-                print_sprite_vec(&sprite_vec);
-                println!();
-            }
-            _ => {
-            }
-        }
-
-
-        m.cycle_counter += 1;
-        crt_position +=1 ;
-        if m.cycle_counter % 40 == 20 {
-            let ss = m.cycle_counter * m.register;
-            total_ss += ss;
-        }
-        if m.cycle_counter > 21 { break; }
     }
+
+    println!("{}", crt);
 
     println!("\nfinal machine: {m}");
     println!("total signal strength: {total_ss}");
@@ -287,10 +279,14 @@ fn print_sprite_vec(v: &Vec<char>) {
     println!();
 }
 
-fn get_sprite_vec(p: usize) -> Vec<char> {
+fn get_sprite_vec(p: i32) -> Vec<char> {
+    let pi = p as usize;
     let mut r: Vec<char> = Vec::new();
     for i in 1..SCREEN_WIDTH + 1 {
-        if i + 1 == (p + 1) { r.push('#'); } else if i == (p + 1) { r.push('#'); } else if i - 1 == (p + 1) { r.push('#'); } else {
+        if i + 1 == (pi + 1) { r.push('#'); }
+        else if i == (pi + 1) { r.push('#'); }
+        else if i - 1 == (pi + 1) { r.push('#'); }
+        else {
             r.push('.');
         }
     }
