@@ -20,14 +20,14 @@ use parse_display::FromStr;
 
 /*
     Advent of Code 2022: Day 07
-        part1 answer:
-        part2 answer:
+        part1 answer: 5907
+        part2 answer: 2303
 
  */
 
 
 const TEST_ANSWER: (u32, u32) = (13, 36);
-const INPUT_ANSWER: (u32, u32) = (5907, 0);
+const INPUT_ANSWER: (u32, u32) = (5907,2303);
 
 
 
@@ -37,8 +37,37 @@ const PART1_INPUT_FILENAME: &str = "data/day09/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day09/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day09/part2_input.txt";
 
-const TEST: bool = true;
+const TEST: bool = false;
+fn main() {
+    print!("Advent of Code 2022, Day ");
+    println!("09");
 
+
+    let start1 = Instant::now();
+    let answer1 = part1();
+    let duration1 = start1.elapsed();
+
+    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+
+    if TEST {
+        assert_eq!(answer1, TEST_ANSWER.0.to_string());
+    } else {
+        assert_eq!(answer1, INPUT_ANSWER.0.to_string());
+    }
+
+    let start2 = Instant::now();
+    let answer2 = part2();
+    let duration2 = start2.elapsed();
+    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+    if TEST {
+        assert_eq!(answer2, TEST_ANSWER.1.to_string());
+    } else {
+        assert_eq!(answer2, INPUT_ANSWER.1.to_string());
+    }
+
+
+    println!("----------\ndone");
+}
 
 #[derive(FromStr, PartialEq, Debug)]
 enum Step {
@@ -71,6 +100,7 @@ struct Rope {
     tail: Position,
     knots: Vec<Position>
 }
+
 impl fmt::Display for Rope {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "head: <{},{}>, tail: <{},{}> # knots: {}",
@@ -102,45 +132,50 @@ impl Rope {
     fn move_by(&mut self, x:i32, y:i32) {
         self.head = (self.head.0 + x, self.head.1 + y);
 
-        let mut lead_position = &self.head;
+        let mut head_knot = &self.head;
 
         for knot in self.knots.iter_mut() {
-            let new_knot_position = Rope::new_tail_position(knot, lead_position);
+            let new_knot_position = Rope::new_tail_position(knot, head_knot);
 
             knot.0 = new_knot_position.0;
             knot.1 = new_knot_position.1;
-            lead_position = knot;
+            head_knot = knot;
         }
 
-        self.tail = Rope::new_tail_position(&self.tail, lead_position);
+        self.tail = Rope::new_tail_position(&self.tail, head_knot);
 
     }
-    fn new_tail_position(knot: &Position, lead_position: &Position) -> Position {
-        let (cur_lead_x, cur_lead_y) = lead_position.clone();
-
-        match knot.clone() {
-            (x, y) if y == cur_lead_y => {
-                if (cur_lead_x - x).abs() > 1 {
-                    let step = if cur_lead_x > x { 1 } else { -1 };
-                    (x + step, y)
+    fn new_tail_position(knot: &Position, head_knot: &Position) -> Position {
+        let (head_knot_x, head_knot_y) = head_knot.clone();
+        let (x,y):(i32,i32) = (knot.0, knot.1);
+        if(head_knot_y == y) {
+            let distance = (head_knot_x - x).abs();
+            if distance > 1 {
+                if head_knot_x > x {
+                    return (x + 1, y)
                 } else {
-                    (x, y)
+                    return (x - 1, y)
                 }
+            } else {
+                return (x, y);
             }
-            (x, y) if x == cur_lead_x => {
-                if (cur_lead_y - y).abs() > 1 {
-                    let step = if cur_lead_y > y { 1 } else { -1 };
-                    (x, y + step)
+        } else if(head_knot_x == x) {
+            let distance = (head_knot_y - y).abs();
+            if distance > 1 {
+                if head_knot_y > y {
+                 return (x, y+1);
                 } else {
-                    (x, y)
+                    return    (x,y-1);
                 }
+            } else {
+                return (x,y);
             }
-            (x, y) if (x - cur_lead_x).abs() == 1 && (y - cur_lead_y).abs() == 1 => (x, y),
-            (x, y) => {
-                let step_x = if cur_lead_x > x { 1 } else { -1 };
-                let step_y = if cur_lead_y > y { 1 } else { -1 };
-                (x + step_x, y + step_y)
-            }
+        } else if ((head_knot_x -x).abs() ==1) && ((head_knot_y -y).abs() ==1) {
+            return   (x,y)
+        } else {
+            let delta_x = if head_knot_x > x { 1 } else { -1 };
+            let delta_y = if head_knot_y > y {1} else {-1};
+            return   (x + delta_x, y + delta_y)
         }
     }
 }
@@ -151,37 +186,33 @@ impl Rope {
 
 
 
-fn main() {
-    print!("Advent of Code 2022, Day ");
-    println!("09");
 
 
-    let start1 = Instant::now();
-    let answer1 = part1();
-    let duration1 = start1.elapsed();
+fn run_steps(mut rope: Rope, steps: &mut Vec<Step>) -> HashSet<Position> {
 
-    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
-
-    // if TEST {
-    //     assert_eq!(answer1, TEST_ANSWER.0.to_string());
-    // } else {
-    //     assert_eq!(answer1, INPUT_ANSWER.0.to_string());
-    // }
-
-    let start2 = Instant::now();
-    let answer2 = part2();
-    let duration2 = start2.elapsed();
-    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-    // if TEST {
-    //     assert_eq!(answer2, TEST_ANSWER.1.to_string());
-    // } else {
-    //     assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-    // }
+    let mut visited:HashSet<Position> = HashSet::new();
+    for s in steps
+    {
+        let repeats = match s {
+            Step::Left(x) => { x }
+            Step::Right(x) => { x }
+            Step::Up(x) => { x }
+            Step::Down(x) => { x }
+        };
 
 
-    println!("----------\ndone");
+        for _ in 0..*repeats {
+            match s {
+                Step::Left(_) => { rope.left() }
+                Step::Right(_) => { rope.right() }
+                Step::Up(_) => { rope.up() }
+                Step::Down(_) => { rope.down() }
+            }
+            visited.insert(rope.tail);
+        }
+    }
+    return visited;
 }
-
 
 
 fn part1() -> String {
@@ -196,56 +227,23 @@ fn part1() -> String {
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
     }
-
-    let mut rope = Rope::new(0);
-    let mut visited:HashSet<Position> = HashSet::new();
-    println!("\t {rope}");
     for i in 0..lines.len() {
         lines[i] = lines[i].trim();
-        // println!("input: {}", lines[i]);
-        let s:Step = lines[i].parse().unwrap();
-        // println!("step: {s}");
-        match s {
-            Step::Left(x) => {
-                for i in 0..x {
-                    rope.left();
-                    visited.insert(rope.tail);
-                    // println!("\t head: {:?} tail: {:?}", rope.head, rope.tail);
-                }
-            }
-            Step::Right(x) => {
-                for i in 0..x {
-                    rope.right();
-                    visited.insert(rope.tail);
-                    // println!("\t head: {:?} tail: {:?}", rope.head, rope.tail);
-                }
-            }
-            Step::Up(x) => {
-                for i in 0..x {
-                    rope.up();
-                    visited.insert(rope.tail);
-                    // println!("\t head: {:?} tail: {:?}", rope.head, rope.tail);
-                }
-            }
-            Step::Down(x) => {
-                for i in 0..x {
-                    rope.down();
-                    visited.insert(rope.tail);
-                    // println!("\t head: {:?} tail: {:?}", rope.head, rope.tail);
-                }
-            }
-        }
-        // println!("\texecuted step:");
-        // println!("\t\t head: {:?} tail: {:?}", rope.head, rope.tail);
-
-
     }
-    let num_visited_spots = visited.len();
+    let mut rope = Rope::new(0);
 
-    // println!("{:?}", visited);
+    println!("\t {rope}");
+    let mut steps:Vec<Step> = Vec::new();
 
+    for i in 0..lines.len() {
+        lines[i] = lines[i].trim();
+        let s:Step = lines[i].parse().unwrap();
+        steps.push(s);
+    }
 
-    let mut answer1 = num_visited_spots.to_string();
+    let visited  = run_steps(rope, &mut steps);
+
+    let mut answer1 = visited.len().to_string();
     return answer1;
 }
 
@@ -268,61 +266,20 @@ fn part2() -> String {
         lines[i] = lines[i].trim();
     }
     let mut rope = Rope::new(8);
-    let mut visited:HashSet<Position> = HashSet::new();
+
     println!("\t {rope}");
+    let mut steps:Vec<Step> = Vec::new();
+
     for i in 0..lines.len() {
         lines[i] = lines[i].trim();
-
         let s:Step = lines[i].parse().unwrap();
-        let repeats = match s {
-            Step::Left(x) => {x}
-            Step::Right(x) => {x}
-            Step::Up(x) => {x}
-            Step::Down(x) => {x}
-        };
-
-        println!("repeats: {}", repeats);
-        match s {
-            Step::Left(x) => {
-                for i in 0..x {
-                    rope.left();
-                    visited.insert(rope.tail);
-                    // println!("\t head: {:?} tail: {:?}", rope.head, rope.tail);
-                }
-            }
-            Step::Right(x) => {
-                for i in 0..x {
-                    rope.right();
-                    visited.insert(rope.tail);
-                    // println!("\t head: {:?} tail: {:?}", rope.head, rope.tail);
-                }
-            }
-            Step::Up(x) => {
-                for i in 0..x {
-                    rope.up();
-                    visited.insert(rope.tail);
-                    // println!("\t head: {:?} tail: {:?}", rope.head, rope.tail);
-                }
-            }
-            Step::Down(x) => {
-                for i in 0..x {
-                    rope.down();
-                    visited.insert(rope.tail);
-                    // println!("\t head: {:?} tail: {:?}", rope.head, rope.tail);
-                }
-            }
-        }
-        // println!("\texecuted step:");
-        // println!("\t\t head: {:?} tail: {:?}", rope.head, rope.tail);
-
-
+        steps.push(s);
     }
-    let num_visited_spots = visited.len();
 
-    // println!("{:?}", visited);
-
+    let visited  = run_steps(rope, &mut steps);
 
 
-    let mut answer2 = num_visited_spots.to_string();
+
+    let mut answer2 = visited.len().to_string();
     return answer2;
 }
