@@ -14,14 +14,14 @@ use parse_display::FromStr;
 
 /*
     Advent of Code 2022: Day 11
-        part1 answer:
+        part1 answer: 58794
         part2 answer:
 
  */
 
 
-const TEST_ANSWER: (i32, i32) = (0, 0);
-const INPUT_ANSWER: (i32, i32) = (0, 0);
+const TEST_ANSWER: (i32, i32) = (10605, 0);
+const INPUT_ANSWER: (i32, i32) = (58794, 0);
 
 
 const PART1_TEST_FILENAME: &str = "data/day11/part1_test.txt";
@@ -30,7 +30,7 @@ const PART1_INPUT_FILENAME: &str = "data/day11/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day11/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day11/part2_input.txt";
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -85,15 +85,6 @@ impl fmt::Display for Operation {
 }
 
 
-/*
-Monkey 0:
-  Starting items: 79, 98
-  Operation: new = old * 19
-  Test: divisible by 23
-    If true: throw to monkey 2
-    If false: throw to monkey 3
- */
-
 #[derive(FromStr, PartialEq, Debug, Clone)]
 #[display(
 "Monkey {monkey_id}:|Test: divisible by {test_divider}|If true: throw to monkey {true_monkey}|If false: throw to monkey {false_monkey}")]
@@ -109,50 +100,6 @@ struct Monkey {
     items_inspected: i32,
 }
 
-impl Monkey {
-    fn inspect(&mut self) -> (Vec<i32>, Vec<i32>) {
-        let mut items_for_true_monkey: Vec<i32> = Vec::new();
-        let mut items_for_false_monkey: Vec<i32> = Vec::new();
-
-        let init_worry: i32 = match self.items.pop_front() {
-            None => {
-                panic!("attempted to inspect on monkey without items: {self}");
-            }
-            Some(x) => { x }
-        };
-        println!(" Monkey inspects an item with worry level of {init_worry}.");
-
-
-        let mut new_worry = match self.oper_type {
-            Operation::Mult => { init_worry * self.oper_amount }
-            Operation::Add => { init_worry + self.oper_amount }
-            Operation::Square => { init_worry * init_worry }
-            Operation::None => {
-                panic!("monkey shouldn't have Operation::None, {self}");
-            }
-        };
-        println!("    Worry level is {} to {}.",
-                 match self.oper_type {
-                     Operation::Mult => { format!("multiplied by {}", self.oper_amount) }
-                     Operation::Add => { format!("increased by {}", self.oper_amount) }
-                     Operation::Square => { format!("multiplied by itself") }
-                     Operation::None => { panic!("shouldn't have Operation::None, {self}") }
-                 }, new_worry);
-
-        new_worry = new_worry / 3;
-        println!("    Monkey gets bored with item. Worry level is divided by 3 to {new_worry}.");
-        if new_worry % self.test_divider == 0 {
-            println!("    Current worry level is not divisible by {}.", self.test_divider);
-            println!("Item with worry level {new_worry} is thrown to monkey {}.",
-                     self.true_monkey);
-//            monkey[self.true_monkey].items.push_back(new_worry);
-        } else {
-            println!("    Current worry level is divisible by {}.", self.test_divider);
-        }
-        return  (items_for_true_monkey, items_for_false_monkey);
-
-    }
-}
 
 impl fmt::Display for Monkey {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -260,23 +207,65 @@ fn part1() -> String {
     }
     // Parsing done
     let number_of_monkeys = monkey.len();
-    for mut current_monkey in &monkey {
-        println!("Monkey {}:", current_monkey.monkey_id);
-        let (true_id, false_id) = (current_monkey.true_monkey, current_monkey.false_monkey);
-        let (true_list, false_list) =  current_monkey.inspect();
-        for item in true_list {
-            monkey[true_id].items.push_back(item);
+    for round in 1..=20 {
+        for i in 0..monkey.len() {
+            while !monkey[i].items.is_empty() {
+                println!("Monkey {}:", monkey[i].monkey_id);
+
+                let init_worry: i32 = match monkey[i].items.pop_front() {
+                    None => {
+                        panic!("attempted to inspect on monkey without items: {}", monkey[i]);
+                    }
+                    Some(x) => { x }
+                };
+                println!(" Monkey inspects an item with worry level of {init_worry}.");
+                monkey[i].items_inspected +=1;
+
+                let mut new_worry = match monkey[i].oper_type {
+                    Operation::Mult => { init_worry * monkey[i].oper_amount }
+                    Operation::Add => { init_worry + monkey[i].oper_amount }
+                    Operation::Square => { init_worry * init_worry }
+                    Operation::None => {
+                        panic!("monkey shouldn't have Operation::None, {}", monkey[i]);
+                    }
+                };
+                println!("    Worry level is {} to {}.",
+                         match monkey[i].oper_type {
+                             Operation::Mult => { format!("multiplied by {}", monkey[i].oper_amount) }
+                             Operation::Add => { format!("increased by {}", monkey[i].oper_amount) }
+                             Operation::Square => { format!("multiplied by itself") }
+                             Operation::None => { panic!("shouldn't have Operation::None, {}", monkey[i]) }
+                         }, new_worry);
+
+                new_worry = new_worry / 3;
+                println!("    Monkey gets bored with item. Worry level is divided by 3 to {new_worry}.");
+                if new_worry % monkey[i].test_divider != 0 {
+                    println!("    Current worry level is not divisible by {} (false)", monkey[i].test_divider);
+                    println!("    Item with worry level {new_worry} is thrown to monkey {}.",
+                             monkey[i].true_monkey);
+                    let t_index = monkey[i].false_monkey;
+                    monkey[t_index].items.push_back(new_worry);
+                } else {
+                    let t_index = monkey[i].true_monkey;
+                    println!("    Current worry level is divisible by {} (true).", monkey[i].test_divider);
+                    monkey[t_index].items.push_back(new_worry);
+                }
+            }
         }
-        for item in false_list{
-            monkey[false_id].items.push_back(item);
-        }
-        break;
+    }
+    let mut i_vec = Vec::new();
+    for i in 0..monkey.len() {
+        println!("{}", monkey[i]);
+        i_vec.push(monkey[i].items_inspected);
     }
 
-
+    i_vec.sort();
+    i_vec.reverse();
+    let answer1_i = i_vec[0] * i_vec[1];
+    println!("{:?}",i_vec);
     println!();
     println!();
-    let mut answer1 = String::new();
+    let mut answer1 = answer1_i.to_string();
     return answer1;
 }
 
