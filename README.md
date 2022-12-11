@@ -7,9 +7,9 @@
 | Problem |  | 1 | 2 |
 | --- | --- | -- | --- |
 | [Day 1: Calorie Counting](https://adventofcode.com/2022/day/1) | manipulation of list of numbers | * | * |
-| [Day 2: Rock Paper Scissors ](https://adventofcode.com/2022/day/2)|  | * | * |
+| [Day 2: Rock Paper Scissors ](https://adventofcode.com/2022/day/2)| trivial  | * | * |
 | [Day 3: Rucksack Reorganization ](https://adventofcode.com/2022/day/3)| sets  | * | * |
-| [Day 4: Camp Cleanup](https://adventofcode.com/2022/day/4)  |  | * | * |
+| [Day 4: Camp Cleanup](https://adventofcode.com/2022/day/4)  | trivial | * | * |
 | [Day 5: Supply Stacks](https://adventofcode.com/2022/day/5)  | stack manipulation | * | * |
 | [Day 6: Tuning Trouble](https://adventofcode.com/2022/day/6)  | string manipulation  | * | * |
 | [Day 7: No Space Left On Device](https://adventofcode.com/2022/day/7)  | path manipulation  | * | * |
