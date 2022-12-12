@@ -16,7 +16,7 @@
 | [Day 8: Treetop Tree House ](https://adventofcode.com/2022/day/8)  | array constraints | * | * | 
 | [Day 9: Rope Bridge  ](https://adventofcode.com/2022/day/9)  | finite automata | * | * |
 | [Day 10: Cathode-Ray Tube](https://adventofcode.com/2022/day/10)  | machine sim | * | * |
-| [Day 11: ](https://adventofcode.com/2022/day/11)  |  | _ | _ |
+| [Day 11: Monkey in the Middle](https://adventofcode.com/2022/day/11)  | monkey math | * | * |
 | [Day 12: ](https://adventofcode.com/2022/day/12)  |  | _ | _ |
 | [Day 13: ](https://adventofcode.com/2022/day/13)  |  | _ | _ |
 | [Day 14: ](https://adventofcode.com/2022/day/14)  |  | _ | _ |
