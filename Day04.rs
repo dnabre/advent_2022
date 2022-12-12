@@ -33,12 +33,11 @@ fn main() {
 	println!("----------\ndone");
 }
 
-
-fn parse_dash_pair(s: &str) -> (i32, i32) {
-	let (l, r) = s.split_once("-").unwrap();
-	let l_n: i32 = l.parse().unwrap();
-	let r_n: i32 = r.parse().unwrap();
-	return (l_n, r_n);
+fn do_range_overlap(r1: i32, r2: i32, t1: i32, t2: i32) -> bool {
+	if (r1 <= t2) && (t1 <= r2) {
+		return true;
+	}
+	return false;
 }
 
 fn in_range(r1: i32, r2: i32, t1: i32, t2: i32) -> bool {
@@ -51,13 +50,12 @@ fn in_range(r1: i32, r2: i32, t1: i32, t2: i32) -> bool {
 	return false;
 }
 
-fn do_range_overlap(r1: i32, r2: i32, t1: i32, t2: i32) -> bool {
-	if (r1 <= t2) && (t1 <= r2) {
-		return true;
-	}
-	return false;
+fn parse_dash_pair(s: &str) -> (i32, i32) {
+	let (l, r) = s.split_once("-").unwrap();
+	let l_n: i32 = l.parse().unwrap();
+	let r_n: i32 = r.parse().unwrap();
+	return (l_n, r_n);
 }
-
 
 fn part1() -> i32 {
 	let p1_file = match TEST {

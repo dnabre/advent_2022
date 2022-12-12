@@ -28,11 +28,24 @@ fn main() {
     println!("----------\ndone");
 }
 
-fn string_to_hashset(s: &str) -> HashSet<char> {
-    let h: HashSet<char> = s.chars().collect();
-    return h;
-}
+fn common_in_group(s_a: &str, s_b: &str, s_c: &str) -> char {
+    let h_a = string_to_hashset(s_a);
+    let h_b = string_to_hashset(s_b);
+    let h_c = string_to_hashset(s_c);
 
+    let sets = [h_a, h_b, h_c];
+
+    // from https://github.com/rust-lang/rfcs/issues/2023
+    let intersection = sets
+        .iter()
+        .skip(1)
+        .fold(sets[0].clone(), |acc, hs| {
+            acc.intersection(hs).cloned().collect()
+        });
+    let i_vec: Vec<&char> = intersection.iter().collect();
+
+    return *i_vec[0];
+}
 
 fn get_misplaced_item(s: &str) -> char {
     let s_len = s.len();
@@ -49,6 +62,18 @@ fn get_misplaced_item(s: &str) -> char {
     return *problem[0];
 }
 
+fn string_to_hashset(s: &str) -> HashSet<char> {
+    let h: HashSet<char> = s.chars().collect();
+    return h;
+}
+
+fn get_priority(ch: char) -> i32 {
+    if ch.is_ascii_lowercase() {
+        return (ch.to_ascii_lowercase() as i32) - ('a' as i32) + 1;
+    } else {
+        return (ch.to_ascii_uppercase() as i32) - ('A' as i32) + 27;
+    }
+}
 
 fn part1() -> i32 {
     let p1_file = match TEST {
@@ -99,31 +124,4 @@ fn part2() -> i32 {
 
     let answer2 = total;
     return answer2;
-}
-
-fn common_in_group(s_a: &str, s_b: &str, s_c: &str) -> char {
-    let h_a = string_to_hashset(s_a);
-    let h_b = string_to_hashset(s_b);
-    let h_c = string_to_hashset(s_c);
-
-    let sets = [h_a, h_b, h_c];
-
-    // from https://github.com/rust-lang/rfcs/issues/2023
-    let intersection = sets
-        .iter()
-        .skip(1)
-        .fold(sets[0].clone(), |acc, hs| {
-            acc.intersection(hs).cloned().collect()
-        });
-    let i_vec: Vec<&char> = intersection.iter().collect();
-
-    return *i_vec[0];
-}
-
-fn get_priority(ch: char) -> i32 {
-    if ch.is_ascii_lowercase() {
-        return (ch.to_ascii_lowercase() as i32) - ('a' as i32) + 1;
-    } else {
-        return (ch.to_ascii_uppercase() as i32) - ('A' as i32) + 27;
-    }
 }

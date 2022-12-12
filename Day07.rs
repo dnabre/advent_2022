@@ -76,46 +76,39 @@ struct Dir {
     name: String,
 }
 
-fn part1() -> String {
-    let p1_file = match TEST {
-        true => PART1_TEST_FILENAME,
-        false => PART1_INPUT_FILENAME
-    };
-    let data1_s =
-        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let mut lines: Vec<&str> = data1_s.trim().split("\n").collect();
-    let l_num = lines.len();
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p1_file);
-    }
-    for i in 0..lines.len() { lines[i] = lines[i].trim(); }
 
-    let (dir_size, directory_set): (HashMap<String, u32>, HashSet<String>)
-        = parse_into_directories(&mut lines);
-    let cum_dir_sizes: HashMap<String, u32> =
-        get_cumulative_directory_sizes(&directory_set, &dir_size);
-    let mut total_size: u32 = 0;
-
-    for d in &directory_set {
-        let size = cum_dir_sizes.get(d);
-        match size {
-            None => {
-                println!("\t{d:<20}  \t size: (unknown)");
-                panic!("directory {d} should have known size");
-            }
-            Some(&s) => {
-                if s < PART1_DIR_SIZE_CAP {
-                    total_size += s;
-                }
-            }
-        }
+fn dir_up(cwd: &String) -> String {
+    let mut p_cwd = cwd.clone();
+    p_cwd.pop();
+    let (left, _) = p_cwd.rsplit_once("/").unwrap();
+    if left.is_empty() {
+        p_cwd = String::from("/");
+    } else {
+        p_cwd = String::from(left);
     }
-    let answer1 = total_size.to_string();
-    return answer1;
+    p_cwd.push('/');
+    return p_cwd;
 }
 
-
-
+fn get_cumulative_directory_sizes(dirs_set: &HashSet<String>, dir_size: &HashMap<String, u32>) -> HashMap<String, u32> {
+    let mut cum_size_map: HashMap<String, u32> = HashMap::new();
+    for dir in dirs_set {
+        let cwd = dir.clone();
+        let mut size: u32 = 0;
+        for sub_dir in dirs_set {
+            let sd_size = match dir_size.get(sub_dir) {
+                None => { panic!("can't find size for {sub_dir}"); }
+                Some(x) => { x }
+            };
+            if sub_dir.starts_with(&cwd) {
+                let new_size = sd_size + size;
+                size = new_size;
+            }
+        }
+        cum_size_map.insert(cwd, size);
+    }
+    return cum_size_map;
+}
 
 fn parse_into_directories(lines: &mut Vec<&str>) -> (HashMap<String, u32>, HashSet<String>) {
     let mut dir_size: HashMap<String, u32> = HashMap::new();
@@ -164,39 +157,42 @@ fn parse_into_directories(lines: &mut Vec<&str>) -> (HashMap<String, u32>, HashS
     return (dir_size, directory_set);
 }
 
+fn part1() -> String {
+    let p1_file = match TEST {
+        true => PART1_TEST_FILENAME,
+        false => PART1_INPUT_FILENAME
+    };
+    let data1_s =
+        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
+    let mut lines: Vec<&str> = data1_s.trim().split("\n").collect();
+    let l_num = lines.len();
+    if TEST {
+        println!("\t read {} lines from {}", l_num, p1_file);
+    }
+    for i in 0..lines.len() { lines[i] = lines[i].trim(); }
 
-fn get_cumulative_directory_sizes(dirs_set: &HashSet<String>, dir_size: &HashMap<String, u32>) -> HashMap<String, u32> {
-    let mut cum_size_map: HashMap<String, u32> = HashMap::new();
-    for dir in dirs_set {
-        let cwd = dir.clone();
-        let mut size: u32 = 0;
-        for sub_dir in dirs_set {
-            let sd_size = match dir_size.get(sub_dir) {
-                None => { panic!("can't find size for {sub_dir}"); }
-                Some(x) => { x }
-            };
-            if sub_dir.starts_with(&cwd) {
-                let new_size = sd_size + size;
-                size = new_size;
+    let (dir_size, directory_set): (HashMap<String, u32>, HashSet<String>)
+        = parse_into_directories(&mut lines);
+    let cum_dir_sizes: HashMap<String, u32> =
+        get_cumulative_directory_sizes(&directory_set, &dir_size);
+    let mut total_size: u32 = 0;
+
+    for d in &directory_set {
+        let size = cum_dir_sizes.get(d);
+        match size {
+            None => {
+                println!("\t{d:<20}  \t size: (unknown)");
+                panic!("directory {d} should have known size");
+            }
+            Some(&s) => {
+                if s < PART1_DIR_SIZE_CAP {
+                    total_size += s;
+                }
             }
         }
-        cum_size_map.insert(cwd, size);
     }
-    return cum_size_map;
-}
-
-
-fn dir_up(cwd: &String) -> String {
-    let mut p_cwd = cwd.clone();
-    p_cwd.pop();
-    let (left, _) = p_cwd.rsplit_once("/").unwrap();
-    if left.is_empty() {
-        p_cwd = String::from("/");
-    } else {
-        p_cwd = String::from(left);
-    }
-    p_cwd.push('/');
-    return p_cwd;
+    let answer1 = total_size.to_string();
+    return answer1;
 }
 
 fn part2() -> String {

@@ -30,6 +30,16 @@ fn main() {
     println!("----------\ndone");
 }
 
+
+fn lose(left:char) -> char {
+    return match left {
+        'A' => 'Z',
+        'B' => 'X',
+        'C' => 'Y',
+        _ => '0'
+    };
+}
+
 fn mirror(left:char) -> char {
     return match left {
         'A' => 'X',
@@ -41,46 +51,6 @@ fn mirror(left:char) -> char {
         _ => '0'
     };
 }
-
-fn lose(left:char) -> char {
-    return match left {
-        'A' => 'Z',
-        'B' => 'X',
-        'C' => 'Y',
-        _ => '0'
-    };
-}
-
-fn win(left:char) -> char {
-    return match left {
-        'A' => 'Y',
-        'B' => 'Z',
-        'C' => 'X',
-        _ => '0'
-    };
-}
-
-
-
-
-
-
-fn should_play(left:char,  goal:char) -> char {
-    if goal == 'X' {
-        //lose
-        return lose(left);
-    }
-    if goal =='Y' {
-        //tie
-        return mirror(left);
-    }
-    if goal =='Z' {
-        //win
-        return win(left);
-    }
-    panic!("unknown goal: {left}");
-}
-
 
 fn score(left:char, right:char)  -> i32 {
     if (left == 'A' && right == 'X') ||
@@ -107,6 +77,21 @@ fn score(left:char, right:char)  -> i32 {
     return value(right) + 6;
 }
 
+fn should_play(left:char,  goal:char) -> char {
+    if goal == 'X' {
+        //lose
+        return lose(left);
+    }
+    if goal =='Y' {
+        //tie
+        return mirror(left);
+    }
+    if goal =='Z' {
+        //win
+        return win(left);
+    }
+    panic!("unknown goal: {}",left);
+}
 
 fn value(ch:char) -> i32 {
     if  (ch == 'A') || (ch == 'X') {
@@ -119,7 +104,14 @@ fn value(ch:char) -> i32 {
     return -1;
 }
 
-
+fn win(left:char) -> char {
+    return match left {
+        'A' => 'Y',
+        'B' => 'Z',
+        'C' => 'X',
+        _ => '0'
+    };
+}
 
 fn part1()->i32 {
     let p1_file = PART1_INPUT_FILENAME;
