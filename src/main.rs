@@ -1,11 +1,3 @@
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-#![allow(dead_code)]
-#![allow(unused_assignments)]
-
-use std::collections::HashMap;
-use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::fmt;
 use std::fs;
@@ -130,9 +122,8 @@ impl Default for Monkey {
     }
 }
 
-fn parse_monkeys(mut lines: Vec<&str>) -> Vec<Monkey> {
+fn parse_monkeys(lines: Vec<&str>) -> Vec<Monkey> {
     let mut monkey: Vec<Monkey> = Vec::new();
-    let mut m_line_group: Vec<&str> = Vec::new();
     let mut monkey_parse_buffer = String::new();
     let mut items_line;
     let mut operation_line;
@@ -188,15 +179,14 @@ fn part1() -> String {
 
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let mut lines: Vec<&str> = data1_s.trim().split("\n").map(|t| t.trim()).collect();
+    let lines: Vec<&str> = data1_s.trim().split("\n").map(|t| t.trim()).collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
     }
 
     let mut monkey = parse_monkeys(lines);
-    let number_of_monkeys = monkey.len();
-    for round in 1..=20 {
+    for _round in 1..=20 {
         for i in 0..monkey.len() {
             while !monkey[i].items.is_empty() {
                 let init_worry: i64 = match monkey[i].items.pop_front() {
@@ -232,7 +222,7 @@ fn part1() -> String {
     i_vec.sort();
     i_vec.reverse();
     let answer1_i = i_vec[0] * i_vec[1];
-    let mut answer1 = answer1_i.to_string();
+    let answer1 = answer1_i.to_string();
     return answer1;
 }
 
@@ -244,19 +234,16 @@ fn part2() -> String {
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
 
-    let mut lines: Vec<&str> = data2_s.trim().split("\n").map(|t| t.trim()).collect();
+    let lines: Vec<&str> = data2_s.trim().split("\n").map(|t| t.trim()).collect();
     let l_num = lines.len();
 
     if TEST {
         println!("\t read {} lines from {}", l_num, p2_file);
     }
     let mut monkey = parse_monkeys(lines);
-    let check_rounds = vec![1,20,1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000];
     let mod_base:i64= monkey.iter().map(|m| m.test_divider).product();
 
-
-    let number_of_monkeys = monkey.len();
-    for round in 1..=10000 {
+    for _round in 1..=10000 {
         for i in 0..monkey.len() {
             while !monkey[i].items.is_empty() {
                 let init_worry: i64 = match monkey[i].items.pop_front() {
@@ -293,6 +280,6 @@ fn part2() -> String {
     i_vec.reverse();
     let answer2_i = i_vec[0] * i_vec[1];
 
-    let mut answer2 = answer2_i.to_string();
+    let answer2 = answer2_i.to_string();
     return answer2;
 }
