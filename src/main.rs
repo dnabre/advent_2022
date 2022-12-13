@@ -144,7 +144,8 @@ fn part1() -> String {
         let mut l_vec = parse_line(&mut s_left);
         let mut r_vec = parse_line(&mut s_right);
 
-        let check:bool = check_vecs(l_vec.clone(), r_vec.clone());
+	let check = true;
+        //let check:bool = check_vecs(l_vec.clone(), r_vec.clone());
 
 
         // println!("\tCompare {} vs {}", lline, rline);
