@@ -203,7 +203,7 @@ fn part2() -> String {
     let mut end: (i16,i16) = (-1,-1);
 
 
-
+let mut possible_start:Vec<(i16,i16)> = Vec::new();
     for h in 0..height {
         let row:Vec<char> = lines[h].chars().collect();
         for w in 0..width {
@@ -211,6 +211,10 @@ fn part2() -> String {
             grid.insert((w as i16,h as i16),ch);
             if ch=='S' {start = (w as i16, h as i16);}
             if ch=='E' {end = (w as i16, h as i16);}
+            if ch == 'a' {
+                possible_start.push((w as i16,h as i16));
+
+            }
         }
     }
     // override grid S and E with min and max height accordingly
@@ -218,14 +222,16 @@ fn part2() -> String {
     grid.insert(end, 'z');
 
     let mut paths:Vec<i32> = Vec::new();
-    for ((s_x,s_y),ch) in grid.iter() {
-         if *ch == 'a' {
-            let d = bfs(&grid, (*s_x, *s_y), end);
+  //  for ((s_x,s_y),ch) in grid.iter() {
+    //     if *ch == 'a' {
+      for (s_x,s_y) in possible_start {
+
+            let d = bfs(&grid, (s_x, s_y), end);
             if d > 0 {paths.push(d);}
         }
 
 
-    }
+
 
 
     let aa2 =  paths.iter().min().unwrap();
