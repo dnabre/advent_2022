@@ -40,25 +40,25 @@ fn main() {
     let answer1 = part1();
     let duration1 = start1.elapsed();
 
-    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
-    if TEST {
-        assert_eq!(answer1, TEST_ANSWER.0.to_string());
-    } else {
-        assert_eq!(answer1, INPUT_ANSWER.0.to_string());
-    }
+    // println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+    // if TEST {
+    //     assert_eq!(answer1, TEST_ANSWER.0.to_string());
+    // } else {
+    //     assert_eq!(answer1, INPUT_ANSWER.0.to_string());
+    // }
 
-    let start2 = Instant::now();
-    let answer2 = part2();
-    let duration2 = start2.elapsed();
-
-    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-    if TEST {
-        assert_eq!(answer2, TEST_ANSWER.1.to_string());
-    } else {
-        assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-    }
-
-    println!("----------\ndone");
+    // let start2 = Instant::now();
+    // let answer2 = part2();
+    // let duration2 = start2.elapsed();
+    //
+    // println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+    // if TEST {
+    //     assert_eq!(answer2, TEST_ANSWER.1.to_string());
+    // } else {
+    //     assert_eq!(answer2, INPUT_ANSWER.1.to_string());
+    // }
+    //
+    // println!("----------\ndone");
 }
 
 
