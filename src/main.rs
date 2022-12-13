@@ -62,73 +62,73 @@ fn main() {
 }
 
 
-
-fn print_grid(grid: &HashMap<(i16, i16), char>, (width,height):(i16, i16)) {
+fn print_grid(grid: &HashMap<(i16, i16), char>, (width, height): (i16, i16)) {
     println!("grid:    wxh:: {width}x{height})");
-     for h in 0..height{
+    for h in 0..height {
         print!("\t");
         for w in 0..width {
-            let ch = grid.get( &(w as i16, h as i16) ).unwrap();
+            let ch = grid.get(&(w as i16, h as i16)).unwrap();
             print!("{}", ch);
         }
-         println!();
+        println!();
     }
     println!("---------");
-
-
 }
-fn bfs(grid: &HashMap<(i16, i16), char>, start: (i16, i16), end: (i16, i16)) -> i32 {
+
+fn bfs(grid: &HashMap<(i16, i16), char>, start: (i16, i16), end: (i16, i16), best: i32) -> i32 {
     // this might be closer to an A* than BFS, but I'm basing it on BFS
-    let mut visited: HashSet<(i16,i16)> = HashSet::new();
-    let mut search_queue:VecDeque<(i16,i16)> = VecDeque::new();
+    let mut visited: HashSet<(i16, i16)> = HashSet::new();
+    let mut search_queue: VecDeque<(i16, i16)> = VecDeque::new();
     // delta from x,y for possible neighbors,
     //                          left , right,  up  ,  down
-    let deltas = vec![(-1,0), (1,0), (0,1), (0, -1)];
+    let deltas = vec![(-1, 0), (1, 0), (0, 1), (0, -1)];
     // since we're using a HashMap<(x,y),char> neighbors off the edge will just not be found.
-    let mut distance_from_start:HashMap<(i16, i16),i32> = HashMap::new();
-    distance_from_start.insert(start,0);
+    let mut distance_from_start: HashMap<(i16, i16), i32> = HashMap::new();
+    distance_from_start.insert(start, 0);
     visited.insert(start);
     search_queue.push_back(start);
     while search_queue.len() > 0 {
-        let (x,y) = search_queue.pop_front().unwrap();
-     //   println!("visitng ({x},{y}):");
-        let mut neighbors:Vec<(i16,i16)> = Vec::new();
+        let (x, y) = search_queue.pop_front().unwrap();
+        //   println!("visitng ({x},{y}):");
+        let mut neighbors: Vec<(i16, i16)> = Vec::new();
+        let x_y_dist = *distance_from_start.get(&(x, y)).unwrap();
+        if (best > 0) && (x_y_dist+1 > best) {
+            return -1;
+        }
 
-        for (dx,dy) in &deltas {
-            let new_x = x +dx;
+        for (dx, dy) in &deltas {
+            let new_x = x + dx;
             let new_y = y + dy;
 
-            if !visited.contains(&(new_x,new_y)) {
-                if grid.contains_key(&(new_x,new_y)) {
-                    neighbors.push( (new_x,new_y ));
+            if !visited.contains(&(new_x, new_y)) {
+                if grid.contains_key(&(new_x, new_y)) {
+                    neighbors.push((new_x, new_y));
                 }
             }
         }
 
-        let d_c_c = *grid.get(&(x,y)).unwrap() ;
-        let c_c = *grid.get(&(x,y)).unwrap() as i16;
 
-    //    println!("visitng ({x},{y}), grid: {}, height: {}",d_c_c,c_c );
-    //    println!("found {} viable neighbors", neighbors.len());
-        for (n_x,n_y) in neighbors {
+        let c_c = *grid.get(&(x, y)).unwrap() as i16;
 
-            let d_n_c= *grid.get(&(n_x,n_y)).unwrap(); // we've check above if this exists
-            let n_c = *grid.get(&(n_x,n_y)).unwrap() as i16; // we've check above if this exists
-    //        println!("\t neighbor ({n_x},{n_y}) in grid is: {} (height = {})", d_n_c, n_c);
+        //    println!("visitng ({x},{y}), grid: {}, height: {}",d_c_c,c_c );
+        //    println!("found {} viable neighbors", neighbors.len());
+        for (n_x, n_y) in neighbors {
+            let d_n_c = *grid.get(&(n_x, n_y)).unwrap(); // we've check above if this exists
+            let n_c = *grid.get(&(n_x, n_y)).unwrap() as i16; // we've check above if this exists
+            //        println!("\t neighbor ({n_x},{n_y}) in grid is: {} (height = {})", d_n_c, n_c);
 
-            if n_c - c_c  <= 1 {
+            if n_c - c_c <= 1 {
                 //height of neighbor above current square isn't too high
-                search_queue.push_back((n_x,n_y));
-                visited.insert((n_x,n_y));
-                distance_from_start.insert((n_x,n_y),
-                                           distance_from_start.get(&(x,y)).unwrap() + 1);
+                search_queue.push_back((n_x, n_y));
+                visited.insert((n_x, n_y));
+                distance_from_start.insert((n_x, n_y),x_y_dist + 1);
 
                 if (n_x, n_y) == end {
-                    return *distance_from_start.get(&(n_x,n_y)).unwrap()  as i32
+                    return *distance_from_start.get(&(n_x, n_y)).unwrap() as i32;
                 }
             }
         }
-  }
+    }
     return -1;
 }
 
@@ -148,35 +148,32 @@ fn part1() -> String {
     let width = lines[0].len();
     let height = lines.len();
     println!("input wxh = {width}x{height}");
-    let mut grid: HashMap<(i16,i16),char> = HashMap::new();
+    let mut grid: HashMap<(i16, i16), char> = HashMap::new();
 
     let size = (width as i16, height as i16);
-    let mut start: (i16,i16) = (-1,-1);
-    let mut end: (i16,i16) = (-1,-1);
-
+    let mut start: (i16, i16) = (-1, -1);
+    let mut end: (i16, i16) = (-1, -1);
 
 
     for h in 0..height {
-        let row:Vec<char> = lines[h].chars().collect();
+        let row: Vec<char> = lines[h].chars().collect();
         for w in 0..width {
             let ch = row[w];
-            grid.insert((w as i16,h as i16),ch);
-            if ch=='S' {start = (w as i16, h as i16);}
-            if ch=='E' {end = (w as i16, h as i16);}
+            grid.insert((w as i16, h as i16), ch);
+            if ch == 'S' { start = (w as i16, h as i16); }
+            if ch == 'E' { end = (w as i16, h as i16); }
         }
     }
     // override grid S and E with min and max height accordingly
     grid.insert(start, 'a');
     grid.insert(end, 'z');
 
-    let aa1 =  bfs(&grid, start, end);
-    println!("{:?}",aa1);
+    let aa1 = bfs(&grid, start, end, -1);
+    println!("{:?}", aa1);
 
     let mut answer1 = aa1.to_string();
     return answer1;
 }
-
-
 
 
 fn part2() -> String {
@@ -196,46 +193,45 @@ fn part2() -> String {
     let width = lines[0].len();
     let height = lines.len();
     println!("input wxh = {width}x{height}");
-    let mut grid: HashMap<(i16,i16),char> = HashMap::new();
+    let mut grid: HashMap<(i16, i16), char> = HashMap::new();
 
     let size = (width as i16, height as i16);
-    let mut start: (i16,i16) = (-1,-1);
-    let mut end: (i16,i16) = (-1,-1);
+    let mut start: (i16, i16) = (-1, -1);
+    let mut end: (i16, i16) = (-1, -1);
 
 
-let mut possible_start:Vec<(i16,i16)> = Vec::new();
+    let mut possible_start: Vec<(i16, i16)> = Vec::new();
     for h in 0..height {
-        let row:Vec<char> = lines[h].chars().collect();
+        let row: Vec<char> = lines[h].chars().collect();
         for w in 0..width {
             let ch = row[w];
-            grid.insert((w as i16,h as i16),ch);
-            if ch=='S' {start = (w as i16, h as i16);}
-            if ch=='E' {end = (w as i16, h as i16);}
+            grid.insert((w as i16, h as i16), ch);
+            if ch == 'S' { start = (w as i16, h as i16); }
+            if ch == 'E' { end = (w as i16, h as i16); }
             if ch == 'a' {
-                possible_start.push((w as i16,h as i16));
-
+                possible_start.push((w as i16, h as i16));
             }
         }
     }
     // override grid S and E with min and max height accordingly
     grid.insert(start, 'a');
     grid.insert(end, 'z');
+    let mut best =  bfs(&grid, start, end, -1);
 
-    let mut paths:Vec<i32> = Vec::new();
-  //  for ((s_x,s_y),ch) in grid.iter() {
+
+    //  for ((s_x,s_y),ch) in grid.iter() {
     //     if *ch == 'a' {
-      for (s_x,s_y) in possible_start {
+    for (s_x, s_y) in possible_start {
+        let d = bfs(&grid, (s_x, s_y), end, -1);
+        if  (d>0) &&(best > d) {
+            best = std::cmp::min(best,d);
 
-            let d = bfs(&grid, (*s_x, *s_y), end);
-            if d > 0 {paths.push(d);}
         }
+    }
 
+    let aa2 = best;
 
-
-
-
-    let aa2 =  paths.iter().min().unwrap();
-    println!("{:?}",aa2);
+    println!("{:?}", aa2);
     let mut answer2 = aa2.to_string();
     return answer2;
 }
