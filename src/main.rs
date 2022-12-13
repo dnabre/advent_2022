@@ -1,21 +1,14 @@
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-#![allow(dead_code)]
-#![allow(unused_assignments)]
 
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
-use std::fmt;
 use std::fs;
 use std::time::Instant;
-use parse_display::FromStr;
 
 /*
     Advent of Code 2022: Day 12
         part1 answer: 383
-        part2 answer:
+        part2 answer: 377
 
  */
 
@@ -62,18 +55,6 @@ fn main() {
 }
 
 
-fn print_grid(grid: &HashMap<(i16, i16), char>, (width, height): (i16, i16)) {
-    println!("grid:    wxh:: {width}x{height})");
-    for h in 0..height {
-        print!("\t");
-        for w in 0..width {
-            let ch = grid.get(&(w as i16, h as i16)).unwrap();
-            print!("{}", ch);
-        }
-        println!();
-    }
-    println!("---------");
-}
 
 fn bfs(grid: &HashMap<(i16, i16), char>, start: (i16, i16), end: (i16, i16), best: i32) -> i32 {
     // this might be closer to an A* than BFS, but I'm basing it on BFS
@@ -113,7 +94,7 @@ fn bfs(grid: &HashMap<(i16, i16), char>, start: (i16, i16), end: (i16, i16), bes
         //    println!("visitng ({x},{y}), grid: {}, height: {}",d_c_c,c_c );
         //    println!("found {} viable neighbors", neighbors.len());
         for (n_x, n_y) in neighbors {
-            let d_n_c = *grid.get(&(n_x, n_y)).unwrap(); // we've check above if this exists
+
             let n_c = *grid.get(&(n_x, n_y)).unwrap() as i16; // we've check above if this exists
             //        println!("\t neighbor ({n_x},{n_y}) in grid is: {} (height = {})", d_n_c, n_c);
 
@@ -140,7 +121,7 @@ fn part1() -> String {
 
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let mut lines: Vec<&str> = data1_s.trim().split("\n").map(|t| t.trim()).collect();
+    let  lines: Vec<&str> = data1_s.trim().split("\n").map(|t| t.trim()).collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
@@ -150,7 +131,7 @@ fn part1() -> String {
     println!("input wxh = {width}x{height}");
     let mut grid: HashMap<(i16, i16), char> = HashMap::new();
 
-    let size = (width as i16, height as i16);
+
     let mut start: (i16, i16) = (-1, -1);
     let mut end: (i16, i16) = (-1, -1);
 
@@ -169,9 +150,7 @@ fn part1() -> String {
     grid.insert(end, 'z');
 
     let aa1 = bfs(&grid, start, end, -1);
-    println!("{:?}", aa1);
-
-    let mut answer1 = aa1.to_string();
+    let  answer1 = aa1.to_string();
     return answer1;
 }
 
@@ -184,7 +163,7 @@ fn part2() -> String {
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
 
-    let mut lines: Vec<&str> = data2_s.trim().split("\n").map(|t| t.trim()).collect();
+    let  lines: Vec<&str> = data2_s.trim().split("\n").map(|t| t.trim()).collect();
     let l_num = lines.len();
 
     if TEST {
@@ -195,7 +174,7 @@ fn part2() -> String {
     println!("input wxh = {width}x{height}");
     let mut grid: HashMap<(i16, i16), char> = HashMap::new();
 
-    let size = (width as i16, height as i16);
+
     let mut start: (i16, i16) = (-1, -1);
     let mut end: (i16, i16) = (-1, -1);
 
@@ -231,7 +210,6 @@ fn part2() -> String {
 
     let aa2 = best;
 
-    println!("{:?}", aa2);
-    let mut answer2 = aa2.to_string();
+    let  answer2 = aa2.to_string();
     return answer2;
 }
