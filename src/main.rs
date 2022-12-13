@@ -20,8 +20,8 @@ use parse_display::FromStr;
  */
 
 
-const TEST_ANSWER: (i32, i32) = (31, 0);
-const INPUT_ANSWER: (i32, i32) = (383, 0);
+const TEST_ANSWER: (i32, i32) = (31, 29);
+const INPUT_ANSWER: (i32, i32) = (383, 377);
 
 
 const PART1_TEST_FILENAME: &str = "data/day12/part1_test.txt";
@@ -30,7 +30,7 @@ const PART1_INPUT_FILENAME: &str = "data/day12/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day12/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day12/part2_input.txt";
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -52,11 +52,11 @@ fn main() {
     let duration2 = start2.elapsed();
 
     println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-    // if TEST {
-    //     assert_eq!(answer2, TEST_ANSWER.1.to_string());
-    // } else {
-    //     assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-    // }
+    if TEST {
+        assert_eq!(answer2, TEST_ANSWER.1.to_string());
+    } else {
+        assert_eq!(answer2, INPUT_ANSWER.1.to_string());
+    }
 
     println!("----------\ndone");
 }
@@ -169,9 +169,6 @@ fn part1() -> String {
     grid.insert(start, 'a');
     grid.insert(end, 'z');
 
-    println!("grid:\n {:?} \n S={:?}, E={:?}", grid, start, end);
-    print_grid(&grid,size);
-
     let aa1 =  bfs(&grid, start, end);
     println!("{:?}",aa1);
 
@@ -220,23 +217,19 @@ fn part2() -> String {
     grid.insert(start, 'a');
     grid.insert(end, 'z');
 
-    println!("grid:\n {:?} \n S={:?}, E={:?}", grid, start, end);
-    print_grid(&grid,size);
-
     let mut paths:Vec<i32> = Vec::new();
     for ((s_x,s_y),ch) in grid.iter() {
-     //   println!("({s_x},{s_y}) : {ch}");
-        if *ch == 'a' {
+         if *ch == 'a' {
             let d = bfs(&grid, (*s_x, *s_y), end);
-            paths.push(d);
+            if d > 0 {paths.push(d);}
         }
 
 
     }
-    println!("{:?}", paths);
+
 
     let aa2 =  paths.iter().min().unwrap();
-    println!("{:?}",aa1);
-    let mut answer2 = aa2.to_string();;
+    println!("{:?}",aa2);
+    let mut answer2 = aa2.to_string();
     return answer2;
 }
