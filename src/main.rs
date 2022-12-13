@@ -1,4 +1,3 @@
-
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
@@ -54,8 +53,6 @@ fn main() {
     println!("----------\ndone");
 }
 
-
-
 fn bfs(grid: &HashMap<(i16, i16), char>, start: (i16, i16), end: (i16, i16), best: i32) -> i32 {
     // this might be closer to an A* than BFS, but I'm basing it on BFS
     let mut visited: HashSet<(i16, i16)> = HashSet::new();
@@ -70,13 +67,11 @@ fn bfs(grid: &HashMap<(i16, i16), char>, start: (i16, i16), end: (i16, i16), bes
     search_queue.push_back(start);
     while search_queue.len() > 0 {
         let (x, y) = search_queue.pop_front().unwrap();
-        //   println!("visitng ({x},{y}):");
         let mut neighbors: Vec<(i16, i16)> = Vec::new();
         let x_y_dist = *distance_from_start.get(&(x, y)).unwrap();
-        if (best > 0) && (x_y_dist+1 > best) {
+        if (best > 0) && (x_y_dist + 1 > best) {
             return -1;
         }
-
         for (dx, dy) in &deltas {
             let new_x = x + dx;
             let new_y = y + dy;
@@ -87,26 +82,59 @@ fn bfs(grid: &HashMap<(i16, i16), char>, start: (i16, i16), end: (i16, i16), bes
                 }
             }
         }
-
-
         let c_c = *grid.get(&(x, y)).unwrap() as i16;
-
-        //    println!("visitng ({x},{y}), grid: {}, height: {}",d_c_c,c_c );
-        //    println!("found {} viable neighbors", neighbors.len());
         for (n_x, n_y) in neighbors {
-
-            let n_c = *grid.get(&(n_x, n_y)).unwrap() as i16; // we've check above if this exists
-            //        println!("\t neighbor ({n_x},{n_y}) in grid is: {} (height = {})", d_n_c, n_c);
-
-            if n_c - c_c <= 1 {
+            let n_c = *grid.get(&(n_x, n_y)).unwrap() as i16;
+             if n_c - c_c <= 1 {
                 //height of neighbor above current square isn't too high
                 search_queue.push_back((n_x, n_y));
                 visited.insert((n_x, n_y));
-                distance_from_start.insert((n_x, n_y),x_y_dist + 1);
-
+                distance_from_start.insert((n_x, n_y), x_y_dist + 1);
                 if (n_x, n_y) == end {
                     return *distance_from_start.get(&(n_x, n_y)).unwrap() as i32;
                 }
+            }
+        }
+    }
+    return -1;
+}
+
+fn bfs2(grid: &HashMap<(i16, i16), char>, start: (i16, i16), end_ch: i16) -> i32 {
+    let mut visited: HashSet<(i16, i16)> = HashSet::new();
+    let mut search_queue: VecDeque<(i16, i16)> = VecDeque::new();
+    // delta from x,y for possible neighbors,
+    //                          left , right,  up  ,  down
+    let deltas = vec![(-1, 0), (1, 0), (0, 1), (0, -1)];
+    // since we're using a HashMap<(x,y),char> neighbors off the edge will just not be found.
+    let mut distance_from_start: HashMap<(i16, i16), i32> = HashMap::new();
+    distance_from_start.insert(start, 0);
+    visited.insert(start);
+    search_queue.push_back(start);
+    while search_queue.len() > 0 {
+        let (x, y) = search_queue.pop_front().unwrap();
+        let mut neighbors: Vec<(i16, i16)> = Vec::new();
+        let x_y_dist = *distance_from_start.get(&(x, y)).unwrap();
+        for (dx, dy) in &deltas {
+            let new_x = x + dx;
+            let new_y = y + dy;
+
+            if !visited.contains(&(new_x, new_y)) {
+                if grid.contains_key(&(new_x, new_y)) {
+                    neighbors.push((new_x, new_y));
+                }
+            }
+        }
+        let c_c = *grid.get(&(x, y)).unwrap() as i16;
+        for (n_x, n_y) in neighbors {
+            let n_c = *grid.get(&(n_x, n_y)).unwrap() as i16;
+            if (n_c + 1) >= c_c { // backwards height check
+                if n_c == end_ch { // found 'a'
+                    return x_y_dist + 1;
+                }
+                //height of neighbor above current square isn't too high
+                search_queue.push_back((n_x, n_y));
+                visited.insert((n_x, n_y));
+                distance_from_start.insert((n_x, n_y), x_y_dist + 1);
             }
         }
     }
@@ -121,20 +149,17 @@ fn part1() -> String {
 
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let  lines: Vec<&str> = data1_s.trim().split("\n").map(|t| t.trim()).collect();
+    let lines: Vec<&str> = data1_s.trim().split("\n").map(|t| t.trim()).collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
     }
     let width = lines[0].len();
     let height = lines.len();
-    println!("input wxh = {width}x{height}");
-    let mut grid: HashMap<(i16, i16), char> = HashMap::new();
 
-
+    let mut grid: HashMap<(i16, i16), char> = HashMap::with_capacity(width * height);
     let mut start: (i16, i16) = (-1, -1);
     let mut end: (i16, i16) = (-1, -1);
-
 
     for h in 0..height {
         let row: Vec<char> = lines[h].chars().collect();
@@ -150,7 +175,7 @@ fn part1() -> String {
     grid.insert(end, 'z');
 
     let aa1 = bfs(&grid, start, end, -1);
-    let  answer1 = aa1.to_string();
+    let answer1 = aa1.to_string();
     return answer1;
 }
 
@@ -163,7 +188,7 @@ fn part2() -> String {
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
 
-    let  lines: Vec<&str> = data2_s.trim().split("\n").map(|t| t.trim()).collect();
+    let lines: Vec<&str> = data2_s.trim().split("\n").map(|t| t.trim()).collect();
     let l_num = lines.len();
 
     if TEST {
@@ -171,13 +196,10 @@ fn part2() -> String {
     }
     let width = lines[0].len();
     let height = lines.len();
-    println!("input wxh = {width}x{height}");
-    let mut grid: HashMap<(i16, i16), char> = HashMap::new();
 
-
+    let mut grid: HashMap<(i16, i16), char> = HashMap::with_capacity(width * height);
     let mut start: (i16, i16) = (-1, -1);
     let mut end: (i16, i16) = (-1, -1);
-
 
     let mut possible_start: Vec<(i16, i16)> = Vec::new();
     for h in 0..height {
@@ -192,24 +214,13 @@ fn part2() -> String {
             }
         }
     }
+
     // override grid S and E with min and max height accordingly
     grid.insert(start, 'a');
     grid.insert(end, 'z');
-    let mut best =  bfs(&grid, start, end, -1);
+    //Do search in oppossite direction, from end to any 'a'
+    let aa2 = bfs2(&grid, end, 'a' as i16);
 
-
-    //  for ((s_x,s_y),ch) in grid.iter() {
-    //     if *ch == 'a' {
-    for (s_x, s_y) in possible_start {
-        let d = bfs(&grid, (s_x, s_y), end, -1);
-        if  (d>0) &&(best > d) {
-            best = std::cmp::min(best,d);
-
-        }
-    }
-
-    let aa2 = best;
-
-    let  answer2 = aa2.to_string();
+    let answer2 = aa2.to_string();
     return answer2;
 }
