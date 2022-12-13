@@ -11,7 +11,6 @@ use std::fmt;
 use std::fs;
 use std::time::Instant;
 use parse_display::FromStr;
-use aho_corasick::AhoCorasick;
 
 /*
     Advent of Code 2022: Day 13
