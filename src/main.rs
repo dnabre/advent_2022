@@ -226,7 +226,7 @@ let mut possible_start:Vec<(i16,i16)> = Vec::new();
     //     if *ch == 'a' {
       for (s_x,s_y) in possible_start {
 
-            let d = bfs(&grid, (s_x, s_y), end);
+            let d = bfs(&grid, (*s_x, *s_y), end);
             if d > 0 {paths.push(d);}
         }
 

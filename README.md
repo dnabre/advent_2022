@@ -17,7 +17,7 @@
 | [Day 9: Rope Bridge  ](https://adventofcode.com/2022/day/9)  | finite automata | * | * |
 | [Day 10: Cathode-Ray Tube](https://adventofcode.com/2022/day/10)  | machine sim | * | * |
 | [Day 11: Monkey in the Middle](https://adventofcode.com/2022/day/11)  | monkey math | * | * |
-| [Day 12: ](https://adventofcode.com/2022/day/12)  |  | _ | _ |
+| [Day 12: Hill Climbing Algorith ](https://adventofcode.com/2022/day/12)  | grid search  | * | * |
 | [Day 13: ](https://adventofcode.com/2022/day/13)  |  | _ | _ |
 | [Day 14: ](https://adventofcode.com/2022/day/14)  |  | _ | _ |
 | [Day 15: ](https://adventofcode.com/2022/day/15)  |  | _ | _ |
