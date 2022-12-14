@@ -1,25 +1,10 @@
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-#![allow(dead_code)]
-#![allow(unused_assignments)]
-
-
-
-
 use std::cmp::Ordering;
+use std::fmt::Debug;
 use std::fs;
-use std::fmt::{Debug, Display, Formatter};
-
-use std::num::ParseIntError;
-use std::str::FromStr;
 use std::time::Instant;
 
-
 use serde_json::{json, Value};
-use serde_json::Value::{Number,Array};
 
-use itertools::Itertools;
 /*
     Advent of Code 2022: Day 13
         part1 answer: 140
@@ -69,77 +54,40 @@ fn main() {
     println!("----------\ndone");
 }
 
-#[derive(Debug,Clone,PartialEq,Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Packet {
-    packet:Value
-}
-
-impl  Packet {
-    fn compare_vec(v1:&Vec<Value>, v2:&Vec<Value>) -> Ordering {
-        for (l1, r1) in v1.iter().zip(v2) {
-            let cmp = compare_values(l1,r1);
-            if cmp != Ordering::Equal {
-                return cmp;
-            }
-        }
-        // zip arrays are equal, go by length
-        return v1.len().partial_cmp(&v2.len()).unwrap();
-    }
+    packet: Value,
 }
 
 impl Ord for Packet {
     fn cmp(&self, other: &Self) -> Ordering {
-        fn compare_vec(v1:&Vec<Value>, v2:&Vec<Value>) -> Ordering {
-            for (l1, r1) in v1.iter().zip(v2) {
-                let cmp = compare_values(l1,r1);
-                if cmp != Ordering::Equal {
-                    return cmp;
-                }
+        match (&self.packet, &other.packet) {
+            (Value::Number(left_num), Value::Number(right_num)) => {
+                let l_i64 = left_num.as_i64().unwrap();
+                let r_i64 = right_num.as_i64().unwrap();
+                return l_i64.cmp(&r_i64);
             }
-            // zip arrays are equal, go by length
-            return v1.len().partial_cmp(&v2.len()).unwrap();
+            (Value::Number(left_num), Value::Array(_)) => {
+                let p_new_list = Packet { packet: json!([left_num]) };
+                return p_new_list.cmp(other);
+            }
+            (Value::Array(_), Value::Number(right_num)) => {
+                let p_new_list = Packet { packet: json!([right_num]) };
+                return self.cmp(&p_new_list);
+            }
+            (Value::Array(left_a), Value::Array(right_a)) => {
+                for (p_l, p_r) in left_a.iter().map(|p| Packet { packet: p.clone() })
+                                        .zip(right_a.iter().map(|p| Packet { packet: p.clone() }))  {
+                    let cmp = p_l.cmp(&p_r);
+                    if cmp != Ordering::Equal {
+                        return cmp;
+                    }
+                }
+                return left_a.len().partial_cmp(&right_a.len()).unwrap();
+            }
+            _ => panic!("not sure what to do with {:?}", (self, other))
         }
-            let left:&Value = &self.packet;
-            let right:&Value = &other.packet;
-            //return compare_values(left,right);
-            match (left,right) {
-                (Value::Number(left_num), Value::Number(right_num)) => {
-                    let l_i64 = left_num.as_i64().unwrap();
-                    let r_i64 = right_num.as_i64().unwrap();
-                    // println!("\t comparing numbers: {:?} {:?} : {}", l_i64, r_i64, l_i64 <= r_i64);
-                    if l_i64 == r_i64 { return Ordering::Equal}
-                    if l_i64 < r_i64 { return Ordering::Less} else { return Ordering::Greater};
-                }
-                ,
-                (Value::Number(left_num), Value::Array(right_a)) => {
-                    let new_list = json!([left_num]);
-                    // println!("\t comparing new list, list: {:?} {:?} ", new_list, right);
-                    return compare_values(&new_list,&right)
-                },
-                (Value::Array(left_a), Value::Number(right_num)) => {
-                    let new_list = json!([right_num]);
-                    // println!("\t comparing list, new list: {:?} {:?} ",  right, new_list);
-                    return  compare_values(&left, &new_list)
-                },
-                (Value::Array(left_a), Value::Array(right_a)) => {
-                    //return compare_vec(&left_a,&right_a);
-                    //fn compare_vec(v1:&Vec<Value>, v2:&Vec<Value>) -> Ordering {
-                        for (l1, r1) in left_a.iter().zip(right_a) {
-                            let cmp = compare_values(l1,r1);
-                            if cmp != Ordering::Equal {
-                                return cmp;
-                            }
-                        }
-                        // zip arrays are equal, go by length
-                        return left_a.len().partial_cmp(&right_a.len()).unwrap();
-                    },
-
-                _ => panic!("not sure what to do with {:?}", (left,right))
-            }
-
     }
-
-
 }
 
 impl PartialOrd for Packet {
@@ -148,38 +96,12 @@ impl PartialOrd for Packet {
     }
 }
 
-
-
-
-
-
-fn compare_values(left:&Value, right:&Value) -> Ordering {
-    let p = (&left,&right);
-    match p {
-        (Value::Number(left_num), Value::Number(right_num)) => {
-            let l_i64 = left_num.as_i64().unwrap();
-            let r_i64 = right_num.as_i64().unwrap();
-            // println!("\t comparing numbers: {:?} {:?} : {}", l_i64, r_i64, l_i64 <= r_i64);
-            if l_i64 == r_i64 { return Ordering::Equal}
-            if l_i64 < r_i64 { return Ordering::Less} else { return Ordering::Greater};
-        }
-        ,
-        (Value::Number(left_num), Value::Array(right_a)) => {
-            let new_list = json!([left_num]);
-            // println!("\t comparing new list, list: {:?} {:?} ", new_list, right);
-            return compare_values(&new_list,&right)
-        },
-        (Value::Array(left_a), Value::Number(right_num)) => {
-            let new_list = json!([right_num]);
-            // println!("\t comparing list, new list: {:?} {:?} ",  right, new_list);
-            return  compare_values(&left, &new_list)
-        },
-        (Value::Array(left_a), Value::Array(right_a)) => {
-            return Packet::compare_vec(&left_a,&right_a);
-        },
-        _ => panic!("not sure what to do with {:?}", p)
-    };
-
+fn string_to_packet_vec(s: &String) -> Vec<Packet> {
+    return s.lines()
+        .filter(|l| !l.is_empty())
+        .map(|line| serde_json::from_str(line).unwrap())
+        .map(|v| Packet { packet: v })
+        .collect();
 }
 
 fn part1() -> String {
@@ -189,36 +111,25 @@ fn part1() -> String {
     };
 
     let s = fs::read_to_string(p1_file).unwrap();
-    let vs:Vec<Packet> =  s.lines()
-                            .filter(|l| !l.is_empty())
-                            .map(|line| serde_json::from_str(line).unwrap())
-                            .map(|v| Packet{packet:v})
-                             .collect();
+    let vs = string_to_packet_vec(&s);
     if TEST {
         println!("\t read {} lines from {}", vs.len(), p1_file);
     }
 
-
-    let v_pairs = vs.chunks(2).map(|c| c.to_vec()).collect_vec();
-
-
+   // let v_pairs = vs.chunks(2).map(|c| c.to_vec()).collect_vec();
     let mut counter = 0;
-    let mut good_counter=0;
-    let mut ok=true;
-    let mut good_indices:Vec<i32> = Vec::new();
-    let mut index_sum = 0;
-    for p in v_pairs {
-        let (a,b) = (p[0].clone(), p[1].clone());
+    let mut good_indices: Vec<i32> = Vec::new();
+    for p in vs.chunks(2) {
+        let (a, b) = (p[0].clone(), p[1].clone());
         counter += 1;
         let left_pack = a;
         let right_pack = b;
         if left_pack <= right_pack {
             good_indices.push(counter);
         }
-
     }
-    let sum:i32 = good_indices.iter().sum();
-    let mut answer1 = sum.to_string();
+    let sum: i32 = good_indices.iter().sum();
+    let answer1 = sum.to_string();
     return answer1;
 }
 
@@ -231,19 +142,15 @@ fn part2() -> String {
 
 
     let s = fs::read_to_string(p2_file).unwrap();
-    let mut vs:Vec<Packet> =   s.lines()
-        .filter(|l| !l.is_empty())
-        .map(|line| serde_json::from_str(line).unwrap())
-        .map(|v| Packet{packet:v})
-        .collect();
+    let mut vs = string_to_packet_vec(&s);
     if TEST {
         println!("\t read {} lines from {}", vs.len(), p2_file);
     }
 
-    let packet_2 =Packet { packet: serde_json::to_value(vec![vec![2]]).unwrap()};
-    let packet_6 =Packet { packet:serde_json::to_value(vec![vec![6]]).unwrap()};
-    vs.push( packet_2.clone());
-    vs.push(packet_6.clone() );
+    let packet_2 = Packet { packet: serde_json::to_value(vec![vec![2]]).unwrap() };
+    let packet_6 = Packet { packet: serde_json::to_value(vec![vec![6]]).unwrap() };
+    vs.push(packet_2.clone());
+    vs.push(packet_6.clone());
 
     vs.sort();
 
@@ -254,8 +161,8 @@ fn part2() -> String {
     // }
 
     // packet_vec.sort();
-    let mut p2_index:usize=0;
-    let mut p6_index:usize=0;
+    let mut p2_index: usize = 0;
+    let mut p6_index: usize = 0;
     let mut index = 1;
     for p in vs {
         if p.eq(&packet_2) {
@@ -268,11 +175,6 @@ fn part2() -> String {
     }
 
 
-
-
-
-
-
-    let mut answer2 = (p2_index * p6_index).to_string();
+    let answer2 = (p2_index * p6_index).to_string();
     return answer2;
 }
