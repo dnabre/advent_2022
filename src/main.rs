@@ -10,6 +10,7 @@
 use std::cmp::Ordering;
 use std::fs;
 use std::fmt::{Debug, Display, Formatter};
+
 use std::num::ParseIntError;
 use std::str::FromStr;
 use std::time::Instant;
@@ -68,28 +69,88 @@ fn main() {
     println!("----------\ndone");
 }
 
-#[cfg(windows)]
-const D_LINE_ENDING: &'static str = "\r\n\r\n";
-#[cfg(not(windows))]
-const D_LINE_ENDING: &'static str = "\n\n";
-
-#[cfg(windows)]
-const LINE_ENDING: &'static str = "\r\n";
-#[cfg(not(windows))]
-const LINE_ENDING: &'static str = "\n";
-
-
-fn compare_vec(v1:&Vec<Value>, v2:&Vec<Value>) -> Ordering {
-    for (l1, r1) in v1.iter().zip(v2) {
-        let cmp = compare_values(l1,r1);
-        if cmp != Ordering::Equal {
-            return cmp;
-        }
-    }
-    // zip arrays are equal, go by length
-
-    return v1.len().partial_cmp(&v2.len()).unwrap();
+#[derive(Debug,Clone,PartialEq,Eq)]
+struct Packet {
+    packet:Value
 }
+
+impl  Packet {
+    fn compare_vec(v1:&Vec<Value>, v2:&Vec<Value>) -> Ordering {
+        for (l1, r1) in v1.iter().zip(v2) {
+            let cmp = compare_values(l1,r1);
+            if cmp != Ordering::Equal {
+                return cmp;
+            }
+        }
+        // zip arrays are equal, go by length
+        return v1.len().partial_cmp(&v2.len()).unwrap();
+    }
+}
+
+impl Ord for Packet {
+    fn cmp(&self, other: &Self) -> Ordering {
+        fn compare_vec(v1:&Vec<Value>, v2:&Vec<Value>) -> Ordering {
+            for (l1, r1) in v1.iter().zip(v2) {
+                let cmp = compare_values(l1,r1);
+                if cmp != Ordering::Equal {
+                    return cmp;
+                }
+            }
+            // zip arrays are equal, go by length
+            return v1.len().partial_cmp(&v2.len()).unwrap();
+        }
+            let left:&Value = &self.packet;
+            let right:&Value = &other.packet;
+            //return compare_values(left,right);
+            match (left,right) {
+                (Value::Number(left_num), Value::Number(right_num)) => {
+                    let l_i64 = left_num.as_i64().unwrap();
+                    let r_i64 = right_num.as_i64().unwrap();
+                    // println!("\t comparing numbers: {:?} {:?} : {}", l_i64, r_i64, l_i64 <= r_i64);
+                    if l_i64 == r_i64 { return Ordering::Equal}
+                    if l_i64 < r_i64 { return Ordering::Less} else { return Ordering::Greater};
+                }
+                ,
+                (Value::Number(left_num), Value::Array(right_a)) => {
+                    let new_list = json!([left_num]);
+                    // println!("\t comparing new list, list: {:?} {:?} ", new_list, right);
+                    return compare_values(&new_list,&right)
+                },
+                (Value::Array(left_a), Value::Number(right_num)) => {
+                    let new_list = json!([right_num]);
+                    // println!("\t comparing list, new list: {:?} {:?} ",  right, new_list);
+                    return  compare_values(&left, &new_list)
+                },
+                (Value::Array(left_a), Value::Array(right_a)) => {
+                    //return compare_vec(&left_a,&right_a);
+                    //fn compare_vec(v1:&Vec<Value>, v2:&Vec<Value>) -> Ordering {
+                        for (l1, r1) in left_a.iter().zip(right_a) {
+                            let cmp = compare_values(l1,r1);
+                            if cmp != Ordering::Equal {
+                                return cmp;
+                            }
+                        }
+                        // zip arrays are equal, go by length
+                        return left_a.len().partial_cmp(&right_a.len()).unwrap();
+                    },
+
+                _ => panic!("not sure what to do with {:?}", (left,right))
+            }
+
+    }
+
+
+}
+
+impl PartialOrd for Packet {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        return Some(self.cmp(other));
+    }
+}
+
+
+
+
 
 
 fn compare_values(left:&Value, right:&Value) -> Ordering {
@@ -114,7 +175,7 @@ fn compare_values(left:&Value, right:&Value) -> Ordering {
             return  compare_values(&left, &new_list)
         },
         (Value::Array(left_a), Value::Array(right_a)) => {
-            return compare_vec(&left_a,&right_a);
+            return Packet::compare_vec(&left_a,&right_a);
         },
         _ => panic!("not sure what to do with {:?}", p)
     };
@@ -127,22 +188,19 @@ fn part1() -> String {
         false => PART1_INPUT_FILENAME
     };
 
-    let data1_s =
-        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let mut lines: Vec<&str> = data1_s.trim().split("\n").map(|t| t.trim()).collect();
-    let l_num = lines.len();
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p1_file);
-    }
     let s = fs::read_to_string(p1_file).unwrap();
-    let vs:Vec<Value> =  s.lines()
+    let vs:Vec<Packet> =  s.lines()
                             .filter(|l| !l.is_empty())
-                            .map(|line| serde_json::from_str(line).unwrap()).collect();
+                            .map(|line| serde_json::from_str(line).unwrap())
+                            .map(|v| Packet{packet:v})
+                             .collect();
+    if TEST {
+        println!("\t read {} lines from {}", vs.len(), p1_file);
+    }
 
-    // println!("{:?}", vs);
 
     let v_pairs = vs.chunks(2).map(|c| c.to_vec()).collect_vec();
-    // println!("{:?}", v_pairs);
+
 
     let mut counter = 0;
     let mut good_counter=0;
@@ -152,33 +210,13 @@ fn part1() -> String {
     for p in v_pairs {
         let (a,b) = (p[0].clone(), p[1].clone());
         counter += 1;
-
-        // println!("pair #{counter}:");
-        // println!("\t a: {:?}",a);
-        // println!("\t b: {:?}",b);
-        // println!("==========");
-
-         match compare_values(&a,&b) {
-            Ordering::Less => {
-
-                good_indices.push(counter);
-
-            }
-            Ordering::Equal => {
-                good_indices.push(counter);
-
-
-            }
-            Ordering::Greater => {
-
-                }
+        let left_pack = a;
+        let right_pack = b;
+        if left_pack <= right_pack {
+            good_indices.push(counter);
         }
 
-
-
     }
-    // println!();
-    // println!("good indices: {:?}", good_indices);
     let sum:i32 = good_indices.iter().sum();
     let mut answer1 = sum.to_string();
     return answer1;
@@ -190,42 +228,47 @@ fn part2() -> String {
         true => PART2_TEST_FILENAME,
         false => PART2_INPUT_FILENAME
     };
-    let data2_s =
-        fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
 
-    let mut lines: Vec<&str> = data2_s.trim().split("\n").map(|t| t.trim()).collect();
-    let l_num = lines.len();
-
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p2_file);
-    }
 
     let s = fs::read_to_string(p2_file).unwrap();
-    let mut vs:Vec<Value> =  s.lines()
+    let mut vs:Vec<Packet> =   s.lines()
         .filter(|l| !l.is_empty())
-        .map(|line| serde_json::from_str(line).unwrap()).collect();
-    let packet_2 =serde_json::to_value(vec![vec![2]]).unwrap();
-    let packet_6 =serde_json::to_value(vec![vec![6]]).unwrap();
+        .map(|line| serde_json::from_str(line).unwrap())
+        .map(|v| Packet{packet:v})
+        .collect();
+    if TEST {
+        println!("\t read {} lines from {}", vs.len(), p2_file);
+    }
+
+    let packet_2 =Packet { packet: serde_json::to_value(vec![vec![2]]).unwrap()};
+    let packet_6 =Packet { packet:serde_json::to_value(vec![vec![6]]).unwrap()};
     vs.push( packet_2.clone());
-    vs.push(packet_6.clone());
+    vs.push(packet_6.clone() );
 
-    vs.sort_by(|v1,v2| compare_values(v1,v2));
+    vs.sort();
 
+    // let mut packet_vec:Vec<Packet> = Vec::new();
+    // for v in &vs {
+    //     let pckt = Packet{ packet:  v.clone() };
+    //     packet_vec.push(pckt);
+    // }
+
+    // packet_vec.sort();
     let mut p2_index:usize=0;
     let mut p6_index:usize=0;
     let mut index = 1;
-    for v in &vs {
-       // println!("{:?}", v);
-        if v.eq(&packet_2){
+    for p in vs {
+        if p.eq(&packet_2) {
             p2_index = index;
-        };
-        if v.eq(&packet_6) {
+        }
+        if p.eq(&packet_6) {
             p6_index = index;
         }
         index += 1;
     }
-    println!("packet 2 index: {}", p2_index);
-    println!("packet 6 index: {}", p6_index);
+
+
+
 
 
 
