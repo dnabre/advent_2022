@@ -18,7 +18,7 @@
 | [Day 10: Cathode-Ray Tube](https://adventofcode.com/2022/day/10)  | machine sim | * | * |
 | [Day 11: Monkey in the Middle](https://adventofcode.com/2022/day/11)  | monkey math | * | * |
 | [Day 12: Hill Climbing Algorith ](https://adventofcode.com/2022/day/12)  | grid search  | * | * |
-| [Day 13: ](https://adventofcode.com/2022/day/13)  |  | _ | _ |
+| [Day 13: Distress Signal ](https://adventofcode.com/2022/day/13)  | nested list parsing | * | * |
 | [Day 14: ](https://adventofcode.com/2022/day/14)  |  | _ | _ |
 | [Day 15: ](https://adventofcode.com/2022/day/15)  |  | _ | _ |
 | [Day 16: ](https://adventofcode.com/2022/day/16)  |  | _ | _ |
