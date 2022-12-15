@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::fs;
 use std::time::Instant;
-use parse_display::FromStr;
+use parse_display::{Dispay,FromStr};
 
 /*
     Advent of Code 2022: Day 11
