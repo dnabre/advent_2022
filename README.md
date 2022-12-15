@@ -19,8 +19,8 @@
 | [Day 11: Monkey in the Middle](https://adventofcode.com/2022/day/11)  | monkey math | * | * |
 | [Day 12: Hill Climbing Algorith ](https://adventofcode.com/2022/day/12)  | grid search  | * | * |
 | [Day 13: Distress Signal ](https://adventofcode.com/2022/day/13)  | nested list parsing | * | * |
-| [Day 14: ](https://adventofcode.com/2022/day/14)  |  | _ | _ |
-| [Day 15: ](https://adventofcode.com/2022/day/15)  |  | _ | _ |
+| [Day 14: Regolith Reservoir](https://adventofcode.com/2022/day/14)  | sand sim  | _ | _ |
+| [Day 15: Beacon Exclusion Zone ](https://adventofcode.com/2022/day/15)  |  | _ | _ |
 | [Day 16: ](https://adventofcode.com/2022/day/16)  |  | _ | _ |
 | [Day 17: ](https://adventofcode.com/2022/day/17)  |  | _ | _ |
 | [Day 18: ](https://adventofcode.com/2022/day/18)  |  | _ | _ |
