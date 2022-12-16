@@ -10,17 +10,16 @@ use std::collections::VecDeque;
 use std::{cmp, fmt};
 use std::fmt::Formatter;
 use std::fs;
-use std::io::ErrorKind::Interrupted;
 use std::time::Instant;
-use geo::point;
 use parse_display::{Display, FromStr};
 
-use rstar::Point;
+
+
 
 /*
     Advent of Code 2022: Day 15
         part1 answer: 5394423
-        part2 answer:
+        part2 answer: 11840879211051
 
 
  */
@@ -28,8 +27,8 @@ use rstar::Point;
 
 // test (-8,-10) to (28,26), input: (-911_068, -910_981) to (5_534_348,5_396_743)
 
-const TEST_ANSWER: (i32, i32) = (26, 5394423);
-const INPUT_ANSWER: (i32, i32) = (56000011, 0);
+const TEST_ANSWER: (i64, i64) = (26, 5394423);
+const INPUT_ANSWER: (i64, i64) = (56000011, 11840879211051);
 
 
 const PART1_TEST_FILENAME: &str = "data/day15/part1_test.txt";
@@ -44,18 +43,18 @@ fn main() {
     print!("Advent of Code 2022, Day ");
     println!("15");
 
-    // let start1 = Instant::now();
-    // let answer1 = part1();
-    // let duration1 = start1.elapsed();
-    //
-    // println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+    let start1 = Instant::now();
+    let answer1 = part1();
+    let duration1 = start1.elapsed();
+
+   println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
 
     // if TEST {
     //     assert_eq!(answer1, TEST_ANSWER.0.to_string());
     // } else {
     //     assert_eq!(answer1, INPUT_ANSWER.0.to_string());
     // }
-
+    //
     let start2 = Instant::now();
     let answer2 = part2();
     let duration2 = start2.elapsed();
@@ -69,11 +68,12 @@ fn main() {
     // }
     //
     // println!("----------\ndone");
+    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
 }
 
 
 const PART1_TARGET_ROW: (i32, i32) = (10, 2_000_000);
-const PART2_TUNING_MULTIPLER: i32 = 4000000;
+const PART2_TUNING_MULTIPLER: i64 = 4000000;
 const PART2_TEST_RANGES: (i32, i32) = (20, 20);
 const PART2_INPUT_RANGES: (i32, i32) = (4000000, 4000000);
 
@@ -104,12 +104,18 @@ struct Beacon {
 }
 
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 struct IntegerPoint {
     x: i32,
     y: i32,
 }
-
+impl  IntegerPoint {
+    fn delta(&self, d: (i32, i32)) -> IntegerPoint {
+        let tx = self.x + d.0;
+        let ty = self.y + d.1;
+        return IntegerPoint { x: tx, y: ty };
+    }
+}
 impl fmt::Display for IntegerPoint {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{},{}>", self.x, self.y)
@@ -117,37 +123,6 @@ impl fmt::Display for IntegerPoint {
 }
 
 
-impl Point for IntegerPoint
-{
-    type Scalar = i32;
-    const DIMENSIONS: usize = 2;
-
-    fn generate(mut generator: impl FnMut(usize) -> Self::Scalar) -> Self
-    {
-        IntegerPoint {
-            x: generator(0),
-            y: generator(1),
-        }
-    }
-
-    fn nth(&self, index: usize) -> Self::Scalar
-    {
-        match index {
-            0 => self.x,
-            1 => self.y,
-            _ => unreachable!()
-        }
-    }
-
-    fn nth_mut(&mut self, index: usize) -> &mut Self::Scalar
-    {
-        match index {
-            0 => &mut self.x,
-            1 => &mut self.y,
-            _ => unreachable!()
-        }
-    }
-}
 
 //Input Line :Sensor at x=2, y=18: closest beacon is at x=-2, y=15
 
@@ -224,8 +199,17 @@ fn render_for_space(v_sensors: &Vec<Sensor>, v_beacons: &Vec<Beacon>, min_x: i32
             }
 
             //         print!("{ch}");
-        }
+
         // println!();
+
+            if row_trigger {
+                row_count += 1;
+                row_trigger = false;
+            }
+
+           //          print!("{ch}");
+        }
+        println!();
     }
 
     println!("\n s_count: {s_count} b_count: {b_count}");
@@ -235,6 +219,82 @@ fn render_for_space(v_sensors: &Vec<Sensor>, v_beacons: &Vec<Beacon>, min_x: i32
 
 
     return row_count;
+}
+
+fn get_testgroup_for_sensor(s: Sensor) -> Vec<LineSegment> {
+
+    let s_point = s.loc;
+    let b_point = s.closet_beacon.loc;
+    let (x,y) = (s_point.x, s_point.y);
+    let r = s.m_range;
+
+    let a_delta:(i32,i32) = (1,1);
+    let (a1,a2) = (IntegerPoint{x:x-r, y:y-1},IntegerPoint{x:x,y:y-r-1});
+    let a = line_segment_from_ipoints(a1, a2);
+
+    let b_delta:(i32,i32) = (1,-1);
+    let (b1,b2) = (IntegerPoint{x:x+1, y:y-r},IntegerPoint{x:x+r+1,y:y});
+    let b = line_segment_from_ipoints(b1,b2);
+
+    let c_delta:(i32,i32) = (-1, -1);
+    let (c1,c2) = (IntegerPoint{x:x+r, y:y+1},IntegerPoint{x:x,y:y+r+1});
+    let c = line_segment_from_ipoints(c1,c2);
+
+    let d_delta:(i32,i32) = (-1,1);
+    let (d1,d2) = (IntegerPoint{x:x-1, y:y+r},IntegerPoint{x:x-r,y:y+1});
+    let d = line_segment_from_ipoints(d1,d2);
+
+
+    return vec![a,b,c,d];
+
+}
+#[derive (Clone, Copy, Debug)]
+struct LineSegment {
+    slope: f64,
+    constant: f64,
+    x_min: f64,
+    x_max: f64
+}
+
+fn line_segment_from_ipoints(a:IntegerPoint, b:IntegerPoint) -> LineSegment {
+    let slope_: f64 = (b.y as f64 - a.y as f64) / (b.x as f64 - a.x as f64);
+    let c_t: f64 = a.y as f64 - slope_ * a.x as f64;
+    let x_min_n = cmp::min(a.x, b.x) as f64;
+    let x_max_x = cmp::max(a.x, b.x) as f64;
+
+    return LineSegment { slope: slope_, constant: c_t, x_min: x_min_n, x_max: x_max_x };
+}
+#[derive (Clone, Copy, Debug)]
+struct Vertex {
+    x:f64,
+    y:f64
+}
+
+impl Vertex {
+    fn from(p:IntegerPoint) -> Self {
+        let v_x:f64 = p.x as f64;
+        let v_y:f64 = p.y as f64;
+        Self{x:v_x,y:v_y}
+    }
+}
+
+
+fn intersect(l:LineSegment, r:LineSegment) -> Option<Vertex> {
+    let mut left = l.clone();
+    let mut right = r.clone();
+    left.slope -= right.slope;
+    right.slope = 0.0;
+
+    right.constant -= left.constant;
+    left.constant = 0.0;
+
+    let x = right.constant / left.slope;
+    if x< left.x_min || x > left.x_max || x < right.x_min || x > right.x_max {
+        return None;
+    }
+    let y = l.slope * x + l.constant;
+
+       return Some(Vertex{x,y});
 }
 
 
@@ -400,36 +460,83 @@ fn part2() -> String {
 
     let mut v_points: Vec<IntegerPoint> = Vec::new();
 
-
-    println!("Looking from ({},{}) to ({},{})", 0, 0, r_x, r_y);
-    let mut loop_counter:i64 = 0;
-
     let mut seen = false;
     let mut ans = -1;
 
-    'x_loop: for x in 0..=range.0 {
-        for y in 0..range.1 {
-            loop_counter +=1;
-            if (loop_counter % 500_000) == 0 {
-                println!("loop: {loop_counter} at <x,y> = {x}{y}");
-            }
-            let p = IntegerPoint { x: x, y: y };
+    let vector_groups:Vec<Vec<IntegerPoint>> = vec![vec![]];
 
-            seen = false;
-            for s in &v_sensors {
-                let md = man_distance(s.loc, p);
-                if md <= s.m_range {
-                    //point seen
-                    //     println!("point ({x}, {y} seen by sensor: {:>2}", s.id);
-                    seen = true;
-                    break;
-                }
+    let mut a_vertex:Vec<Vertex> = Vec::new();
+    let mut test_points:HashSet<IntegerPoint> = HashSet::new();
+    for s1 in &v_sensors {
+        for s2 in &v_sensors {
+            println!("s1: {:?}", s1);
+            println!("s2: {:?}", s2);
+            if s1==s2 {
+                continue;
             }
-            if !seen {
-                println!("nobody saw <{x},{y}>");
-                ans = x * PART2_TUNING_MULTIPLER + y;
-                break 'x_loop
+
+            let l_segments: Vec<LineSegment> = get_testgroup_for_sensor(s1.clone());
+            let r_segments: Vec<LineSegment> = get_testgroup_for_sensor(s2.clone());
+         //   println!("{:?}", l_segments);
+         //   println!("{:?}", r_segments);
+            for l in &l_segments {
+
+                for r in &r_segments {
+                    let i = intersect(*l,*r);
+                    match i {
+                        None => {}
+                        Some(v) => {
+                      //      println!("{:?}", v);
+                            if v.x.is_finite() && v.y.is_finite(){
+                            a_vertex.push(v)};
+                        }
+
+
+
+                                }
+                            }
+                          }
+                        }
+                    }
+
+    println!("collected vertices (#: {})", a_vertex.len());
+    for v in a_vertex {
+        let v_x = v.x as i32;
+        let v_y = v.y as i32;
+        for xx in  (v_x-2)..=(v_x+2) {
+            for yy in (v_y-2)..=(v_y+2){
+
+            let mut ip = IntegerPoint{x:xx, y:yy};
+                test_points.insert(ip.clone());
+        }
+    }}
+    println!("collected test points (#: {})", test_points.len());
+    for p in test_points {
+        if (p.x < 0) || (p.x > PART2_INPUT_RANGES.0) {
+            continue;
+        }
+        if (p.y < 0) || (p.y > PART2_INPUT_RANGES.1) {
+            continue;
+        }
+
+        let mut unseen = true;
+        let mut last_seen:i32 = -1;
+        for s in &v_sensors {
+            let m = man_distance(s.loc, p);
+            if m <= s.m_range {
+                unseen = false;
+                last_seen = s.id;
             }
+        }
+        if unseen {
+            println!("point {} is not in range of any sensors", p);
+
+            let tf1:i64 = (p.x as i64)  * PART2_TUNING_MULTIPLER;
+            let tf2:i64 = tf1+(p.y as i64);
+            println!("answer? {}", tf2);
+
+        } else {
+   //         println!("point {} seen by sensor {}", p, last_seen);
         }
     }
 
