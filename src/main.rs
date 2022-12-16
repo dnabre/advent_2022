@@ -24,12 +24,8 @@ use parse_display::{Display, FromStr};
 
  */
 
-
-// test (-8,-10) to (28,26), input: (-911_068, -910_981) to (5_534_348,5_396_743)
-
-const TEST_ANSWER: (i64, i64) = (26, 5394423);
-const INPUT_ANSWER: (i64, i64) = (56000011, 11840879211051);
-
+const TEST_ANSWER: (i64, i64) = (26, 56000011);
+const INPUT_ANSWER: (i64, i64) = (5394423, 11840879211051);
 
 const PART1_TEST_FILENAME: &str = "data/day15/part1_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day15/part1_input.txt";
@@ -37,7 +33,7 @@ const PART1_INPUT_FILENAME: &str = "data/day15/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day15/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day15/part2_input.txt";
 
-const TEST: bool = false;
+const TEST: bool = true;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -49,40 +45,39 @@ fn main() {
 
    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
 
-    // if TEST {
-    //     assert_eq!(answer1, TEST_ANSWER.0.to_string());
-    // } else {
-    //     assert_eq!(answer1, INPUT_ANSWER.0.to_string());
-    // }
-    //
-    let start2 = Instant::now();
-    let answer2 = part2();
-    let duration2 = start2.elapsed();
+    if TEST {
+        assert_eq!(answer1, TEST_ANSWER.0.to_string());
+    } else {
+        assert_eq!(answer1, INPUT_ANSWER.0.to_string());
+    }
 
-    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-    //
-    // if TEST {
-    //     assert_eq!(answer2, TEST_ANSWER.1.to_string());
-    // } else {
-    //     assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-    // }
-    //
-    // println!("----------\ndone");
-    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+//     let start2 = Instant::now();
+//     let answer2 = part2();
+//     let duration2 = start2.elapsed();
+//
+//     println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+//
+//     if TEST {
+//         assert_eq!(answer2, TEST_ANSWER.1.to_string());
+//     } else {
+//         assert_eq!(answer2, INPUT_ANSWER.1.to_string());
+//     }
+//
+//     println!("----------\ndone");
 }
 
 
-const PART1_TARGET_ROW: (i32, i32) = (10, 2_000_000);
+const PART1_TARGET_ROW: (i64, i64) = (10, 2_000_000);
 const PART2_TUNING_MULTIPLER: i64 = 4000000;
-const PART2_TEST_RANGES: (i32, i32) = (20, 20);
-const PART2_INPUT_RANGES: (i32, i32) = (4000000, 4000000);
+const PART2_TEST_RANGES: (i64, i64) = (20, 20);
+const PART2_INPUT_RANGES: (i64, i64) = (4000000, 4000000);
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 struct Sensor {
     loc: IntegerPoint,
     closet_beacon: Beacon,
-    m_range: i32,
-    id: i32,
+    m_range: i64,
+    id: i64,
 }
 
 
@@ -106,11 +101,11 @@ struct Beacon {
 
 #[derive(Copy, Clone, PartialEq, Debug, Eq, Hash)]
 struct IntegerPoint {
-    x: i32,
-    y: i32,
+    x: i64,
+    y: i64,
 }
 impl  IntegerPoint {
-    fn delta(&self, d: (i32, i32)) -> IntegerPoint {
+    fn delta(&self, d: (i64, i64)) -> IntegerPoint {
         let tx = self.x + d.0;
         let ty = self.y + d.1;
         return IntegerPoint { x: tx, y: ty };
@@ -129,20 +124,20 @@ impl fmt::Display for IntegerPoint {
 #[derive(Display, FromStr, PartialEq, Debug)]
 #[display("Sensor at x={sensor_x}, y={sensor_y}: closest beacon is at x={c_beacon_x}, y={c_beacon_y}")]
 struct SensorInput {
-    sensor_x: i32,
-    sensor_y: i32,
-    c_beacon_x: i32,
-    c_beacon_y: i32,
+    sensor_x: i64,
+    sensor_y: i64,
+    c_beacon_x: i64,
+    c_beacon_y: i64,
 }
 
-fn distance_to_beacon(s: IntegerPoint, b: Beacon) -> i32 {
+fn distance_to_beacon(s: IntegerPoint, b: Beacon) -> i64 {
     return man_distance(s, b.loc);
 }
 
-fn man_distance(p1: IntegerPoint, p2: IntegerPoint) -> i32 {
+fn man_distance(p1: IntegerPoint, p2: IntegerPoint) -> i64 {
     let x_d = p1.x.abs_diff(p2.x);
     let y_d = p1.y.abs_diff(p2.y);
-    return (x_d + y_d) as i32;
+    return (x_d + y_d) as i64;
 }
 
 fn print_char_vec(v: &Vec<char>) {
@@ -154,18 +149,42 @@ fn print_char_vec(v: &Vec<char>) {
 }
 
 
-fn render_for_space(v_sensors: &Vec<Sensor>, v_beacons: &Vec<Beacon>, min_x: i32, max_x: i32, min_y: i32, max_y: i32) -> i32 {
-    println!("rendering from ({},{}) -> ({},{})", min_x, min_y, max_x, max_y);
+#[derive(Debug,PartialEq,Eq,Clone,Copy)]
+struct Range {
+    start: i64,
+    end: i64
+}
+
+impl Range {
+    fn new(start:i64, end:i64) -> Self {
+        Self { start,end }
+    }
+    fn contains(&self, value: i64) -> bool {
+        return value >= self.start && value <= self.end;
+    }
+}
+
+
+
+
+fn render_for_space(v_sensors: &Vec<Sensor>, v_beacons: &Vec<Beacon>, min_x: i64, max_x: i64, min_y: i64, max_y: i64) -> i64 {
+
+
+
+
+
     let mut beacon_count = 0;
     let mut drew_something = false;
     let mut s_count = 0;
     let mut b_count = 0;
     let mut row_count = 0;
+    let mut last_row_count =0;
     let mut row_vector: Vec<IntegerPoint> = Vec::new();
     let target_row = match TEST {
         true => { PART1_TARGET_ROW.0 }
         false => { PART1_TARGET_ROW.1 }
     };
+
     for j in min_y..=max_y {
 //        print!("{j:>3}");
         for i in min_x..=max_x {
@@ -221,6 +240,50 @@ fn render_for_space(v_sensors: &Vec<Sensor>, v_beacons: &Vec<Beacon>, min_x: i32
     return row_count;
 }
 
+
+fn get_ranges_for_row(row: i64, v_sensors: &Vec<Sensor>, v_beacons: &Vec<Beacon>, min_x: i64, max_x: i64) -> Vec<(i64,i64,i64)> {
+    let mut r:Vec<(i64,i64,i64)>=Vec::new();
+
+    for s in v_sensors {
+        let mut modifier:i64 = 0;
+        if s.closet_beacon.loc.y == row {
+            modifier +=1;
+        }
+        if s.loc.y == row {
+            modifier +=1;
+            r.push((s.loc.x - s.m_range, s.loc.x + s.m_range, modifier));
+            continue;
+        }
+        if s.loc.y > row {
+            //above row
+            if s.loc.y - s.m_range > row {
+                r.push((0,0,modifier));
+                continue;
+            }
+         let height = s.loc.y - row;
+          let span = (s.m_range ) - (height);
+            r.push( (s.loc.x - span, s.loc.x+span, modifier) );
+
+
+        } else {
+            //below row
+            if s.loc.y + s.m_range <row {
+                r.push((0,0,modifier));
+                continue;
+            }
+
+            let depth = row - s.loc.y;
+            let span = s.m_range - depth;
+            r.push( (s.loc.x - span,s.loc.x +span ,modifier) );
+
+
+        }
+
+    }
+
+    return r;
+}
+
 fn get_testgroup_for_sensor(s: Sensor) -> Vec<LineSegment> {
 
     let s_point = s.loc;
@@ -228,19 +291,19 @@ fn get_testgroup_for_sensor(s: Sensor) -> Vec<LineSegment> {
     let (x,y) = (s_point.x, s_point.y);
     let r = s.m_range;
 
-    let a_delta:(i32,i32) = (1,1);
+    let a_delta:(i64,i64) = (1,1);
     let (a1,a2) = (IntegerPoint{x:x-r, y:y-1},IntegerPoint{x:x,y:y-r-1});
     let a = line_segment_from_ipoints(a1, a2);
 
-    let b_delta:(i32,i32) = (1,-1);
+    let b_delta:(i64,i64) = (1,-1);
     let (b1,b2) = (IntegerPoint{x:x+1, y:y-r},IntegerPoint{x:x+r+1,y:y});
     let b = line_segment_from_ipoints(b1,b2);
 
-    let c_delta:(i32,i32) = (-1, -1);
+    let c_delta:(i64,i64) = (-1, -1);
     let (c1,c2) = (IntegerPoint{x:x+r, y:y+1},IntegerPoint{x:x,y:y+r+1});
     let c = line_segment_from_ipoints(c1,c2);
 
-    let d_delta:(i32,i32) = (-1,1);
+    let d_delta:(i64,i64) = (-1,1);
     let (d1,d2) = (IntegerPoint{x:x-1, y:y+r},IntegerPoint{x:x-r,y:y+1});
     let d = line_segment_from_ipoints(d1,d2);
 
@@ -320,8 +383,8 @@ fn part1() -> String {
     let mut v_sensors: Vec<Sensor> = Vec::new();
     let mut v_beacons: Vec<Beacon> = Vec::new();
     let mut sensor_count = 0;
-    let (mut min_x, mut min_y): (i32, i32) = (i32::MAX, i32::MAX);
-    let (mut max_x, mut max_y): (i32, i32) = (i32::MIN, i32::MIN);
+    let (mut min_x, mut min_y): (i64, i64) = (i64::MAX, i64::MAX);
+    let (mut max_x, mut max_y): (i64, i64) = (i64::MIN, i64::MIN);
 
     let mut sensor_input_vec: Vec<SensorInput> = Vec::new();
     for i in 0..lines.len() {
@@ -338,7 +401,7 @@ fn part1() -> String {
             ,
             closet_beacon: b,
             m_range: distance_to_beacon(IntegerPoint { x: s_input.sensor_x, y: s_input.sensor_y }, b),
-            id: i as i32,
+            id: i as i64,
         };
 
         // sensor ranges
@@ -375,14 +438,34 @@ fn part1() -> String {
     //full render
     // let ans = render_for_space(&v_sensors, &v_beacons, min_x, max_x, min_y, max_y);
 
-    // just target
-    let ans = render_for_space(&v_sensors, &v_beacons, min_x, max_x, query_row, query_row);
+
+        let v_ranges = get_ranges_for_row(query_row, &v_sensors, &v_beacons, min_x, max_x);
+    let mut total_modifier=0;
+    println!("ranges: ");
 
 
-    println!("ans: {ans}");
-    let mut answer1 = String::new();
+    for r in v_ranges {
+        let (left,right,m) = r;
+    //    let i = Iv {start: left, stop: right+1, val:0};
+        total_modifier += m;
+        println!("\t {:?}", r);
+    }
+
+
+//        let ans = render_for_space(&v_sensors, &v_beacons, min_x, max_x, query_row, query_row);
+    for s in v_sensors{
+        println!("{:?}", s);
+    }
+
+
+
+   // println!("ans: {:?}",ans);
+    let ans = 5;
+    let mut answer1 = ans.to_string();
     return answer1;
 }
+
+
 
 
 fn part2() -> String {
@@ -404,8 +487,8 @@ fn part2() -> String {
     let mut v_sensors: Vec<Sensor> = Vec::new();
     let mut v_beacons: Vec<Beacon> = Vec::new();
     let mut sensor_count = 0;
-    let (mut min_x, mut min_y): (i32, i32) = (i32::MAX, i32::MAX);
-    let (mut max_x, mut max_y): (i32, i32) = (i32::MIN, i32::MIN);
+    let (mut min_x, mut min_y): (i64, i64) = (i64::MAX, i64::MAX);
+    let (mut max_x, mut max_y): (i64, i64) = (i64::MIN, i64::MIN);
 
     let mut sensor_input_vec: Vec<SensorInput> = Vec::new();
     for i in 0..lines.len() {
@@ -422,7 +505,7 @@ fn part2() -> String {
             ,
             closet_beacon: b,
             m_range: distance_to_beacon(IntegerPoint { x: s_input.sensor_x, y: s_input.sensor_y }, b),
-            id: i as i32,
+            id: i as i64,
         };
 
         // sensor ranges
@@ -501,8 +584,8 @@ fn part2() -> String {
 
     println!("collected vertices (#: {})", a_vertex.len());
     for v in a_vertex {
-        let v_x = v.x as i32;
-        let v_y = v.y as i32;
+        let v_x = v.x as i64;
+        let v_y = v.y as i64;
         for xx in  (v_x-2)..=(v_x+2) {
             for yy in (v_y-2)..=(v_y+2){
 
@@ -510,6 +593,7 @@ fn part2() -> String {
                 test_points.insert(ip.clone());
         }
     }}
+    let mut answer2:i64=-1;
     println!("collected test points (#: {})", test_points.len());
     for p in test_points {
         if (p.x < 0) || (p.x > PART2_INPUT_RANGES.0) {
@@ -520,7 +604,7 @@ fn part2() -> String {
         }
 
         let mut unseen = true;
-        let mut last_seen:i32 = -1;
+        let mut last_seen:i64 = -1;
         for s in &v_sensors {
             let m = man_distance(s.loc, p);
             if m <= s.m_range {
@@ -534,7 +618,7 @@ fn part2() -> String {
             let tf1:i64 = (p.x as i64)  * PART2_TUNING_MULTIPLER;
             let tf2:i64 = tf1+(p.y as i64);
             println!("answer? {}", tf2);
-
+            answer2=tf2;
         } else {
    //         println!("point {} seen by sensor {}", p, last_seen);
         }
@@ -542,6 +626,6 @@ fn part2() -> String {
 
 
 
-    let mut answer2 = ans.to_string();
+    let mut answer2 = answer2.to_string();
     return answer2;
 }
