@@ -33,7 +33,7 @@ const PART1_INPUT_FILENAME: &str = "data/day15/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day15/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day15/part2_input.txt";
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -43,7 +43,7 @@ fn main() {
     let answer1 = part1();
     let duration1 = start1.elapsed();
 
-   println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
 
     if TEST {
         assert_eq!(answer1, TEST_ANSWER.0.to_string());
@@ -51,19 +51,22 @@ fn main() {
         assert_eq!(answer1, INPUT_ANSWER.0.to_string());
     }
 
-//     let start2 = Instant::now();
-//     let answer2 = part2();
-//     let duration2 = start2.elapsed();
-//
-//     println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-//
-//     if TEST {
-//         assert_eq!(answer2, TEST_ANSWER.1.to_string());
-//     } else {
-//         assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-//     }
-//
-//     println!("----------\ndone");
+    let start2 = Instant::now();
+    let answer2 = part2();
+    let duration2 = start2.elapsed();
+
+    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+
+    if TEST {
+        assert_eq!(answer2, TEST_ANSWER.1.to_string());
+    } else {
+        assert_eq!(answer2, INPUT_ANSWER.1.to_string());
+    }
+
+
+
+
+    println!("----------\ndone");
 }
 
 
@@ -139,6 +142,45 @@ fn man_distance(p1: IntegerPoint, p2: IntegerPoint) -> i64 {
     let y_d = p1.y.abs_diff(p2.y);
     return (x_d + y_d) as i64;
 }
+fn beacons_in_range(sensors: &[Sensor], range: &Range, y: i64, into_vec: &mut Vec<(i64, i64)>) {
+    into_vec.clear();
+    for s in sensors {
+        let closet_beacon = (s.closet_beacon.loc.x,s.closet_beacon.loc.y);
+        if closet_beacon.1 == y && range.contains(closet_beacon.0) && !into_vec.contains(&closet_beacon) {
+            into_vec.push(closet_beacon);
+        }
+    }
+}
+
+fn merge_ranges(sorted_ranges: &Vec<Range>) -> Vec<Range> {
+    let mut result:Vec<Range> = Vec::new();
+    let mut index =0;
+    let mut current = sorted_ranges.get(index).copied();
+    loop {
+        let next = sorted_ranges.get(index);
+        index += 1;
+        match(current, next) {
+            (Some(r1), None) => {
+                result.push(r1);
+                return result;
+            }
+            (Some (r1), Some(r2)) if r1.contains(r2.start)  => {
+                current = Some(Range::new(r1.start, r1.end.max(r2.end)))
+
+            }
+            (Some(r1),Some(&r2)) => {
+                if r1.end + 1 == r2.start {
+                    current = Some(Range::new(r1.start,r1.end.max(r2.end)))
+                } else {
+                    current = Some(r2);
+                    result.push(r1);
+                }
+            }
+            (None, _) => return result,
+        }
+    }
+}
+
 
 fn print_char_vec(v: &Vec<char>) {
     print!("[");
@@ -241,47 +283,17 @@ fn render_for_space(v_sensors: &Vec<Sensor>, v_beacons: &Vec<Beacon>, min_x: i64
 }
 
 
-fn get_ranges_for_row(row: i64, v_sensors: &Vec<Sensor>, v_beacons: &Vec<Beacon>, min_x: i64, max_x: i64) -> Vec<(i64,i64,i64)> {
-    let mut r:Vec<(i64,i64,i64)>=Vec::new();
-
-    for s in v_sensors {
-        let mut modifier:i64 = 0;
-        if s.closet_beacon.loc.y == row {
-            modifier +=1;
-        }
-        if s.loc.y == row {
-            modifier +=1;
-            r.push((s.loc.x - s.m_range, s.loc.x + s.m_range, modifier));
-            continue;
-        }
-        if s.loc.y > row {
-            //above row
-            if s.loc.y - s.m_range > row {
-                r.push((0,0,modifier));
-                continue;
-            }
-         let height = s.loc.y - row;
-          let span = (s.m_range ) - (height);
-            r.push( (s.loc.x - span, s.loc.x+span, modifier) );
-
-
-        } else {
-            //below row
-            if s.loc.y + s.m_range <row {
-                r.push((0,0,modifier));
-                continue;
-            }
-
-            let depth = row - s.loc.y;
-            let span = s.m_range - depth;
-            r.push( (s.loc.x - span,s.loc.x +span ,modifier) );
-
-
-        }
-
+fn get_ranges_for_row(sensor: &Sensor, row: i64) -> Option<Range> {
+    let half_size = sensor.m_range - (row - sensor.loc.y).abs();
+    let range_size = half_size * 2 + 1;
+    if range_size > 0 {
+        return Some(Range::new(
+            sensor.loc.x - half_size,
+            sensor.loc.x + half_size
+        ));
+    } else {
+        return None;
     }
-
-    return r;
 }
 
 fn get_testgroup_for_sensor(s: Sensor) -> Vec<LineSegment> {
@@ -438,35 +450,40 @@ fn part1() -> String {
     //full render
     // let ans = render_for_space(&v_sensors, &v_beacons, min_x, max_x, min_y, max_y);
 
-
-        let v_ranges = get_ranges_for_row(query_row, &v_sensors, &v_beacons, min_x, max_x);
-    let mut total_modifier=0;
-    println!("ranges: ");
-
-
-    for r in v_ranges {
-        let (left,right,m) = r;
-    //    let i = Iv {start: left, stop: right+1, val:0};
-        total_modifier += m;
-        println!("\t {:?}", r);
+    let mut v_range:Vec<Range> = Vec::new();
+    let mut o_v_r = None;
+    for s in &v_sensors {
+        o_v_r = get_ranges_for_row(s, query_row);
+        match o_v_r {
+            None => {}
+            Some(r) => {
+                v_range.push(r);
+            }
+        }
     }
 
+  //  println!("{:?}", v_range);
 
-//        let ans = render_for_space(&v_sensors, &v_beacons, min_x, max_x, query_row, query_row);
-    for s in v_sensors{
-        println!("{:?}", s);
-    }
+    v_range.sort_unstable_by_key(|r| r.start);
+  //  println!("{:?}", v_range);
+    let merged:Vec<Range> = merge_ranges(&v_range);
+//    println!("{:?}", merged);
+
+
+    let mut included_beacons = Vec::new();
+    let answer1 =merged
+        .iter()
+        .map(|range| {
+            beacons_in_range(&v_sensors, range, query_row, &mut included_beacons);
+            (range.end - range.start +1) as usize - included_beacons.len()
+        })
+        .sum::<usize>() as u64;
 
 
 
-   // println!("ans: {:?}",ans);
-    let ans = 5;
-    let mut answer1 = ans.to_string();
+    let mut answer1 = answer1.to_string();
     return answer1;
 }
-
-
-
 
 fn part2() -> String {
     let p2_file = match TEST {
@@ -595,13 +612,22 @@ fn part2() -> String {
     }}
     let mut answer2:i64=-1;
     println!("collected test points (#: {})", test_points.len());
+    let range_max = match TEST {
+        true => {20}
+        false => {4000000}
+    };
+
     for p in test_points {
-        if (p.x < 0) || (p.x > PART2_INPUT_RANGES.0) {
+        if(p.x < 0) || (p.y < 0) {
             continue;
         }
-        if (p.y < 0) || (p.y > PART2_INPUT_RANGES.1) {
+
+
+        if(p.x > range_max) || (p.y > range_max) {
             continue;
         }
+
+
 
         let mut unseen = true;
         let mut last_seen:i64 = -1;
@@ -626,6 +652,6 @@ fn part2() -> String {
 
 
 
-    let mut answer2 = answer2.to_string();
+        let mut answer2 = answer2.to_string();
     return answer2;
 }
