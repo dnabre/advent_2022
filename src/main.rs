@@ -16,8 +16,10 @@ use parse_display::FromStr;
 
 /*
     Advent of Code 2022: Day 17
-        part1 answer: 3059
+        part1 answer:
         part2 answer:
+
+        part1 -> 3158 is too high
 
  */
 
@@ -89,7 +91,7 @@ impl fmt::Display for Block {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum Direction {
-    //Up,
+    Up,
     Down,
     Left,
     Right,
@@ -98,7 +100,7 @@ enum Direction {
 impl fmt::Display for Direction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-  //          Direction::Up => write!(f, "🠕"),
+            Direction::Up => write!(f, "🠕"),
             Direction::Down => write!(f, "🠗"),
             Direction::Left => write!(f, "🠔"),
             Direction::Right => write!(f, "➝"),
@@ -106,69 +108,92 @@ impl fmt::Display for Direction {
     }
 }
 
+// Test if piece can move in the given direction
 fn can_move(field: &[u8], r: Block, dir: Direction, row: usize, col: usize) -> bool {
     match dir {
+        Direction::Up => {
+            unreachable!()
+        }
+
         Direction::Down => {
             0 < row
                 && match r {
-                Block::HLine => field[row - 1] & (0xF << (7 - col - 3)) == 0,
-                Block::Cross => {
-                    field[row - 1] & (1 << (7 - col - 1)) | field[row] & (0x5 << (7 - col - 2))
-                        == 0
+                Block::HLine => {
+                    field[row - 1] & (0xF << (7 - col - 3)) == 0
                 }
-                Block::Corner => field[row - 1] & (0x7 << (7 - col - 2)) == 0,
-                Block::VLine => field[row - 1] & (1 << (7 - col)) == 0,
-                Block::Square => field[row - 1] & (0x3 << (7 - col - 1)) == 0,
+                Block::Cross => {
+                    field[row - 1] & (1 << (7 - col - 1)) | field[row] &
+                        (0x5 << (7 - col - 2)) == 0
+                }
+                Block::Corner => {
+                    field[row - 1] & (0x7 << (7 - col - 2)) == 0
+                }
+                Block::VLine => {
+                    field[row - 1] & (1 << (7 - col)) == 0
+                }
+                Block::Square => {
+                    field[row - 1] & (0x3 << (7 - col - 1)) == 0
+                }
             }
         }
+
         Direction::Left => {
-            0 < col
-                && match r {
-                Block::HLine => field[row] & (1 << (7 - col + 1)) == 0,
+            0 < col &&
+                match r {
+                    Block::HLine => {
+                        field[row] & (1 << (7 - col + 1)) == 0
+                    }
+                    Block::Cross => {
+                        (field[row] | field[row + 2])
+                            & (1 << (7 - col ))
+                            | field[row + 1]
+                            & (1 << (7 - col + 1))
+                            == 0
+                    }
+                    Block::Corner => {
+                        field[row] & (1 << (7 - col + 1)) |
+                            (field[row + 1] | field[row + 2]) &
+                                (1 << (7 - col - 1)) == 0
+                    }
+                    Block::VLine => {
+                        (field[row] | field[row + 1] | field[row + 2] | field[row + 3])
+                            & (1 << (7 - col + 1))
+                            == 0
+                    }
+                    Block::Square => {
+                        (field[row] | field[row + 1]) & (1 << (7 - col + 1)) == 0
+                    }
+                }
+        }
+
+        Direction::Right => {
+            match r {
+                Block::HLine => col + 4 < 7 && field[row] & (1 << (7 - col - 4)) == 0,
                 Block::Cross => {
-                    (field[row] | field[row + 2]) & (1 << (7 - col))
-                        | field[row + 1] & (1 << (7 - col + 1))
+                    col + 3 < 7
+                        && (field[row] | field[row + 2]) & (1 << (7 - col - 2))
+                        | field[row + 1] & (1 << (7 - col - 3))
                         == 0
                 }
                 Block::Corner => {
-                    field[row] & (1 << (7 - col + 1))
-                        | (field[row + 1] | field[row + 2]) & (1 << (7 - col - 1))
-                        == 0
+                    col + 3 < 7
+                        && (field[row] | field[row + 1] | field[row + 2]) & (1 << (7 - col - 3)) == 0
                 }
                 Block::VLine => {
-                    (field[row] | field[row + 1] | field[row + 2] | field[row + 3])
-                        & (1 << (7 - col + 1))
+                    col + 1 < 7
+                        && (field[row] | field[row + 1] | field[row + 2] | field[row + 3])
+                        & (1 << (7 - col - 1))
                         == 0
                 }
-                Block::Square => (field[row] | field[row + 1]) & (1 << (7 - col + 1)) == 0,
+                Block::Square => {
+                    col + 2 < 7 && (field[row] | field[row + 1]) & (1 << (7 - col - 2)) == 0
+                }
             }
         }
-        Direction::Right => match r {
-            Block::HLine => col + 4 < 7 && field[row] & (1 << (7 - col - 4)) == 0,
-            Block::Cross => {
-                col + 3 < 7
-                    && (field[row] | field[row + 2]) & (1 << (7 - col - 2))
-                    | field[row + 1] & (1 << (7 - col - 3))
-                    == 0
-            }
-            Block::Corner => {
-                col + 3 < 7
-                    && (field[row] | field[row + 1] | field[row + 2]) & (1 << (7 - col - 3)) == 0
-            }
-            Block::VLine => {
-                col + 1 < 7
-                    && (field[row] | field[row + 1] | field[row + 2] | field[row + 3])
-                    & (1 << (7 - col - 1))
-                    == 0
-            }
-            Block::Square => {
-                col + 2 < 7 && (field[row] | field[row + 1]) & (1 << (7 - col - 2)) == 0
-            }
-        },
     }
 }
 
-
+// Piece can no longer move, come up with new board state for next iteration
 fn freeze(field:&mut [u8], r: Block, row: usize, col: usize) -> usize {
     match r {
         Block::HLine => {
@@ -230,14 +255,7 @@ fn part1() -> String {
 
     let last_turn: usize = 2022;
 
-    // let mut more_debug;
     'block: for i in 0..last_turn {
-        // println!("top of block loop, turn {i}, {highest_row}");
-        // if i ==  27 {
-        //     more_debug = true;
-        // } else {
-        //     more_debug = false;
-        // }
 
         let mut bottom = highest_row + 3;
         for _ in field.len()..bottom + 4 {
@@ -252,13 +270,6 @@ fn part1() -> String {
             4 => Block::Square,
             _ => unreachable!(),
         };
-        // if more_debug {
-        //     println!("\tblock, r: {:?}", r);
-        //     println!("\tfield: {:?}", field);
-        //     println!("\tbottom: {bottom}");
-        //     println!("\thigh_row: {highest_row}");
-        //     println!("\tjet_index: {jet_index}");
-        // }
         bottom -= 3;
         for _ in 0..3 {
             match jets[jet_index % jets.len()] {
