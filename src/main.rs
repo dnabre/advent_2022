@@ -1,184 +1,92 @@
+#![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 #![allow(unused_mut)]
-#![allow(dead_code)]
-#![allow(unused_assignments)]
 
 
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::fs;
-use std::time::Instant;
 use std::fmt;
+use std::fs;
+use std::iter;
+use std::ops::{Add, Index};
+use std::thread::current;
+use std::time::Instant;
 
 use parse_display::FromStr;
 
+
+
 /*
-    Advent of Code 2022: Day 16
-        part1 answer:
-        part2 answer:
+    Advent of Code 2022: Day 07
+        part1 answer: 1581595
+        part2 answer: 1544176
 
  */
 
-const TEST_ANSWER: (u32, u32) = (0, 0);
-const INPUT_ANSWER: (u32, u32) = (0, 0);
-
-const PART1_TEST_FILENAME: &str = "data/day16/part1_test.txt";
-const PART1_INPUT_FILENAME: &str = "data/day16/part1_input.txt";
-const PART2_TEST_FILENAME: &str = "data/day16/part2_test.txt";
-const PART2_INPUT_FILENAME: &str = "data/day16/part2_input.txt";
+const TEST_ANSWER: (u32, u32) = (95437, 24933642);
+const INPUT_ANSWER: (u32, u32) = (1581595, 1544176);
 
 
-const TEST: bool = true;
+const PART1_TEST_FILENAME: &str = "data/day07/part1_test.txt";
+const PART1_TEST2_FILENAME: &str = "data/day07/part1_test_2.txt";
+const PART1_INPUT_FILENAME: &str = "data/day07/part1_input.txt";
+
+const PART2_TEST_FILENAME: &str = "data/day07/part2_test.txt";
+const PART2_INPUT_FILENAME: &str = "data/day07/part2_input.txt";
+
+const PART1_DIR_SIZE_CAP: u32 = 100_000;
+
+const PART2_TOTAL_SPACE: u32 = 70_000_000;
+const PART2_TARGET_UNUSED_SPACE: u32 = 30_000_000;
+
+
+const TEST: bool = false;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
-    println!("16");
+    println!("07");                           // insert Day
 
+
+    // test();
     let start1 = Instant::now();
     let answer1 = part1();
     let duration1 = start1.elapsed();
-
     println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
-
-    // if TEST {
-    //     assert_eq!(answer1, TEST_ANSWER.0.to_string());
-    // } else {
-    //     assert_eq!(answer1, INPUT_ANSWER.0.to_string());
-    // }
+    if TEST {
+        assert_eq!(answer1, TEST_ANSWER.0.to_string());
+    } else {
+        assert_eq!(answer1, INPUT_ANSWER.0.to_string());
+    }
 
     let start2 = Instant::now();
     let answer2 = part2();
     let duration2 = start2.elapsed();
-
     println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-
-    // if TEST {
-    //     assert_eq!(answer2, TEST_ANSWER.1.to_string());
-    // } else {
-    //     assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-    // }
+    if TEST {
+        assert_eq!(answer2, TEST_ANSWER.1.to_string());
+    } else {
+        assert_eq!(answer2, INPUT_ANSWER.1.to_string());
+    }
 
 
     println!("----------\ndone");
 }
 
-const MAX_TIME:i32 = 30;
 
-
-#[derive(PartialEq, Debug,Eq,Hash)]
-struct Room {
-    id:i32,
-    value:i32,
-    connected:Vec<i32>
-}
-//Valve LW has flow rate=0; tunnels lead to valves AA, HT
-
-impl fmt::Display for Room {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Value {} has flow rate={}; tunnels leads to values: {:?}",
-               self.id, self.value, self.connected
-        )
-    }
+#[derive(FromStr, Debug)]
+#[display("{size} {name}")]
+struct File {
+    name: String,
+    size: u32,
 }
 
 
-impl Default for Room {
-    fn default() -> Room {
-        Room {
-            id: -1,
-            value: -1,
-            connected: Vec::new(),
-        }
-    }
+#[derive(FromStr, Debug)]
+#[display("dir {name}")]
+struct Dir {
+    name: String,
 }
-
-
-
-fn alpha_to_num(s:&String) -> i32{
-    let ch1:u8 = s.chars().nth(0).unwrap() as u8;
-    let ch2:u8 = s.chars().nth(1).unwrap() as u8;
-    let mut base:i32 = 0;
-    let right =  ch1 - ('A' as u8) ;
-    if ch1 == ch2 {
-        return right as i32;
-    } else {
-        base = 26;
-    }
-    let left:i32 =  (ch2 - ('A' as u8)) as i32;
-    let p = (right as i32) + (26  * left) as i32 + base ;
-    return p;
-}
-
-
-fn generate_alpha_mapping()->HashMap<(char,char),i32> {
-    let mut n_to_a: HashMap<(char, char), i32> = HashMap::new();
-
-    for ch1 in 'A'..='Z' {
-        for ch2 in 'A'..='Z' {
-            let p = (ch1, ch2);
-            let mut sb = String::new();
-            sb.push(ch1);
-            sb.push(ch2);
-            let n = alpha_to_num(&sb);
-            let r = n_to_a.insert(p, n);
-            if r != None {
-                panic!("overwrote {sb}");
-            }
-        }
-    }
-    return n_to_a;
-}
-
-
-fn parse_room(ln: &mut &str) -> Room {
-    let (mut l, mut r) = ln.split_once("=").unwrap();
-    println!("l=|{}|", l);
-    let (ch1, ch2) = (l.chars().nth(6).unwrap(), l.chars().nth(7).unwrap());
-    let mut s_id = String::with_capacity(2);
-    s_id.push(ch1);
-    s_id.push(ch2);
-    println!("ch1={ch1}, ch2={ch2}");
-    let (mut l, mut r) = r.split_once(";").unwrap();
-    let val: i32 = l.parse().unwrap();
-    println!("val= |{}|", val);
-    println!("r=|{r}| pre tunnels");
-    let mut v_part;
-    if r.contains("tunnels") {
-        let (mut l, mut r) = r.split_at(24);
-        v_part = r;
-        println!("l= |{l}| r=|{r}|");
-    } else {
-        let (mut l , mut r) = r.split_at(23);
-        v_part = r;
-        println!("l= |{l}| r=|{r}|");
-    }
-
-
-
-    let parts: Vec<&str> = v_part.split(", ").collect();
-    println!("{:?}", parts);
-    let mut v: Vec<i32> = Vec::new();
-
-
-    for p in parts {
-        let n = alpha_to_num(&p.to_string());
-        println!("p=|{p}|");
-        println!("p=|{p}|, n={n}");
-        v.push(n);
-    }
-    println!("s_id: |{}|", s_id);
-    println!("{:?}", v);
-
-    let mut r=   Room {
-        id: alpha_to_num(&s_id),
-        value: val,
-        connected: v.clone(),
-    };
-    return r;
-}
-
-
 
 
 fn part1() -> String {
@@ -193,22 +101,182 @@ fn part1() -> String {
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
     }
-    let n_to_a = generate_alpha_mapping();
 
-    let mut v_room:Vec<Room> = Vec::new();
     for i in 0..lines.len() {
-        let mut ln = lines[i];
-        ln = ln.trim();
-        let mut r = parse_room(&mut ln);
-        v_room.push(r);
-    }
-    println!("parsed {} rooms", v_room.len());
-    for r in &v_room {
-        println!("room: {:?}", r);
+        lines[i] = lines[i].trim();
     }
 
-    let answer1 = String::new();
+
+    let (mut dir_size, mut directory_set): (HashMap<String, u32>, HashSet<String>)
+        = parse_into_directories(&mut lines);
+
+
+    let cum_dir_sizes: HashMap<String, u32> =
+        get_cumulative_directory_sizes(&directory_set, &dir_size);
+
+    let mut total_size: u32 = 0;
+
+    //println!("\n directory list:");
+    for d in &directory_set {
+        let size = cum_dir_sizes.get(d);
+        match size {
+            None => {
+                println!("\t{d:<20}  \t size: (unknown)");
+                panic!("directory {d} should have known size");
+            }
+            Some(&s) => {
+                if s < PART1_DIR_SIZE_CAP {
+                    total_size += s;
+                }
+                //        println!("\t{d:<20}  \t size: {s}");
+            }
+        }
+    }
+
+
+    println!("directory entries: {}", directory_set.len());
+    let mut answer1 = total_size.to_string();
     return answer1;
+}
+
+
+// ctor_set):(HashMap<String,u32>,HashSet<String> )
+
+fn parse_into_directories(lines: &mut Vec<&str>) -> (HashMap<String, u32>, HashSet<String>) {
+    let mut dir_size: HashMap<String, u32> = HashMap::new();
+    let mut directory_set: HashSet<String> = HashSet::new();
+
+    let mut cwd = String::from("/");
+    directory_set.insert(cwd.clone());
+    dir_size.insert(cwd.clone(), 0);
+
+    let mut line_count = 0;
+    // Assume first command will be "cd /"
+    for line in lines {
+        line_count += 1;
+        //       println!("cwd: {cwd} \t line: {line} \t\t l_num: {line_count}");
+        if line.starts_with("$") {
+            //command
+            if line.starts_with("$ ls") {
+                //             println!("listing  : {cwd}");
+            } else {  // change directory command
+                let mut debug = false;
+                let (_, dir) = line.split_once("cd ").unwrap();
+                //    println!("cd from {cwd}, {dir}");
+                match dir {
+                    "/" => {
+                        cwd = String::from("/");
+                    }
+                    ".." => {
+                        if cwd.ne("/") {
+                            // let p_cwd = dir_up(&mut cwd);
+                            // cwd = p_cwd;
+                            //
+                            cwd = dir_up(&cwd);
+                        }
+                    }
+                    d_name => {
+                        if debug { println!("\t cd __ branch, cwd: {cwd}, d_name: {d_name}") };
+                        //    if cwd.ne("/") { cwd.push('/'); }
+                        cwd.push_str(d_name);
+                        if debug { println!("push_str d_name ({d_name}) onto cwd, resulting in {cwd}") };
+                        cwd.push('/');
+                        if debug { println!("pushed slash onto cwd, resulting {cwd}") };
+                        let rr = directory_set.insert(cwd.clone());
+                        if debug { println!("inserted clone of cwd into directory_set, result {}", rr) };
+                        let rr2 = dir_size.insert(cwd.clone(), 0);
+                        if debug { println!("insert cwd = 0 , {cwd} into dir_size, result {:?}", rr2) };
+                    }
+                }
+                //          println!("moved to {cwd}");
+            }
+            //end command
+        } else {
+            //listing
+
+
+
+            if line.starts_with("dir") {
+                let d: Dir = line.parse().unwrap();
+                //        println!("list  dir: {} \t -:- {cwd} ", d.name);
+            } else {
+                let mut c_size = match dir_size.get(&cwd) {
+                    None => { 0 }
+                    Some(&x) => { x }
+                };
+                let f: File = line.parse().unwrap();
+                //      println!("\t File: {cwd} <|> {} \t{}", f.name,f.size);
+                c_size = c_size + f.size;
+                let r = dir_size.insert(cwd.clone(), c_size);
+            }
+        }
+    }
+
+    return (dir_size, directory_set);
+}
+
+
+fn get_cumulative_directory_sizes(dirs_set: &HashSet<String>, dir_size: &HashMap<String, u32>) -> HashMap<String, u32> {
+    let mut cum_size_map: HashMap<String, u32> = HashMap::new();
+
+    for dir in dirs_set {
+        let cwd = dir.clone();
+        let mut size: u32 = 0;
+        // println!("scanning for subdirs of {cwd}");
+        for sub_dir in dirs_set {
+            let sd_size = match dir_size.get(sub_dir) {
+                None => {
+                    panic!("can't find size for {sub_dir}");
+                }
+                Some(x) => { x }
+            };
+            // println!("\t subdir: {sub_dir:<20} \t size: {sd_size} ");
+            if sub_dir.starts_with(&cwd) {
+                let new_size = sd_size + size;
+                // println!("\t\t {sub_dir} is inside {dir}, adding it's size: {} + {} => {}", sd_size, size, new_size);
+                size = new_size;
+            }
+        }
+        cum_size_map.insert(cwd, size);
+    }
+
+    return cum_size_map;
+}
+
+
+fn last_char_is(s: &String, ch: char) -> bool {
+    let c = s.chars().last().unwrap();
+    if c == ch {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/*
+ fn dir_up(cwd: & String) -> String {
+    let mut p_cwd = cwd.clone();
+    p_cwd.pop();
+    let (left, _) = p_cwd.rsplit_once("/").unwrap();
+    if left.is_empty() {
+        p_cwd = String::from("/");
+    } else {
+        p_cwd = String::from(left);
+    }
+    return p_cwd
+}
+*/
+fn dir_up(cwd: &String) -> String {
+    let mut p_cwd = cwd.clone();
+    p_cwd.pop();
+    let (left, _) = p_cwd.rsplit_once("/").unwrap();
+    if left.is_empty() {
+        p_cwd = String::from("/");
+    } else {
+        p_cwd = String::from(left);
+    }
+    p_cwd.push('/');
+    return p_cwd;
 }
 
 fn part2() -> String {
@@ -218,20 +286,49 @@ fn part2() -> String {
     };
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
+
+
     let mut lines: Vec<&str> = data2_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p2_file);
     }
-    let n_to_a = generate_alpha_mapping();
+
+    for i in 0..lines.len() {
+        lines[i] = lines[i].trim();
+    }
 
 
+    let (mut dir_size, mut directory_set): (HashMap<String, u32>, HashSet<String>)
+        = parse_into_directories(&mut lines);
 
 
+    let cum_dir_sizes: HashMap<String, u32> =
+        get_cumulative_directory_sizes(&directory_set, &dir_size);
+    let mut root_used = cum_dir_sizes.get("/").unwrap();
+    let mut free_space = PART2_TOTAL_SPACE - root_used;
+    let mut need_to_free = PART2_TARGET_UNUSED_SPACE - free_space;
 
 
+    let mut dir_size_totals: Vec<&u32> = cum_dir_sizes.values().collect();
+    //   println!("{:?}", dir_size_totals);
 
 
-    let answer2 = String::new();
+    let mut size_values: Vec<u32> = dir_size_totals.iter().map(|x| **x).collect();
+    size_values.sort();
+
+    let mut to_free = 0;
+
+    let mut to_free = 0;
+    for i in 0..size_values.len() {
+        let v = size_values[i];
+        if v >= need_to_free {
+            to_free = v;
+            break;
+        }
+    }
+    // target answer 1544176
+
+    let mut answer2 = to_free.to_string();
     return answer2;
 }
