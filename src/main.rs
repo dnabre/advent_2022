@@ -253,10 +253,16 @@ fn part1() -> String {
     let mut jet_index = 0;
 
 
+    let mut pattern:Vec<(Vec<u8>,usize)> = Vec::new();
+
     let last_turn: usize = 2022;
 
     'block: for i in 0..last_turn {
 
+       if i % 100 == 0 {
+           pattern.push((field.clone(),i));
+
+        }
         let mut bottom = highest_row + 3;
         for _ in field.len()..bottom + 4 {
             field.push(0);
@@ -318,6 +324,7 @@ fn part1() -> String {
             }
         }
     }
+
 
     let answer1 = highest_row as u32;
     return answer1.to_string();
