@@ -22,8 +22,8 @@
 | [Day 14: Regolith Reservoir](https://adventofcode.com/2022/day/14)  | sand sim  | _ | _ |
 | [Day 15: Beacon Exclusion Zone ](https://adventofcode.com/2022/day/15)  | sensor geometry | * | * |
 | [Day 16: Proboscidea Volcanium](https://adventofcode.com/2022/day/16)  | graph flow/DP | _ | _ |
-| [Day 17:  Pyroclastic Flow ](https://adventofcode.com/2022/day/17)  | tetris | * | _ |
-| [Day 18: ](https://adventofcode.com/2022/day/18)  |  | _ | _ |
+| [Day 17: Pyroclastic Flow ](https://adventofcode.com/2022/day/17)  | tetris | * | _ |
+| [Day 18: Boiling Boulders: ](https://adventofcode.com/2022/day/18)  | 3d-array manip | * | * |
 | [Day 19: ](https://adventofcode.com/2022/day/19)  |  | _ | _ |
 | [Day 20: ](https://adventofcode.com/2022/day/20)  |  | _ | _ |
 | [Day 21: ](https://adventofcode.com/2022/day/21)  |  | _ | _ |
