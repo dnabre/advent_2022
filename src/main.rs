@@ -13,18 +13,19 @@ use std::time::{Instant,Duration};
 
 use ndarray::{Array, Array2, Array3, ArrayBase, OwnedRepr, Dim};
 use parse_display::FromStr;
+use crate::Voxel::Outside;
 
 
 /*
     Advent of Code 2022: Day 18
         part1 answer: 4282
-        part2 answer:
+        part2 answer: 2452
 
 part2,  4036 is too high
  */
 
 const TEST_ANSWER: (i64, i64) = (64, 58);
-const INPUT_ANSWER: (i64, i64) = (4282, 0);
+const INPUT_ANSWER: (i64, i64) = (4282, 2452);
 
 const PART1_TEST_FILENAME: &str = "data/day18/part1_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day18/part1_input.txt";
@@ -81,9 +82,9 @@ const ARRAY_SIZE:usize = 25;
 #[derive(FromStr, Debug, Copy, Clone,Eq, Hash)]
 #[display("{x},{y},{z}")]
 struct Point3D {
-    x:i32,
-    y:i32,
-    z:i32
+    x:usize,
+    y:usize,
+    z:usize
 }
 
 impl PartialEq for Point3D {
@@ -101,7 +102,6 @@ impl Display for Point3D{
 enum Voxel  {
     Unknown=0,
     Outside,
-    Inside,
     Lava
 }
 
@@ -110,7 +110,6 @@ impl Display for Voxel{
         match self {
             Voxel::Lava => {write!(f,"L")}
             Voxel::Outside => {write!(f,"O")}
-            Voxel::Inside=> {write!(f,"I")}
             Voxel::Unknown => {write!(f,"?")}
         }
     }
@@ -146,7 +145,8 @@ fn part1() -> String {
     let mut v_points:Vec<Point3D> = Vec::new();
     for i in 0..split_lines.len() {
         let pp = split_lines[i].parse::<Point3D>().unwrap();
-        v_points.push(pp);
+        let s_pp = Point3D{x:pp.x+1, y:pp.y+1, z:pp.z+1};
+        v_points.push(s_pp);
     }
 
     let v_points = v_points.clone();
@@ -165,7 +165,7 @@ fn part1() -> String {
 
        let mut pp = Point3D{x:p.x+1, y:p.y, z:p.z};
        h_sides.insert(pp.clone());
-       let mut pp = Point3D{x:p.x-1, y:p.y, z:p.z};
+       let mut pp = Point3D{x:p.x-1  , y:p.y, z:p.z};
        h_sides.insert(pp.clone());
        let mut pp = Point3D{x:p.x, y:p.y+1, z:p.z};
        h_sides.insert(pp.clone());
@@ -210,18 +210,18 @@ fn part2() -> String {
     let mut v_points:Vec<Point3D> = Vec::new();
     for i in 0..split_lines.len() {
         let pp = split_lines[i].parse::<Point3D>().unwrap();
-        v_points.push(pp);
+        let s_pp = Point3D{x:pp.x+2, y:pp.y+2, z:pp.z+2};
+        v_points.push(s_pp);
     }
 
     let v_points = v_points.clone();
 
-    println!("v_points, len={} ", v_points.len());
 
     let v_points = v_points.clone();
 
-    let  (mut x_min,mut x_max) = (i32::MAX, i32::MIN);
-    let  (mut y_min,mut y_max) = (i32::MAX, i32::MIN);
-    let  (mut z_min,mut z_max) = (i32::MAX, i32::MIN);
+    let  (mut x_min,mut x_max) = (usize::MAX, usize::MIN);
+    let  (mut y_min,mut y_max) = (usize::MAX, usize::MIN);
+    let  (mut z_min,mut z_max) = (usize::MAX, usize::MIN);
 
     let mut p_cloud:HashSet<Point3D> = HashSet::new();
     for p in v_points.clone() {
@@ -235,12 +235,12 @@ fn part2() -> String {
 
         p_cloud.insert(p.clone());
     }
-    println!("Points span the range <{x_min},{y_min},{z_min}> to <{x_max},{y_max},{z_max}>");
+
 
     let mut cube_count =0;
 
     for p in &v_points {
-        let mut sides:i32=0;
+        let mut sides:usize=0;
         let mut h_sides:HashSet<Point3D> = HashSet::new();
 
         let mut pp = Point3D{x:p.x+1, y:p.y, z:p.z};
@@ -262,9 +262,9 @@ fn part2() -> String {
             }
         }
     }
-    println!("cube_count= {cube_count}");
-    let mut hole_count:i32 = 0;
-    let mut considered_holes:i32 = 0;
+
+    let mut hole_count:usize = 0;
+    let mut considered_holes:usize = 0;
     // v_holes: count of single voxel holes
     let mut v_holes:HashSet<Point3D> = HashSet::new();
     for xx in (x_min-1)..=(x_max+1) {
@@ -321,42 +321,146 @@ fn part2() -> String {
 
     let v = vec![Voxel::Unknown; a_size * a_size * a_size];
 
+
+    let mut grid: [[[Voxel; ARRAY_SIZE]; ARRAY_SIZE]; ARRAY_SIZE] = Default::default();
+let mut inital_markings = 0;
+    for xx in 0..ARRAY_SIZE {
+        for yy in 0..ARRAY_SIZE {
+            for zz in 0..ARRAY_SIZE {
+                grid[xx][yy][0] = Voxel::Outside; // bottom side
+                grid[xx][yy][ARRAY_SIZE - 1] = Voxel::Outside;// top side
+
+                grid[0][yy][zz] = Voxel::Outside;
+                grid[ARRAY_SIZE - 1][yy][zz] = Voxel::Outside;
+
+                grid[xx][0][zz] = Voxel::Outside;
+                grid[xx][ARRAY_SIZE - 1][zz] = Voxel::Outside;
+                inital_markings += 6;
+            }
+        }
+    }
+
     for p in p_cloud {
-        if p.x==0 || p.y==0 || p.z ==0 {
-            println!("near oring point: {p}");
+        let (x,y,z) =(p.x, p.y, p.z);
+        grid[x][y][z] = Voxel::Lava;
+    }
+
+
+    let mut flood_loops =-1;
+    // array has outside marked, and lava quares mark. flood-fill outside
+    let mut progress = true;
+    while progress {
+        progress = false;
+        for xx in 0..ARRAY_SIZE {
+            for yy in 0..ARRAY_SIZE {
+                for zz in 0..ARRAY_SIZE {
+                    if grid[xx][yy][zz] != Voxel::Unknown {
+                        continue;
+                    }
+
+
+                    let (dx, dy, dz) = (xx + 1, yy, zz);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+                    let (dx, dy, dz) = ((xx as i64 + -1) as usize, yy, zz);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+
+                    let (dx, dy, dz) = (xx, yy + 1, zz);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+
+                    let (dx, dy, dz) = (xx, (yy as i64 + -1) as usize, zz);
+
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+                    let (dx, dy, dz) = (xx, yy, zz + 1);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+
+                    let (dx, dy, dz) = (xx, yy, (zz as i64 + -1) as usize);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+    let mut out_count = 0;
+    let mut unknown_count = 0;
+    let mut lava_count = 0;
+    for xx in 0..ARRAY_SIZE {
+        for yy in 0..ARRAY_SIZE {
+            for zz in 0..ARRAY_SIZE {
+                let q = grid[xx][yy][zz];
+                match q {
+                    Voxel::Unknown => {unknown_count += 1 ; }
+                    Outside => { out_count += 1;}
+                    Voxel::Lava => {lava_count +=1;}
+                }
+            }
+        }
+    }
+
+    let mut outside_lava_count = 0;
+    for xx in 0..ARRAY_SIZE {
+        for yy in 0..ARRAY_SIZE {
+            for zz in 0..ARRAY_SIZE {
+                if grid[xx][yy][zz] != Voxel::Lava {
+                    continue;
+                }
+
+
+                let (dx, dy, dz) = (xx + 1, yy, zz);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+                let (dx, dy, dz) = ((xx as i64 + -1) as usize, yy, zz);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+
+                let (dx, dy, dz) = (xx, yy + 1, zz);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+
+                let (dx, dy, dz) = (xx, (yy as i64 + -1) as usize, zz);
+
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+                let (dx, dy, dz) = (xx, yy, zz + 1);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+
+                let (dx, dy, dz) = (xx, yy, (zz as i64 + -1) as usize);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+            }
         }
     }
 
 
-    let mut grid: [[[Voxel; ARRAY_SIZE]; ARRAY_SIZE]; ARRAY_SIZE] = Default::default();
-
-    // ArrayBase<OwnedRepr<i32>,
-
- //  let mut grid:ArrayBase<OwnedRepr<Voxel>,Dim<[usize; 3]>> =Array3::from_shape_vec((a_size,a_size,a_size), v).unwrap();
-
-  // let mut grid = Array3::<Voxel>::zeros((a_size, a_size, a_size));
-  //  println!("shape {:?}", grid.shape());
-
-
-
-   // for p in p_cloud {
-   //     grid[[p.x,p.y,p.z]] = Voxel::Lava;
-   // }
-   // for h in v_holes {
-   //     grid[[h.x,h.y,h.z]] = Voxel::Inside;
-   // }
-   //
-   //  for t in 0..a_size {
-   //      println!("accessing [0,0,{t}]");
-   //      let v = grid[[0,0,t]];
-   //  }
-
-
-
-    println!("cube_count: {cube_count}");
-    println!("hole_count: {hole_count}");
-    println!("exposed side count: {}", cube_count -6*hole_count);
-
-    let mut answer2 = String::new();
+    let mut answer2 = outside_lava_count.to_string();
     return answer2;
 }
