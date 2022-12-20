@@ -188,7 +188,7 @@ fn vector_ge(a:[u16;4] , b:[u16;4]) -> bool {
 // geode_bot_costs,
 // ];
 fn search(bp: [[u16; 4]; 4], max_turns: u16) -> u16 {
-
+    let mut number_states:u64 = 0;
     let mut max_robots = [u16::MAX; 4];
     for i in 0..3 {
         max_robots[i] = bp.iter().map(|cost| cost[i]).max().unwrap();
@@ -207,6 +207,7 @@ fn search(bp: [[u16; 4]; 4], max_turns: u16) -> u16 {
   while let Some(State {
                      turn, ore, machine
                  }) = queue.pop_front() {
+      number_states +=1 ;
       for i in 0..bp.len() {
           if machine[i] == max_robots[i] {
               continue;
@@ -255,6 +256,8 @@ fn search(bp: [[u16; 4]; 4], max_turns: u16) -> u16 {
       let geodes = ore[3] + machine[3] * (max_time - turn);
       max_geodes = geodes.max(max_geodes);
   }
+
+    println!("search {} states", number_states);
    max_geodes
    }
 
@@ -306,9 +309,9 @@ fn part1() -> String {
             bp.geode_robot_cost
         ];
         // println!("a_b: {:?}", a_b);
-        println!("bp: {:?}", bp);
+
         let r = search(a_b, 24);
-        println!("\tblueprint id: {}, max_geodes: {}", bp.id, r);
+
         answer1 += bp.id * (r as u32);
     }
     return answer1.to_string();
@@ -347,7 +350,7 @@ fn part2() -> String {
 
     let mut answer2 = 1;
     let bp = v_blueprint[0];
-    // println!("bp: {:?}", bp);
+
     for bp in v_blueprint {
         let a_b = [
             bp.ore_robot_cost,
@@ -355,10 +358,10 @@ fn part2() -> String {
             bp.obsidian_robot_cost,
             bp.geode_robot_cost
         ];
-        // println!("a_b: {:?}", a_b);
-        println!("bp: {:?}", bp);
+
+
         let r = search(a_b, 32);
-        println!("\tblueprint id: {}, max_geodes: {}", bp.id, r);
+
         answer2 *= r as u32;
     }
 
