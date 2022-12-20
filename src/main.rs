@@ -21,13 +21,13 @@ use parse_display::FromStr;
 
 /*
     Advent of Code 2022: Day 19
-        part1 answer:  1616
-        part2 answer:
+        part1 answer:   1616
+        part2 answer:   8990
 
  */
 
 const TEST_ANSWER: (i64, i64) = (33, 56);
-const INPUT_ANSWER: (i64, i64) = (1616, 0);
+const INPUT_ANSWER: (i64, i64) = (1616, 8990);
 
 const PART1_TEST_FILENAME: &str = "data/day19/part1_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day19/part1_input.txt";
@@ -37,18 +37,18 @@ const PART2_INPUT_FILENAME: &str = "data/day19/part2_input.txt";
 
 const PART1_TURNS:u32 = 24;
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
     println!("19");                           // insert Day
 
 
-    // let start1 = Instant::now();
-    // let answer1 = part1();
-    // let duration1 = start1.elapsed();
-    //
-    // println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+    let start1 = Instant::now();
+    let answer1 = part1();
+    let duration1 = start1.elapsed();
+
+    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
     //
     // if TEST {
     //     assert_eq!(answer1, TEST_ANSWER.0.to_string());
@@ -189,12 +189,10 @@ fn vector_ge(a:[u16;4] , b:[u16;4]) -> bool {
 // ];
 fn search(bp: [[u16; 4]; 4], max_turns: u16) -> u16 {
 
-    // let mut max_robots = [u16::MAX; 4];
-    //
-    // max_robots[0] = bp[0][0].max(bp[1][0]).max(bp[2][0]);
-    // max_robots[1] = bp[0][1].max(bp[1][1]).max(bp[2][1]);
-    // max_robots[2] = bp[2][2].max(bp[1][2]).max(bp[2][2]);
-
+    let mut max_robots = [u16::MAX; 4];
+    for i in 0..3 {
+        max_robots[i] = bp.iter().map(|cost| cost[i]).max().unwrap();
+    }
     let mut max_geodes =0;
     let mut max_time:u16 = max_turns;
 
@@ -210,9 +208,9 @@ fn search(bp: [[u16; 4]; 4], max_turns: u16) -> u16 {
                      turn, ore, machine
                  }) = queue.pop_front() {
       for i in 0..bp.len() {
-          // if machine[i] == max_robots[i] {
-          //     continue;
-          // }
+          if machine[i] == max_robots[i] {
+              continue;
+          }
 
           let costs = &bp[i];
           let wait_time = (0..3)
@@ -230,6 +228,9 @@ fn search(bp: [[u16; 4]; 4], max_turns: u16) -> u16 {
               continue;
           }
 
+
+
+
           let mut new_inventory: [u16; 4] = [0; 4];
           for idx in 0..machine.len() {
               new_inventory[idx] = ore[idx] + machine[idx] * (wait_time + 1) - costs[idx];
@@ -237,6 +238,13 @@ fn search(bp: [[u16; 4]; 4], max_turns: u16) -> u16 {
 
           let mut new_bots = machine;
           new_bots[i] += 1;
+
+          let remaining_time = max_time - new_elapsed;
+          if ((remaining_time -1) * remaining_time) /2 + new_inventory[3] + remaining_time * new_bots[3] < max_geodes
+          {
+              continue;
+          }
+
 
           queue.push_back(State {
               turn: new_elapsed,
@@ -314,15 +322,12 @@ fn part2() -> String {
     };
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-
-    let mut lines: Vec<&str> = data2_s.trim().split("\n").collect();
+    let lines: Vec<&str> = data2_s.trim().split("\n").map(|t| t.trim()).collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p2_file);
-        if l_num == 1 {
-            println!("\t\t line read has length: {}", lines[0].len());
-        }
     }
+
 
     let mut v_blueprint:Vec<BluePrint>  = Vec::new();
     for line in lines {
