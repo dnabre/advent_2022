@@ -25,7 +25,7 @@
 | [Day 17: Pyroclastic Flow ](https://adventofcode.com/2022/day/17)  | tetris | * | _ |
 | [Day 18: Boiling Boulders: ](https://adventofcode.com/2022/day/18)  | 3d-array manip | * | * |
 | [Day 19: Not Enough Minerals: ](https://adventofcode.com/2022/day/19)  | culling search space | * | * |
-| [Day 20: ](https://adventofcode.com/2022/day/20)  |  | _ | _ |
+| [Day 20: Grove Positioning System ](https://adventofcode.com/2022/day/20)  | list scramble | * | * |
 | [Day 21: ](https://adventofcode.com/2022/day/21)  |  | _ | _ |
 | [Day 22: ](https://adventofcode.com/2022/day/22)  |  | _ | _ |
 | [Day 23: ](https://adventofcode.com/2022/day/23)  |  | _ | _ |
