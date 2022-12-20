@@ -152,15 +152,21 @@ impl PartialEq for Number {
     }
 }
 
-fn shift_element<T>(vec    : &Vec<T>,
+fn shift_element<Number>(vec    : &Vec<Number>,
                     index  : usize,
-                    offset : i64) -> Vec<T>
+                    offset : i64) -> Vec<Number>
 where T:Clone+PartialEq
 {
     let len = vec.len() as i64;
 
     // concat three copies of the list
-    let tripled = [vec.clone(), vec.clone(), vec.clone()].concat();
+    let mut tripled:Vec<T> = Vec::with_capacity(vec.len() * 3);
+    for _  in 0..3 {
+        for v in vec {
+            tripled.push(v.clone());
+        }
+    }
+    let tripled = tripled; //drop mutability
 
     //wrap offset into tripled lists
     // just mods by len-1, but does witchcraft to handle mod of negative value
