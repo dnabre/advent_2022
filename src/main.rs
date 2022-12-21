@@ -13,21 +13,23 @@ use std::iter;
 use std::ops::{Add, Index};
 use std::thread::current;
 use std::time::Instant;
+use rust_decimal::prelude::*;
+use rust_decimal_macros::dec;
 
 use parse_display::FromStr;
-use crate::Op::Plus;
+
 
 
 /*
     Advent of Code 2022: Day 21
         part1 answer: 331120084396440
-        part2 answer:
+        part2 answer: 3378273370680
 
  */
 
 
 const TEST_ANSWER: (i64, i64) = (152, 301);
-const INPUT_ANSWER: (i64, i64) = (331120084396440, 0);
+const INPUT_ANSWER: (i64, i64) = (331120084396440, 3378273370680);
 
 
 const PART1_TEST_FILENAME: &str = "data/day21/part1_test.txt";
@@ -56,15 +58,15 @@ fn main() {
     }
 
 
-    // let start2 = Instant::now();
-    // let answer2 = part2();
-    // let duration2 = start2.elapsed();
-    // println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-    // if TEST {
-    //     assert_eq!(answer2, TEST_ANSWER.1.to_string());
-    // } else {
-    //     assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-    // }
+    let start2 = Instant::now();
+    let answer2 = part2();
+    let duration2 = start2.elapsed();
+    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+    if TEST {
+        assert_eq!(answer2, TEST_ANSWER.1.to_string());
+    } else {
+        assert_eq!(answer2, INPUT_ANSWER.1.to_string());
+    }
 
 
     println!("----------\ndone");
@@ -74,6 +76,9 @@ fn main() {
 const LINE_ENDING: &'static str = "\r\n";
 #[cfg(not(windows))]
 const LINE_ENDING: &'static str = "\n";
+
+
+const PART2_MNAME:&str = "humn";
 
 #[derive(FromStr, PartialEq, Hash,Debug,Copy,Clone)]
 enum Op {
@@ -118,13 +123,12 @@ impl fmt::Display for MonkeyOp {
 }
 
 
-fn parse_monkeys(lines: &mut Vec<&str>) -> (HashMap<String, MonkeyOp>, Vec<String>) {
+fn parse_monkeys(lines: &mut Vec<&str>) -> HashMap<String, MonkeyOp> {
     let mut name_to_op: HashMap<String, MonkeyOp> = HashMap::new();
     let mut v_namelist: Vec<String> = Vec::new();
 
 
     for ln in lines {
-        //    println!("{}", ln);
         let (l, mut r) = ln.split_once(":").unwrap();
 
         let m_name: String = String::from(l);
@@ -134,18 +138,28 @@ fn parse_monkeys(lines: &mut Vec<&str>) -> (HashMap<String, MonkeyOp>, Vec<Strin
         let m_op = r.trim().parse::<MonkeyOp>().unwrap();
         name_to_op.insert(m_name, m_op);
     }
-    (name_to_op, v_namelist)
+    name_to_op
 }
 
 
 fn do_monkey_op(left_v: i64, right_v: i64, op: Op) -> i64 {
     match op {
-        Plus => {left_v + right_v}
+        Op::Plus => {left_v + right_v}
         Op::Sub => {left_v - right_v}
-        Op::Div => {left_v / right_v}
+        Op::Div => { left_v / right_v}
         Op::Mul => {left_v * right_v}
     }
 }
+
+fn do_monkey_op_d(left_v: Decimal, right_v: Decimal, op: Op) -> Decimal {
+    match op {
+        Op::Plus => {left_v + right_v}
+        Op::Sub => {left_v - right_v}
+        Op::Div => { left_v / right_v}
+        Op::Mul => {left_v * right_v}
+    }
+}
+
 
 
 fn solve_map_for<'a>(solve_for: &'a str, name_to_op:&'a HashMap<String, MonkeyOp>, mut value_hash: &'a mut HashMap<&'a str,i64> ) -> i64{
@@ -209,7 +223,7 @@ fn part1() -> String {
 
 
 
-    let (mut name_to_op, v_namelist) = parse_monkeys(&mut lines);
+    let mut name_to_op = parse_monkeys(&mut lines);
     let mut value_hash: HashMap<&str, i64> = HashMap::new();
     let final_value = solve_map_for("root", & name_to_op, &mut value_hash);
 
@@ -234,13 +248,167 @@ fn part2() -> String {
         }
     }
 
-    let (mut name_to_op, v_namelist) = parse_monkeys(&mut lines);
-    let mut value_hash: HashMap<&str, i64> = HashMap::new();
-    let final_value = solve_map_for("root", & name_to_op, &mut value_hash);
+    let mut name_to_op = parse_monkeys(&mut lines);
 
 
 
-    let mut answer2 = String::new();
-    let answer2 = final_value.to_string();
+    let nothing = String::from("nothing");
+
+    let root_op = name_to_op.get("root").unwrap();
+
+
+
+    let (root_left, root_right) = match root_op {
+        MonkeyOp::Number(_) => {(&nothing, &nothing)}
+        MonkeyOp::Eq { left, op, right } => { (left,right) }
+    };
+
+
+    let mut target;
+    let mut solve_test;
+    let l_deps = test_for_depends(root_left, PART2_MNAME, &name_to_op);
+    let r_deps = test_for_depends(root_right, PART2_MNAME, &name_to_op);
+    let mut value_map:HashMap<&str,i64> = HashMap::new();
+    if l_deps {
+        target = solve_map_for(root_right, &name_to_op, &mut value_map);
+        solve_test = root_left;
+
+    } else if r_deps {
+        target = solve_map_for(root_left, &name_to_op, &mut value_map);
+        solve_test = root_right;
+    } else {
+        panic!("neither branch depends on {}", PART2_MNAME);
+    }
+
+
+
+    let left = target;
+    let mut inital:HashMap<&str,i64> = HashMap::new();
+    let mut right = solve_map_for(solve_test, &name_to_op, &mut inital);
+    let base:i64 = 2;
+
+    let (mut min,mut max) = (-1 * base.pow(44),base.pow(44));
+    let mut answer=0;
+
+
+
+    let test1 = 1;
+    let mut new_value_map:HashMap<&str,i64> = HashMap::new();
+    new_value_map.insert(PART2_MNAME, test1);
+    let r1 = solve_map_for(solve_test, &name_to_op, &mut new_value_map);
+
+    let test2 = 100;
+    let mut new_value_map:HashMap<&str,i64> = HashMap::new();
+    new_value_map.insert(PART2_MNAME, test2);
+    let r2 = solve_map_for(solve_test, &name_to_op, &mut new_value_map);
+
+    let positive = r1 < r2;
+
+
+
+    while left != right {
+
+        if right > target {
+            if positive {
+                max = min + (max - min) / 2;
+            } else {
+                min = min + (max - min) / 2;
+            }
+        } else {
+            if positive {
+                min = min + (max - min) / 2;
+            } else {
+                max = min + (max - min) / 2;
+            }
+        }
+
+        let mut test = min + (max - min) /2;
+
+        let mut new_value_map:HashMap<&str,i64> = HashMap::new();
+        new_value_map.insert(PART2_MNAME, test);
+        let result = solve_map_for(solve_test, &name_to_op, &mut new_value_map);
+
+        answer = test;
+        right = result;
+
+    }
+
+
+
+    println!("answer: {answer}");
+
+    println!("\n--------------------------------------------");
+    let mut answer2 = answer.to_string();
     return answer2;
+}
+
+
+
+fn search_for_depend<'a>(root: &'a str, goal: &'a str, op_map: &'a HashMap<String, MonkeyOp>) ->  Vec<&'a str> {
+    let mut stack:Vec<&str> = Vec::new();
+    let mut deps:Vec<&str> = Vec::new();
+    if root.ne(goal) {
+        stack.push(root);
+    }
+    'todo: while !stack.is_empty() {
+        let current = stack.pop().unwrap();
+        println!("current: {current} (stack size: {})", stack.len());
+        deps.push(current);
+        let t_op = op_map.get(current).unwrap();
+        println!("current: {current} (stack size: {}) => {t_op} ", stack.len());
+        match t_op {
+            MonkeyOp::Number(_) => {
+                println!("\t number, continue");
+                continue;
+
+            }
+            MonkeyOp::Eq { left, op, right } => {
+                println!("current: {current} -> {left} {op} {right}")
+                ;
+                if goal.eq(left){
+                    println!("search on {root} finds humn access via  {current}: {left} {op} {right}");
+                    stack.push(current);
+                    break 'todo;
+                }
+                if goal.eq(right) {
+                    println!("search on {root} finds humn access via  {current}: {left} {op} {right}");
+                    stack.push(current);
+                    break 'todo
+                }
+                stack.push(left);
+                stack.push(right);
+            }
+        }
+      }
+    return stack.clone();
+}
+fn test_for_depends<'a>(root: &'a str, goal: &'a str, op_map: &'a HashMap<String, MonkeyOp>) ->  bool {
+    let mut stack:Vec<&str> = Vec::new();
+
+    if root.ne(goal) {
+        stack.push(root);
+    }
+    'todo: while !stack.is_empty() {
+        let current = stack.pop().unwrap();
+        let t_op = op_map.get(current).unwrap();
+        match t_op {
+            MonkeyOp::Number(_) => {
+                continue;
+
+            }
+            MonkeyOp::Eq { left, op, right } => {
+                if goal.eq(left){
+                    stack.push(current);
+                    break 'todo;
+                }
+                if goal.eq(right) {
+                    stack.push(current);
+                    break 'todo
+                }
+                stack.push(left);
+                stack.push(right);
+            }
+        }
+    }
+    return  stack.len() != 0
 }
