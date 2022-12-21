@@ -15,17 +15,18 @@ use std::thread::current;
 use std::time::Instant;
 
 use parse_display::FromStr;
+use crate::Op::Plus;
 
 
 /*
     Advent of Code 2022: Day 21
-        part1 answer:
+        part1 answer: 331120084396440
         part2 answer:
 
  */
 
-const TEST_ANSWER: (u32, u32) = (0, 0);
-const INPUT_ANSWER: (u32, u32) = (0, 0);
+const TEST_ANSWER: (i64, i64) = (152, 301);
+const INPUT_ANSWER: (i64, i64) = (331120084396440, 0);
 
 
 const PART1_TEST_FILENAME: &str = "data/day21/part1_test.txt";
@@ -43,10 +44,10 @@ fn main() {
 
 
     // test();
-    let start1 = Instant::now();
-    let answer1 = part1();
-    let duration1 = start1.elapsed();
-    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+    // let start1 = Instant::now();
+    // let answer1 = part1();
+    // let duration1 = start1.elapsed();
+    // println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
     // if TEST {
     //     assert_eq!(answer1, TEST_ANSWER.0.to_string());
     // } else {
@@ -97,7 +98,7 @@ impl fmt::Display for Op {
 #[derive(FromStr, Hash, PartialEq,Debug,Clone)]
 enum MonkeyOp {
     #[display("{0}")]
-    Number (i32),
+    Number (i64),
     #[display("{left} {op} {right}")]
     Eq {left:String,op:Op,right:String},
 }
@@ -115,6 +116,34 @@ impl fmt::Display for MonkeyOp {
 }
 
 
+fn parse_monkeys(lines: &mut Vec<&str>) -> (HashMap<String, MonkeyOp>, Vec<String>) {
+    let mut name_to_op: HashMap<String, MonkeyOp> = HashMap::new();
+    let mut v_namelist: Vec<String> = Vec::new();
+
+
+    for ln in lines {
+        //    println!("{}", ln);
+        let (l, mut r) = ln.split_once(":").unwrap();
+
+        let m_name: String = String::from(l);
+        if m_name.ne("root") {
+            v_namelist.push(m_name.clone());
+        }
+        let m_op = r.trim().parse::<MonkeyOp>().unwrap();
+        name_to_op.insert(m_name, m_op);
+    }
+    (name_to_op, v_namelist)
+}
+
+
+fn do_monkey_op(left_v: i64, right_v: i64, op: Op) -> i64 {
+    match op {
+        Plus => {left_v + right_v}
+        Op::Sub => {left_v - right_v}
+        Op::Div => {left_v / right_v}
+        Op::Mul => {left_v * right_v}
+    }
+}
 
 
 fn part1() -> String {
@@ -126,7 +155,7 @@ fn part1() -> String {
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
     let mut lines: Vec<&str> = data1_s.trim().split(LINE_ENDING).collect();
     let l_num = lines.len();
-    if !TEST {
+    if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
         if l_num == 1 {
             println!("\t\t line read has length: {}", lines[0].len());
@@ -134,93 +163,69 @@ fn part1() -> String {
     }
 
 
-    let mut name_to_op:HashMap<String,MonkeyOp> = HashMap::new();
-    let mut v_namelist:Vec<String> = Vec::new();
+
+    let (name_to_op, v_namelist) = parse_monkeys(&mut lines);
+
+    let mut value_hash: HashMap<&str, i64> = HashMap::new();
+
+    let mut todo  = Vec::new();
+    todo.push("root");
 
 
-    for ln in lines {
-    //    println!("{}", ln);
-        let (l, mut r) = ln.split_once(":").unwrap();
 
-        let m_name: String = String::from(l);
-        if m_name.ne("root") {
-            v_namelist.push(m_name.clone());
+    while !todo.is_empty()  {
+
+        let mut current = todo.pop().unwrap();
+
+        println!("popped: {}, stack size: {}", current, todo.len());
+        if value_hash.contains_key(current) {
+            continue;
         }
-        let m_op = r.trim().parse::<MonkeyOp>().unwrap();
-        name_to_op.insert(m_name, m_op);
-
-    }
-
-    let root_op = name_to_op.get(&String::from("root"));
-    println!("root operatoin: {:?}", root_op);
-    let mut once = false;
-    //while name_to_op.len() > 1 {
-     'reduce: while !once {
-         once = true;
-        let mut v_names_to_clear:Vec<String> = Vec::new();
-        let mut o_op:Option<(&String, &Op, &String)>;
-        for c_name in &v_namelist {
-            let v = name_to_op.get(&c_name.clone());
-
-            match v {
-                None => {
-                    o_op = None;
-                    println!("!! could not find operation for name: {}", c_name);
-                }
-                Some(m_op) => {
-                    match m_op {
-                        MonkeyOp::Number(_) => {
-                            continue;
-                        }
-                        MonkeyOp::Eq { left, op, right } => {
-                            o_op = Some((left,op,right));
-                        }
-                    }
-                }
+        let monkey_op = name_to_op.get(current).unwrap();
+        println!("current: {}, monkey_op: {}", current, monkey_op);
+        match monkey_op {
+            MonkeyOp::Number(n) => {
+                value_hash.insert(current, *n);
+                println!("current: {} is a number with value {}, put into value_hash and continue", current, *n);
+                continue;
             }
-            
-            let current_op = match o_op {
-                None => {
-                    println!("!! could not find operation");
-                    break 'reduce;
-                }
-                Some((left,op,right)) => {
-                    println!(" \t working on {} {} {}", left, op , right);
-                    let left_v = name_to_op.get(left).unwrap();
-                    let right_v = name_to_op.get(right).unwrap();
-                    let (l,r) = match (left_v,right_v) {
-                            (MonkeyOp::Number(x), MonkeyOp::Number(y)) => (x,y),
-                            (_,_) => {
-                                continue
-                            }
-                        };
-                        let result = match op {
-                            Op::Plus => {l+r}
-                            Op::Sub => {l - r}
-                            Op::Div => {l / r}
-                            Op::Mul => {l * r}
-                        };
-                        println!("\t reducing {c_name} :: {left} {op} {right} => {l} {op} {r} => {result}");
-                      //  name_to_op.remove(left);
+            MonkeyOp::Eq { left, op, right } => {
+                if value_hash.contains_key(left.as_str()) && value_hash.contains_key(right.as_str()) {
 
-
-                        // v_names_to_clear.push(left.clone());
-                        // v_names_to_clear.push(right.clone());
-                        // name_to_op.insert(c_name.clone(), MonkeyOp::Number(result));
-
+                    let (left_v, right_v) = (value_hash.get(left.as_str()).unwrap(),
+                                             value_hash.get(right.as_str()).unwrap());
+                    println!("current: {} is {op}, both left ({:>5}) and right({:>5}) are ready", current,
+                             left_v, right_v);
+                    let result = do_monkey_op(*left_v, *right_v, *op);
+                    value_hash.insert(current, result);
+                } else {
+                    // we're missing a value, so retry current op
+                    println!("current: {}, missing a value", current);
+                    todo.push(current);
+                    if !value_hash.contains_key(left.as_str()) {
+                        // we need left
+                        println!("\tcurrent: {} needs left: {}", current, left);
+                        todo.push(left);
                     }
+                    if !value_hash.contains_key(right.as_str()) {
+                        println!("\tcurrent: {} needs right: {}", current, right);
+                        todo.push(right);
+                    }
+                }
 
-
-
-            };
-
+            }
         }
-
-
     }
+    let final_value =  value_hash.get("root");
+println!("final value for root: {:?}", final_value);
 
 
-    let mut answer1 = String::new();
+    let mut answer1 = match final_value {
+        None => {String::from("None")}
+        Some(x) => {x.to_string()}
+    };
+
+
     return answer1;
 }
 
@@ -236,7 +241,88 @@ fn part2() -> String {
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p2_file);
+        if l_num == 1 {
+            println!("\t\t line read has length: {}", lines[0].len());
+        }
     }
+
+
+
+    let (name_to_op, v_namelist) = parse_monkeys(&mut lines);
+
+    let mut value_hash: HashMap<&str, i64> = HashMap::new();
+
+    let mut todo  = Vec::new();
+    todo.push("root");
+
+    value_hash.insert("humn",TEST_ANSWER.1);
+
+
+    let mut root_test = false;
+    while !todo.is_empty()  {
+
+        let mut current = todo.pop().unwrap();
+
+        println!("popped: {}, stack size: {}", current, todo.len());
+        if value_hash.contains_key(current) {
+            continue;
+        }
+        let monkey_op = name_to_op.get(current).unwrap();
+        println!("current: {}, monkey_op: {}", current, monkey_op);
+        match monkey_op {
+            MonkeyOp::Number(n) => {
+                value_hash.insert(current, *n);
+                println!("current: {} is a number with value {}, put into value_hash and continue", current, *n);
+                continue;
+            }
+            MonkeyOp::Eq { left, op, right } => {
+                if value_hash.contains_key(left.as_str()) && value_hash.contains_key(right.as_str()) {
+
+                    let (left_v, right_v) = (value_hash.get(left.as_str()).unwrap(),
+                                             value_hash.get(right.as_str()).unwrap());
+                    println!("current: {} is {op}, both left ({:>5}) and right({:>5}) are ready", current,
+                             left_v, right_v);
+                    if current.eq("root") {
+                        // Part 2 check for left/right equality
+                        root_test = left_v == right_v;
+                        break;
+                    }
+
+                    let result = do_monkey_op(*left_v, *right_v, *op);
+                    value_hash.insert(current, result);
+                } else {
+                    // we're missing a value, so retry current op
+                    println!("current: {}, missing a value", current);
+                    todo.push(current);
+                    if !value_hash.contains_key(left.as_str()) {
+                        // we need left
+                        println!("\tcurrent: {} needs left: {}", current, left);
+                        todo.push(left);
+                    }
+                    if !value_hash.contains_key(right.as_str()) {
+                        println!("\tcurrent: {} needs right: {}", current, right);
+                        todo.push(right);
+                    }
+                }
+
+            }
+        }
+    }
+
+    if root_test {
+        println!("root was equal, all is good");
+    } else {
+        println!("root is NOT equal, hell for all");
+    }
+
+
+    let answer1:Option<i64> = None;
+
+    let mut answer1 = match answer1 {
+        None => {String::from("None")}
+        Some(x) => {x.to_string()}
+    };
+
 
 
 
