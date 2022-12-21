@@ -25,6 +25,7 @@ use crate::Op::Plus;
 
  */
 
+
 const TEST_ANSWER: (i64, i64) = (152, 301);
 const INPUT_ANSWER: (i64, i64) = (331120084396440, 0);
 
@@ -43,7 +44,7 @@ fn main() {
     println!("21");                           // insert Day
 
 
-    // test();
+
     // let start1 = Instant::now();
     // let answer1 = part1();
     // let duration1 = start1.elapsed();
@@ -53,6 +54,7 @@ fn main() {
     // } else {
     //     assert_eq!(answer1, INPUT_ANSWER.0.to_string());
     // }
+
 
     let start2 = Instant::now();
     let answer2 = part2();
