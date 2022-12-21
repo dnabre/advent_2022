@@ -7,6 +7,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt;
+use std::fmt::Formatter;
 use std::fs;
 use std::iter;
 use std::ops::{Add, Index};
@@ -34,7 +35,7 @@ const PART2_TEST_FILENAME: &str = "data/day21/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day21/part2_input.txt";
 
 
-const TEST: bool = false;
+const TEST: bool = true;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -71,6 +72,51 @@ const LINE_ENDING: &'static str = "\r\n";
 #[cfg(not(windows))]
 const LINE_ENDING: &'static str = "\n";
 
+#[derive(FromStr, PartialEq, Hash,Debug,Copy,Clone)]
+enum Op {
+    #[display("+")]
+    Plus,
+    #[display("-")]
+    Sub,
+    #[display("/")]
+    Div,
+    #[display("*")]
+    Mul
+}
+impl fmt::Display for Op {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", match self {
+            Op::Plus => {"+"}
+            Op::Sub => {"-"}
+            Op::Div => {"/"}
+            Op::Mul => {"*"}
+        })
+    }
+}
+
+#[derive(FromStr, Hash, PartialEq,Debug,Clone)]
+enum MonkeyOp {
+    #[display("{0}")]
+    Number (i32),
+    #[display("{left} {op} {right}")]
+    Eq {left:String,op:Op,right:String},
+}
+
+impl fmt::Display for MonkeyOp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            MonkeyOp::Number(x) => {
+                write!(f,"{:>5}", x)}
+            MonkeyOp::Eq { left, op, right } => {
+                    write!(f,"{left} {op} {right}")
+            }
+        }
+    }
+}
+
+
+
+
 fn part1() -> String {
     let p1_file = match TEST {
         true => PART1_TEST_FILENAME,
@@ -87,6 +133,91 @@ fn part1() -> String {
         }
     }
 
+
+    let mut name_to_op:HashMap<String,MonkeyOp> = HashMap::new();
+    let mut v_namelist:Vec<String> = Vec::new();
+
+
+    for ln in lines {
+    //    println!("{}", ln);
+        let (l, mut r) = ln.split_once(":").unwrap();
+
+        let m_name: String = String::from(l);
+        if m_name.ne("root") {
+            v_namelist.push(m_name.clone());
+        }
+        let m_op = r.trim().parse::<MonkeyOp>().unwrap();
+        name_to_op.insert(m_name, m_op);
+
+    }
+
+    let root_op = name_to_op.get(&String::from("root"));
+    println!("root operatoin: {:?}", root_op);
+    let mut once = false;
+    //while name_to_op.len() > 1 {
+     'reduce: while !once {
+         once = true;
+        let mut v_names_to_clear:Vec<String> = Vec::new();
+        let mut o_op:Option<(&String, &Op, &String)>;
+        for c_name in &v_namelist {
+            let v = name_to_op.get(&c_name.clone());
+
+            match v {
+                None => {
+                    o_op = None;
+                    println!("!! could not find operation for name: {}", c_name);
+                }
+                Some(m_op) => {
+                    match m_op {
+                        MonkeyOp::Number(_) => {
+                            continue;
+                        }
+                        MonkeyOp::Eq { left, op, right } => {
+                            o_op = Some((left,op,right));
+                        }
+                    }
+                }
+            }
+            
+            let current_op = match o_op {
+                None => {
+                    println!("!! could not find operation");
+                    break 'reduce;
+                }
+                Some((left,op,right)) => {
+                    println!(" \t working on {} {} {}", left, op , right);
+                    let left_v = name_to_op.get(left).unwrap();
+                    let right_v = name_to_op.get(right).unwrap();
+                    let (l,r) = match (left_v,right_v) {
+                            (MonkeyOp::Number(x), MonkeyOp::Number(y)) => (x,y),
+                            (_,_) => {
+                                continue
+                            }
+                        };
+                        let result = match op {
+                            Op::Plus => {l+r}
+                            Op::Sub => {l - r}
+                            Op::Div => {l / r}
+                            Op::Mul => {l * r}
+                        };
+                        println!("\t reducing {c_name} :: {left} {op} {right} => {l} {op} {r} => {result}");
+                      //  name_to_op.remove(left);
+
+
+                        // v_names_to_clear.push(left.clone());
+                        // v_names_to_clear.push(right.clone());
+                        // name_to_op.insert(c_name.clone(), MonkeyOp::Number(result));
+
+                    }
+
+
+
+            };
+
+        }
+
+
+    }
 
 
     let mut answer1 = String::new();
