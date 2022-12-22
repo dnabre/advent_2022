@@ -26,7 +26,7 @@
 | [Day 18: Boiling Boulders: ](https://adventofcode.com/2022/day/18)  | 3d-array manip | * | * |
 | [Day 19: Not Enough Minerals: ](https://adventofcode.com/2022/day/19)  | culling search space | * | * |
 | [Day 20: Grove Positioning System ](https://adventofcode.com/2022/day/20)  | list scramble | * | * |
-| [Day 21: ](https://adventofcode.com/2022/day/21)  |  | _ | _ |
+| [Day 21: Monkey Math  ](https://adventofcode.com/2022/day/21)  | AST/binary-search | * | * |
 | [Day 22: ](https://adventofcode.com/2022/day/22)  |  | _ | _ |
 | [Day 23: ](https://adventofcode.com/2022/day/23)  |  | _ | _ |
 | [Day 24: ](https://adventofcode.com/2022/day/24)  |  | _ | _ |
