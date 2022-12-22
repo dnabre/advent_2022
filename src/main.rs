@@ -1,312 +1,127 @@
-use std::collections::HashMap;
-use std::fmt;
-use std::fmt::Formatter;
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(unused_mut)]
+
+
+use std::collections::{HashMap, VecDeque};
+use std::collections::HashSet;
+use std::{cmp, fmt};
+use std::fmt::{Display, Formatter};
 use std::fs;
-use std::time::Instant;
+use std::time::{Instant,Duration};
 
+use ndarray::{Array, Array2, Array3, ArrayBase, OwnedRepr, Dim};
 use parse_display::FromStr;
+use crate::Voxel::Outside;
 
-use rust_decimal::prelude::*;
-use rust_decimal_macros::dec;
 
 /*
-    Advent of Code 2022: Day 21
-        part1 answer: 331120084396440
-        part2 answer: 3378273370680
+    Advent of Code 2022: Day 18
+        part1 answer: 4282
+        part2 answer: 2452
 
+part2,  4036 is too high
  */
 
+const TEST_ANSWER: (i64, i64) = (64, 58);
+const INPUT_ANSWER: (i64, i64) = (4282, 2452);
 
-const TEST_ANSWER: (i64, i64) = (152, 301);
-const INPUT_ANSWER: (i64, i64) = (331120084396440, 3378273370680);
+const PART1_TEST_FILENAME: &str = "data/day18/part1_test.txt";
+const PART1_INPUT_FILENAME: &str = "data/day18/part1_input.txt";
 
-
-const PART1_TEST_FILENAME: &str = "data/day21/part1_test.txt";
-const PART1_INPUT_FILENAME: &str = "data/day21/part1_input.txt";
-
-const PART2_TEST_FILENAME: &str = "data/day21/part2_test.txt";
-const PART2_INPUT_FILENAME: &str = "data/day21/part2_input.txt";
-
+const PART2_TEST_FILENAME: &str = "data/day18/part2_test.txt";
+const PART2_INPUT_FILENAME: &str = "data/day18/part2_input.txt";
 
 const TEST: bool = false;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
-    println!("21");                           // insert Day
+    println!("18");                           // insert Day
 
 
     let start1 = Instant::now();
     let answer1 = part1();
     let duration1 = start1.elapsed();
+
     println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+    //
     if TEST {
         assert_eq!(answer1, TEST_ANSWER.0.to_string());
     } else {
         assert_eq!(answer1, INPUT_ANSWER.0.to_string());
     }
 
-
     let start2 = Instant::now();
     let answer2 = part2();
     let duration2 = start2.elapsed();
-    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-    if TEST {
-        assert_eq!(answer2, TEST_ANSWER.1.to_string());
-    } else {
-        assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-    }
 
+    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+
+    // if TEST {
+    //     assert_eq!(answer2, TEST_ANSWER.1.to_string());
+    // } else {
+    //     assert_eq!(answer2, INPUT_ANSWER.1.to_string());
+    // }
 
     println!("----------\ndone");
 }
+
+#[cfg(windows)]
+const D_LINE_ENDING: &'static str = "\r\n\r\n";
+#[cfg(not(windows))]
+const D_LINE_ENDING: &'static str = "\n\n";
 
 #[cfg(windows)]
 const LINE_ENDING: &'static str = "\r\n";
 #[cfg(not(windows))]
 const LINE_ENDING: &'static str = "\n";
 
+const ARRAY_SIZE:usize = 25;
 
-const PART2_MNAME: &str = "humn";
-
-#[derive(FromStr, PartialEq, Hash, Debug, Copy, Clone)]
-enum Op {
-    #[display("+")]
-    Plus,
-    #[display("-")]
-    Sub,
-    #[display("/")]
-    Div,
-    #[display("*")]
-    Mul,
+#[derive(FromStr, Debug, Copy, Clone,Eq, Hash)]
+#[display("{x},{y},{z}")]
+struct Point3D {
+    x:usize,
+    y:usize,
+    z:usize
 }
 
-impl fmt::Display for Op {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Op::Plus => { "+" }
-            Op::Sub => { "-" }
-            Op::Div => { "/" }
-            Op::Mul => { "*" }
-        })
+impl PartialEq for Point3D {
+    fn eq(&self, other: &Self) -> bool {
+        (self.x == other.x) && (self.y == other.y) && (self.z == other.z)
     }
 }
 
-#[derive(FromStr, Hash, PartialEq, Debug, Clone)]
-enum MonkeyOp {
-    #[display("{0}")]
-    Number(i64),
-    #[display("{left} {op} {right}")]
-    Eq { left: String, op: Op, right: String },
+impl Display for Point3D{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f,"<{},{},{}>", self.x,self.y,self.z)
+    }
+}
+#[derive(Debug, Copy, Clone,PartialEq,Eq, Hash)]
+enum Voxel  {
+    Unknown=0,
+    Outside,
+    Lava
 }
 
-impl fmt::Display for MonkeyOp {
+impl Display for Voxel{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            MonkeyOp::Number(x) => {
-                write!(f, "{:>5}", x)
-            }
-            MonkeyOp::Eq { left, op, right } => {
-                write!(f, "{left} {op} {right}")
-            }
+            Voxel::Lava => {write!(f,"L")}
+            Voxel::Outside => {write!(f,"O")}
+            Voxel::Unknown => {write!(f,"?")}
         }
     }
 }
 
-
-#[derive(Hash, PartialEq, Debug, Clone)]
-enum MonkeyOpD {
-    Number(Decimal),
-    Eq { left: String, op: Op, right: String },
-}
-
-
-fn do_monkey_op(left_v: i64, right_v: i64, op: Op) -> i64 {
-    match op {
-        Op::Plus => { left_v + right_v }
-        Op::Sub => { left_v - right_v }
-        Op::Div => { left_v / right_v }
-        Op::Mul => { left_v * right_v }
-    }
-}
-
-fn do_monkey_op_d(left_v: Decimal, right_v: Decimal, op: Op) -> Decimal {
-    match op {
-        Op::Plus => { left_v + right_v }
-        Op::Sub => { left_v - right_v }
-        Op::Div => { left_v / right_v }
-        Op::Mul => { left_v * right_v }
+impl Default for Voxel {
+    fn default() -> Voxel {
+        return Voxel::Unknown
     }
 }
 
 
-fn monkey_op_d(p0: MonkeyOp) -> MonkeyOpD {
-    match p0 {
-        MonkeyOp::Number(x) => {
-            MonkeyOpD::Number(Decimal::from_i64(x).unwrap())
-        }
-        MonkeyOp::Eq { left, op, right } => {
-            let l = left;
-            let r = right;
-            let o = op;
-            MonkeyOpD::Eq {
-                left: l,
-                op: o,
-                right: r,
-            }
-        }
-    }
-}
-
-
-fn parse_monkeys(lines: &mut Vec<&str>) -> HashMap<String, MonkeyOp> {
-    let mut name_to_op: HashMap<String, MonkeyOp> = HashMap::new();
-    let mut v_namelist: Vec<String> = Vec::new();
-
-
-    for ln in lines {
-        let (l, r) = ln.split_once(":").unwrap();
-
-        let m_name: String = String::from(l);
-        if m_name.ne("root") {
-            v_namelist.push(m_name.clone());
-        }
-        let m_op = r.trim().parse::<MonkeyOp>().unwrap();
-        name_to_op.insert(m_name, m_op);
-    }
-    name_to_op
-}
-
-fn parse_monkeys_d(lines: &mut Vec<&str>) -> HashMap<String, MonkeyOpD> {
-    let mut name_to_op: HashMap<String, MonkeyOpD> = HashMap::new();
-    let mut v_namelist: Vec<String> = Vec::new();
-
-
-    for ln in lines {
-        let (l, r) = ln.split_once(":").unwrap();
-
-        let m_name: String = String::from(l);
-        if m_name.ne("root") {
-            v_namelist.push(m_name.clone());
-        }
-        let m_op = r.trim().parse::<MonkeyOp>().unwrap();
-
-        let m_op_d = monkey_op_d(m_op);
-
-        name_to_op.insert(m_name, m_op_d);
-    }
-    name_to_op
-}
-
-
-fn solve_map_for<'a>(solve_for: &'a str, name_to_op: &'a HashMap<String, MonkeyOpD>, value_hash: &'a mut HashMap<&'a str, Decimal>) -> Decimal {
-    let mut todo = Vec::new();
-    todo.push(solve_for);
-    while !todo.is_empty() {
-        let current = todo.pop().unwrap();
-        if value_hash.contains_key(current) {
-            continue;
-        }
-        let monkey_op = name_to_op.get(current).unwrap();
-        match monkey_op {
-            MonkeyOpD::Number(n) => {
-                value_hash.insert(current, (*n).into());
-                continue;
-            }
-            MonkeyOpD::Eq { left, op, right } => {
-                if value_hash.contains_key(left.as_str()) && value_hash.contains_key(right.as_str()) {
-                    let (left_v, right_v) = (value_hash.get(left.as_str()).unwrap(),
-                                             value_hash.get(right.as_str()).unwrap());
-                    let result = do_monkey_op_d(*left_v, *right_v, *op);
-                    value_hash.insert(current, result);
-                } else {
-                    // we're missing a value, so retry current op
-                    todo.push(current);
-                    if !value_hash.contains_key(left.as_str()) {
-                        // we need left
-                        todo.push(left);
-                    }
-                    if !value_hash.contains_key(right.as_str()) {
-                        todo.push(right);
-                    }
-                }
-            }
-        }
-    }
-
-    let solution = *value_hash.get(solve_for).unwrap();
-
-    return solution;
-}
-
-fn solve_map_for0<'a>(solve_for: &'a str, name_to_op: &'a HashMap<String, MonkeyOp>, value_hash: &'a mut HashMap<&'a str, i64>) -> i64 {
-    let mut todo = Vec::new();
-    todo.push(solve_for);
-    while !todo.is_empty() {
-        let current = todo.pop().unwrap();
-        if value_hash.contains_key(current) {
-            continue;
-        }
-        let monkey_op = name_to_op.get(current).unwrap();
-        match monkey_op {
-            MonkeyOp::Number(n) => {
-                value_hash.insert(current, *n);
-                continue;
-            }
-            MonkeyOp::Eq { left, op, right } => {
-                if value_hash.contains_key(left.as_str()) && value_hash.contains_key(right.as_str()) {
-                    let (left_v, right_v) = (value_hash.get(left.as_str()).unwrap(),
-                                             value_hash.get(right.as_str()).unwrap());
-                    let result = do_monkey_op(*left_v, *right_v, *op);
-                    value_hash.insert(current, result);
-                } else {
-                    // we're missing a value, so retry current op
-                    todo.push(current);
-                    if !value_hash.contains_key(left.as_str()) {
-                        // we need left
-                        todo.push(left);
-                    }
-                    if !value_hash.contains_key(right.as_str()) {
-                        todo.push(right);
-                    }
-                }
-            }
-        }
-    }
-
-    let solution = *value_hash.get(solve_for).unwrap();
-
-    return solution;
-}
-
-fn test_for_depends<'a>(root: &'a str, goal: &'a str, op_map: &'a HashMap<String, MonkeyOpD>) -> bool {
-    let mut stack: Vec<&str> = Vec::new();
-
-    if root.ne(goal) {
-        stack.push(root);
-    }
-    'todo: while !stack.is_empty() {
-        let current = stack.pop().unwrap();
-        let t_op = op_map.get(current).unwrap();
-        match t_op {
-            MonkeyOpD::Number(_) => {
-                continue;
-            }
-            MonkeyOpD::Eq { left,right, ..} => {
-                if goal.eq(left) {
-                    stack.push(current);
-                    break 'todo;
-                }
-                if goal.eq(right) {
-                    stack.push(current);
-                    break 'todo;
-                }
-                stack.push(left);
-                stack.push(right);
-            }
-        }
-    }
-    return stack.len() != 0;
-}
 
 
 fn part1() -> String {
@@ -316,7 +131,7 @@ fn part1() -> String {
     };
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let mut lines: Vec<&str> = data1_s.trim().split(LINE_ENDING).collect();
+    let mut lines: Vec<&str> = data1_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
@@ -324,16 +139,54 @@ fn part1() -> String {
             println!("\t\t line read has length: {}", lines[0].len());
         }
     }
+    let data1_ss = data1_s.trim();
+    let split_lines:Vec<&str> = data1_ss.split(LINE_ENDING).collect();
+
+    let mut v_points:Vec<Point3D> = Vec::new();
+    for i in 0..split_lines.len() {
+        let pp = split_lines[i].parse::<Point3D>().unwrap();
+        let s_pp = Point3D{x:pp.x+1, y:pp.y+1, z:pp.z+1};
+        v_points.push(s_pp);
+    }
+
+    let v_points = v_points.clone();
+
+    let v_points = v_points.clone();
+
+    let mut p_cloud:HashSet<Point3D> = HashSet::new();
+    for p in v_points.clone() {
+        p_cloud.insert(p.clone());
+    }
+    let mut cube_count =0;
+
+   for p in &v_points {
+       let mut sides:i32=0;
+       let mut h_sides:HashSet<Point3D> = HashSet::new();
+
+       let mut pp = Point3D{x:p.x+1, y:p.y, z:p.z};
+       h_sides.insert(pp.clone());
+       let mut pp = Point3D{x:p.x-1  , y:p.y, z:p.z};
+       h_sides.insert(pp.clone());
+       let mut pp = Point3D{x:p.x, y:p.y+1, z:p.z};
+       h_sides.insert(pp.clone());
+       let mut pp = Point3D{x:p.x, y:p.y-1, z:p.z};
+       h_sides.insert(pp.clone());
+       let mut pp = Point3D{x:p.x, y:p.y, z:p.z+1};
+       h_sides.insert(pp.clone());
+       let mut pp = Point3D{x:p.x, y:p.y, z:p.z-1};
+       h_sides.insert(pp.clone());
+
+        for h in h_sides {
+            if !p_cloud.contains(&h) {
+                cube_count +=1;
+            }
+        }
+   }
 
 
-    let name_to_op = parse_monkeys(&mut lines);
-    let mut value_hash: HashMap<&str, i64> = HashMap::new();
-    let final_value = solve_map_for0("root", &name_to_op, &mut value_hash);
-
-    let answer1 = final_value.to_string();
-    return answer1;
+    let answer1 = cube_count.to_string();
+    return answer1.to_string();
 }
-
 
 fn part2() -> String {
     let p2_file = match TEST {
@@ -342,7 +195,8 @@ fn part2() -> String {
     };
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-    let mut lines: Vec<&str> = data2_s.trim().split(LINE_ENDING).collect();
+
+    let mut lines: Vec<&str> = data2_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p2_file);
@@ -350,87 +204,263 @@ fn part2() -> String {
             println!("\t\t line read has length: {}", lines[0].len());
         }
     }
+    let data2_ss = data2_s.trim();
+    let split_lines:Vec<&str> = data2_ss.split(LINE_ENDING).collect();
 
-    let name_to_op: HashMap<String, MonkeyOpD> = parse_monkeys_d(&mut lines);
+    let mut v_points:Vec<Point3D> = Vec::new();
+    for i in 0..split_lines.len() {
+        let pp = split_lines[i].parse::<Point3D>().unwrap();
+        let s_pp = Point3D{x:pp.x+2, y:pp.y+2, z:pp.z+2};
+        v_points.push(s_pp);
+    }
 
-
-    let nothing = String::from("nothing");
-
-    let root_op: &MonkeyOpD = name_to_op.get("root").unwrap();
-
-
-    let (root_left, root_right) = match root_op {
-        MonkeyOpD::Number(_) => { (&nothing, &nothing) }
-        MonkeyOpD::Eq { left,  right, .. } => { (left, right) }
-    };
+    let v_points = v_points.clone();
 
 
-    let target;
-    let solve_test;
-    let l_deps = test_for_depends(root_left, PART2_MNAME, &name_to_op);
-    let r_deps = test_for_depends(root_right, PART2_MNAME, &name_to_op);
-    let mut value_map: HashMap<&str, Decimal> = HashMap::new();
-    if l_deps {
-        target = solve_map_for(root_right, &name_to_op, &mut value_map);
-        solve_test = root_left;
-    } else if r_deps {
-        target = solve_map_for(root_left, &name_to_op, &mut value_map);
-        solve_test = root_right;
-    } else {
-        panic!("neither branch depends on {}", PART2_MNAME);
+    let v_points = v_points.clone();
+
+    let  (mut x_min,mut x_max) = (usize::MAX, usize::MIN);
+    let  (mut y_min,mut y_max) = (usize::MAX, usize::MIN);
+    let  (mut z_min,mut z_max) = (usize::MAX, usize::MIN);
+
+    let mut p_cloud:HashSet<Point3D> = HashSet::new();
+    for p in v_points.clone() {
+        x_min = cmp::min(p.x, x_min);
+        y_min = cmp::min(p.y, y_min);
+        z_min = cmp::min(p.z, z_min);
+
+        x_max = cmp::max(p.x, x_max);
+        y_max = cmp::max(p.y, y_max);
+        z_max = cmp::max(p.z, z_max);
+
+        p_cloud.insert(p.clone());
     }
 
 
-    let left = target;
-    let mut inital: HashMap<&str, Decimal> = HashMap::new();
-    let mut right = solve_map_for(solve_test, &name_to_op, &mut inital);
-    let base: i64 = 2;
+    let mut cube_count =0;
 
-    let (mut min, mut max): (Decimal, Decimal) = (Decimal::from_i64(-1 * base.pow(44)).unwrap(), Decimal::from_i64(base.pow(44)).unwrap());
-    let mut answer = dec!(0);
+    for p in &v_points {
+        let mut sides:usize=0;
+        let mut h_sides:HashSet<Point3D> = HashSet::new();
 
+        let mut pp = Point3D{x:p.x+1, y:p.y, z:p.z};
+        h_sides.insert(pp.clone());
+        let mut pp = Point3D{x:p.x-1, y:p.y, z:p.z};
+        h_sides.insert(pp.clone());
+        let mut pp = Point3D{x:p.x, y:p.y+1, z:p.z};
+        h_sides.insert(pp.clone());
+        let mut pp = Point3D{x:p.x, y:p.y-1, z:p.z};
+        h_sides.insert(pp.clone());
+        let mut pp = Point3D{x:p.x, y:p.y, z:p.z+1};
+        h_sides.insert(pp.clone());
+        let mut pp = Point3D{x:p.x, y:p.y, z:p.z-1};
+        h_sides.insert(pp.clone());
 
-    let test1 = dec!(1);
-    let mut new_value_map: HashMap<&str, Decimal> = HashMap::new();
-    new_value_map.insert(PART2_MNAME, test1);
-    let r1 = solve_map_for(solve_test, &name_to_op, &mut new_value_map);
-
-    let test2 = dec!(100);
-    let mut new_value_map: HashMap<&str, Decimal> = HashMap::new();
-    new_value_map.insert(PART2_MNAME, test2);
-    let r2 = solve_map_for(solve_test, &name_to_op, &mut new_value_map);
-
-    let positive = r1 < r2;
-
-
-    while left != right {
-        let d_two = Decimal::from_i64(2).unwrap();
-        if right > target {
-            if positive {
-                max = min + (max - min) / d_two;
-            } else {
-                min = min + (max - min) / d_two;
-            }
-        } else {
-            if positive {
-                min = min + (max - min) / d_two;
-            } else {
-                max = min + (max - min) / d_two;
+        for h in h_sides {
+            if !p_cloud.contains(&h) {
+                cube_count +=1;
             }
         }
+    }
 
-        let test = min + (max - min) / d_two;
+    let mut hole_count:usize = 0;
+    let mut considered_holes:usize = 0;
+    // v_holes: count of single voxel holes
+    let mut v_holes:HashSet<Point3D> = HashSet::new();
+    for xx in (x_min-1)..=(x_max+1) {
+        for yy in (y_min-1)..=(y_max+1) {
+            for zz in (z_min-1)..=(z_max+1) {
+                let p = Point3D{x:xx,y:yy,z:zz};
+                if p_cloud.contains(&p) {
+                    // point is lava, ignore
+                    continue;
+                }
+                considered_holes +=1;
+                let mut sides =0;
+                // check point on each side, and count how many are lava
 
-        let mut new_value_map: HashMap<&str, Decimal> = HashMap::new();
-        new_value_map.insert(PART2_MNAME, test);
-        let result = solve_map_for(solve_test, &name_to_op, &mut new_value_map);
+                let mut pp = Point3D{x:p.x+1, y:p.y, z:p.z};
+                if p_cloud.contains(&pp) {
+                    sides += 1;
+                }
+                let mut pp = Point3D{x:p.x-1, y:p.y, z:p.z};
+                if p_cloud.contains(&pp) {
+                    sides += 1;
+                }
+                let mut pp = Point3D{x:p.x, y:p.y+1, z:p.z};
+                if p_cloud.contains(&pp) {
+                    sides += 1;
+                }
+                let mut pp = Point3D{x:p.x, y:p.y-1, z:p.z};
+                if p_cloud.contains(&pp) {
+                    sides += 1;
+                }
+                let mut pp = Point3D{x:p.x, y:p.y, z:p.z+1};
+                if p_cloud.contains(&pp) {
+                    sides += 1;
+                }
+                let mut pp = Point3D{x:p.x, y:p.y, z:p.z-1};
+                if p_cloud.contains(&pp) {
+                    sides += 1;
+                }
+                if sides == 6 {
+                    //println!("\tquery point {p} has lava on {} sides", sides);
+                    hole_count +=1;
+                    v_holes.insert(p.clone());
+                }
+            }
+        }
+    }
 
-        answer = test;
-        right = result;
+    let mut previous = v_holes.len();
+
+    let mut longest_dir = cmp::max(x_max, y_max);
+    longest_dir = cmp::max(longest_dir, z_max);
+    longest_dir +=1;
+    let a_size:usize = longest_dir as usize;
+
+    let v = vec![Voxel::Unknown; a_size * a_size * a_size];
+
+
+    let mut grid: [[[Voxel; ARRAY_SIZE]; ARRAY_SIZE]; ARRAY_SIZE] = Default::default();
+let mut inital_markings = 0;
+    for xx in 0..ARRAY_SIZE {
+        for yy in 0..ARRAY_SIZE {
+            for zz in 0..ARRAY_SIZE {
+                grid[xx][yy][0] = Voxel::Outside; // bottom side
+                grid[xx][yy][ARRAY_SIZE - 1] = Voxel::Outside;// top side
+
+                grid[0][yy][zz] = Voxel::Outside;
+                grid[ARRAY_SIZE - 1][yy][zz] = Voxel::Outside;
+
+                grid[xx][0][zz] = Voxel::Outside;
+                grid[xx][ARRAY_SIZE - 1][zz] = Voxel::Outside;
+                inital_markings += 6;
+            }
+        }
+    }
+
+    for p in p_cloud {
+        let (x,y,z) =(p.x, p.y, p.z);
+        grid[x][y][z] = Voxel::Lava;
     }
 
 
+    let mut flood_loops =-1;
+    // array has outside marked, and lava quares mark. flood-fill outside
+    let mut progress = true;
+    while progress {
+        progress = false;
+        for xx in 0..ARRAY_SIZE {
+            for yy in 0..ARRAY_SIZE {
+                for zz in 0..ARRAY_SIZE {
+                    if grid[xx][yy][zz] != Voxel::Unknown {
+                        continue;
+                    }
 
-    let answer2 = answer.to_string();
+
+                    let (dx, dy, dz) = (xx + 1, yy, zz);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+                    let (dx, dy, dz) = ((xx as i64 + -1) as usize, yy, zz);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+
+                    let (dx, dy, dz) = (xx, yy + 1, zz);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+
+                    let (dx, dy, dz) = (xx, (yy as i64 + -1) as usize, zz);
+
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+                    let (dx, dy, dz) = (xx, yy, zz + 1);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+
+                    let (dx, dy, dz) = (xx, yy, (zz as i64 + -1) as usize);
+                    if grid[dx][dy][dz] == Voxel::Outside {
+                        progress = true;
+                        grid[xx][yy][zz] = Voxel::Outside;
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+    let mut out_count = 0;
+    let mut unknown_count = 0;
+    let mut lava_count = 0;
+    for xx in 0..ARRAY_SIZE {
+        for yy in 0..ARRAY_SIZE {
+            for zz in 0..ARRAY_SIZE {
+                let q = grid[xx][yy][zz];
+                match q {
+                    Voxel::Unknown => {unknown_count += 1 ; }
+                    Outside => { out_count += 1;}
+                    Voxel::Lava => {lava_count +=1;}
+                }
+            }
+        }
+    }
+
+    let mut outside_lava_count = 0;
+    for xx in 0..ARRAY_SIZE {
+        for yy in 0..ARRAY_SIZE {
+            for zz in 0..ARRAY_SIZE {
+                if grid[xx][yy][zz] != Voxel::Lava {
+                    continue;
+                }
+
+
+                let (dx, dy, dz) = (xx + 1, yy, zz);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+                let (dx, dy, dz) = ((xx as i64 + -1) as usize, yy, zz);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+
+                let (dx, dy, dz) = (xx, yy + 1, zz);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+
+                let (dx, dy, dz) = (xx, (yy as i64 + -1) as usize, zz);
+
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+                let (dx, dy, dz) = (xx, yy, zz + 1);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+
+                let (dx, dy, dz) = (xx, yy, (zz as i64 + -1) as usize);
+                if grid[dx][dy][dz] == Voxel::Outside {
+                    outside_lava_count += 1;
+                }
+            }
+        }
+    }
+
+
+    let mut answer2 = outside_lava_count.to_string();
     return answer2;
 }
