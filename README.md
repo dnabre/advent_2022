@@ -22,14 +22,14 @@
 | [Day 14: Regolith Reservoir](https://adventofcode.com/2022/day/14)  | sand sim  | _ | _ |
 | [Day 15: Beacon Exclusion Zone ](https://adventofcode.com/2022/day/15)  | sensor geometry | * | * |
 | [Day 16: Proboscidea Volcanium](https://adventofcode.com/2022/day/16)  | graph flow/DP | _ | _ |
-| [Day 17: Pyroclastic Flow ](https://adventofcode.com/2022/day/17)  | tetris | * | _ |
+| [Day 17: Pyroclastic Flow ](https://adventofcode.com/2022/day/17)  | tetris | * | * |
 | [Day 18: Boiling Boulders: ](https://adventofcode.com/2022/day/18)  | 3d-array manip | * | * |
 | [Day 19: Not Enough Minerals: ](https://adventofcode.com/2022/day/19)  | culling search space | * | * |
 | [Day 20: Grove Positioning System ](https://adventofcode.com/2022/day/20)  | list scramble | * | * |
 | [Day 21: Monkey Math  ](https://adventofcode.com/2022/day/21)  | AST/binary-search | * | * |
-| [Day 22: ](https://adventofcode.com/2022/day/22)  |  | _ | _ |
-| [Day 23: ](https://adventofcode.com/2022/day/23)  |  | _ | _ |
-| [Day 24: ](https://adventofcode.com/2022/day/24)  |  | _ | _ |
+| [Day 22: Monkey Map ](https://adventofcode.com/2022/day/22)  | path walking 2D/3D | _ | _ |
+| [Day 23: Unstable Diffusion ](https://adventofcode.com/2022/day/23)  |  | _ | _ |
+| [Day 24: ](https://adventofcode.com/2022/day/24)  | automata | _ | _ |
 | [Day 25: ](https://adventofcode.com/2022/day/25)  |  | _ | _ |
 
 Learning Rust as I go, so this code will likely be messy and non-idiomatic. Not recommended as good examples of the language.
