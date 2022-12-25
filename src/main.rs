@@ -5,8 +5,6 @@ use std::time::Instant;
     Advent of Code 2022: Day 25
 
         part1 answer: "2-0-01==0-1=2212=100"
-        part2 answer:
-
 
  */
 
@@ -18,7 +16,7 @@ const PART1_TEST_FILENAME: &str = "data/day25/part1_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day25/part1_input.txt";
 
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -109,7 +107,7 @@ fn part1() -> String {
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
     let lines: Vec<&str> = data1_s.trim().split(LINE_ENDING).collect();
     let l_num = lines.len();
-    if !TEST {
+    if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
     }
 
