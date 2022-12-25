@@ -29,7 +29,7 @@
 | [Day 21: Monkey Math  ](https://adventofcode.com/2022/day/21)  | AST/binary-search | * | * |
 | [Day 22: Monkey Map ](https://adventofcode.com/2022/day/22)  | path walking 2D/3D | _ | _ |
 | [Day 23: Unstable Diffusion ](https://adventofcode.com/2022/day/23)  | automata | _ | _ |
-| [Day 24: ](https://adventofcode.com/2022/day/24)  |  | _ | _ |
-| [Day 25: ](https://adventofcode.com/2022/day/25)  |  | _ | _ |
+| [Day 24: Blizzard Basin  ](https://adventofcode.com/2022/day/24)  | maze search  | _ | _ |
+| [Day 25: Full of Hot Air](https://adventofcode.com/2022/day/25)  | base conversion | * | _ |
 
 Learning Rust as I go, so this code will likely be messy and non-idiomatic. Not recommended as good examples of the language.
