@@ -112,6 +112,10 @@ fn part1() -> String {
         println!("{l}");
     }
 
+
+
+
+
     let answer1 = String::new();
     return answer1.to_string();
 }
