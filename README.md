@@ -5,7 +5,7 @@
 
 
 | Problem |  | 1 | 2 |
-| --- | --- | -- | --- |
+| --- | --- |---|---|
 | [Day 1: Calorie Counting](https://adventofcode.com/2022/day/1) | manipulation of list of numbers | * | * |
 | [Day 2: Rock Paper Scissors ](https://adventofcode.com/2022/day/2)| trivial  | * | * |
 | [Day 3: Rucksack Reorganization ](https://adventofcode.com/2022/day/3)| sets  | * | * |
@@ -19,7 +19,7 @@
 | [Day 11: Monkey in the Middle](https://adventofcode.com/2022/day/11)  | monkey math | * | * |
 | [Day 12: Hill Climbing Algorith ](https://adventofcode.com/2022/day/12)  | grid search  | * | * |
 | [Day 13: Distress Signal ](https://adventofcode.com/2022/day/13)  | nested list parsing | * | * |
-| [Day 14: Regolith Reservoir](https://adventofcode.com/2022/day/14)  | sand sim  | _ | _ |
+| [Day 14: Regolith Reservoir](https://adventofcode.com/2022/day/14)  | sand sim  | * | * |
 | [Day 15: Beacon Exclusion Zone ](https://adventofcode.com/2022/day/15)  | sensor geometry | * | * |
 | [Day 16: Proboscidea Volcanium](https://adventofcode.com/2022/day/16)  | graph flow/DP | _ | _ |
 | [Day 17: Pyroclastic Flow ](https://adventofcode.com/2022/day/17)  | tetris | * | * |

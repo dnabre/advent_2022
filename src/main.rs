@@ -15,8 +15,8 @@ use array2d::{Array2D, Error};
 
 /*
     Advent of Code 2022: Day 14
-        part1 answer: 843
-        part2 answer:
+        part1 answer:   843
+        part2 answer:   27625
 
 
  */
@@ -185,7 +185,7 @@ impl std::fmt::Display for PolyLine<'_> {
 
 
 const TEST_ANSWER: (i64, i64) = (24, 93);
-const INPUT_ANSWER: (i64, i64) = (843, 2452);
+const INPUT_ANSWER: (i64, i64) = (843, 27625);
 
 const PART1_TEST_FILENAME: &str = "data/day14/part1_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day14/part1_input.txt";
@@ -193,7 +193,7 @@ const PART1_INPUT_FILENAME: &str = "data/day14/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day14/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day14/part2_input.txt";
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -372,12 +372,8 @@ fn part1() -> String {
         //     println!("{}", PolyLine(&poly_line));
         poly_lines.push(poly_line);
     }
-    let void = max_y;
-
-    println!("max x,y: ({max_x}, {max_y})");
-
-
-    let mut grid = Array2D::filled_with(Block::Empty, max_y + 1, max_x + 20);
+    let void = max_y+2;
+    let mut grid = Array2D::filled_with(Block::Empty, max_y + 3, max_x * 20);
     for pl in poly_lines {
         let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
         for p_i in 1..pl.len() {
@@ -478,14 +474,6 @@ fn part1() -> String {
         }
     }
 
-    println!("count_empty = {count_empty}");
-    println!("count_stone = {count_stone}");
-    println!("count_sand  = {count_sand}");
-
-    if reach_void {
-        println!("sand reached void after {}", sand_dropped-1);
-    }
-
     let answer1 = (sand_dropped -1 ).to_string();
     return answer1.to_string();
 }
@@ -528,9 +516,9 @@ fn part2() -> String {
     }
     let void_level = max_y+2;
 
-    println!("max x,y: ({max_x}, {max_y})");
 
-    let mut grid = Array2D::filled_with(Block::Empty, max_y + 3, max_x + 20);
+
+    let mut grid = Array2D::filled_with(Block::Empty, max_y + 3, max_x * 2);
     for pl in poly_lines {
         let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
         for p_i in 1..pl.len() {
@@ -585,7 +573,6 @@ fn part2() -> String {
         loop {
             next_point = sand_current.one_step2(&grid, void_level);
             if next_point.y >= void_level {
-                println!("sand reached the void, {next_point}");
                 reach_void = true;
                 break;
             }
@@ -593,8 +580,6 @@ fn part2() -> String {
                 // can't go any move
                 if next_point.y == 0 {
                     // can' enter the grid
-                    println!("sand stuck outside grid, {next_point}");
-                    println!("sand dropped: {}", sand_dropped);
                     sand_filled = true;
                     break;
                 } else {
@@ -624,13 +609,6 @@ fn part2() -> String {
         }
     }
 
-    println!("count_empty = {count_empty}");
-    println!("count_stone = {count_stone}");
-    println!("count_sand  = {count_sand}");
-
-    if reach_void {
-        println!("sand reached void after {}", sand_dropped-1);
-    }
 
     let answer2 = (sand_dropped  ).to_string();
     return answer2.to_string();
