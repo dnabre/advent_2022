@@ -216,6 +216,66 @@ const MAX_DIM: usize = 501;
 const SAND_START_ROW: usize = 0;
 const SAND_START_COL: usize = 500;
 
+
+fn grid_set(mut grid: &mut Array2D<Block>, col: usize, row: usize, block: Block) {
+    let res = grid.set(row, col, block);
+    match res {
+        Ok(_) => { return; }
+        Err(e) => {
+            panic!("{:?}", e);
+        }
+    }
+}
+
+fn grid_get_by_delta(grid: &Array2D<Block>, p: &Point, col_delta: i32, row_delta: i32) -> Block {
+    let ip_x = p.x as i32;
+    let ip_y = p.y as i32;
+
+    let new_x = (ip_x + col_delta) as usize;
+    let new_y = (ip_y + row_delta) as usize;
+    return grid_get(grid, new_x, new_y);
+}
+
+fn grid_get(grid: &Array2D<Block>, col: usize, row: usize) -> Block {
+    let res = grid.get(row, col);
+    match res {
+        None => { panic!("unable to read grid at [{row}, {col}]"); }
+        Some(b) => { return *b; }
+    }
+}
+
+
+fn print_grid(grid: Array2D<Block>) {
+    // let (min_x, min_y) = (0, 0);
+    // let (max_x, max_y) = ( grid.row_len() ,grid.column_len());
+
+    // let (min_x, min_y) = (450, 0);
+    // let (max_x, max_y) = ( grid.row_len() ,grid.column_len());
+    //
+    //
+    //
+    //
+    // println!("from [{min_x},{min_y}] to [{max_x},{max_y}]");
+    // for x in min_x..max_x {
+    //     for y in min_y..max_y {
+    //         let c = grid.get(y,x).unwrap();
+    //         print!("{}", c);
+    //
+    //     }
+    //     println!();
+    // }
+
+
+    for row_iter in grid.rows_iter() {
+        for element in row_iter {
+            print!("{}", element);
+        }
+        println!();
+    }
+}
+
+
+
 fn part1() -> String {
     let p1_file = match TEST {
         true => PART1_TEST_FILENAME,
@@ -368,63 +428,6 @@ fn part1() -> String {
 
     let answer1 = (sand_dropped -1 ).to_string();
     return answer1.to_string();
-}
-
-fn grid_set(mut grid: &mut Array2D<Block>, col: usize, row: usize, block: Block) {
-    let res = grid.set(row, col, block);
-    match res {
-        Ok(_) => { return; }
-        Err(e) => {
-            panic!("{:?}", e);
-        }
-    }
-}
-
-fn grid_get_by_delta(grid: &Array2D<Block>, p: &Point, col_delta: i32, row_delta: i32) -> Block {
-    let ip_x = p.x as i32;
-    let ip_y = p.y as i32;
-
-    let new_x = (ip_x + col_delta) as usize;
-    let new_y = (ip_y + row_delta) as usize;
-    return grid_get(grid, new_x, new_y);
-}
-
-fn grid_get(grid: &Array2D<Block>, col: usize, row: usize) -> Block {
-    let res = grid.get(row, col);
-    match res {
-        None => { panic!("unable to read grid at [{row}, {col}]"); }
-        Some(b) => { return *b; }
-    }
-}
-
-
-fn print_grid(grid: Array2D<Block>) {
-    // let (min_x, min_y) = (0, 0);
-    // let (max_x, max_y) = ( grid.row_len() ,grid.column_len());
-
-    // let (min_x, min_y) = (450, 0);
-    // let (max_x, max_y) = ( grid.row_len() ,grid.column_len());
-    //
-    //
-    //
-    //
-    // println!("from [{min_x},{min_y}] to [{max_x},{max_y}]");
-    // for x in min_x..max_x {
-    //     for y in min_y..max_y {
-    //         let c = grid.get(y,x).unwrap();
-    //         print!("{}", c);
-    //
-    //     }
-    //     println!();
-    // }
-
-
-    for row_iter in grid.rows_iter() {
-        for element in row_iter {
-            print!("{}", element);
-        }
-        println!();
-    }
 }
 
 
