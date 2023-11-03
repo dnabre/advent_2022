@@ -96,6 +96,45 @@ impl Point {
 
         return self.clone();
     }
+    fn one_step2(&self, grid: &Array2D<Block>, void:usize) -> Point {
+        let mut look_block;
+
+
+        // Check below
+        //    print!("checking {self} (0,1): ");
+        look_block = grid_get_by_delta2(grid, self, 0, 1,void);
+        //    print!(" found {} at ", look_block);
+        if look_block.is_open() {
+            let new_pos = Point { x: self.x + 0, y: self.y + 1 };
+            //        println!("{new_pos}");
+            return new_pos;
+        }
+        //  println!("blocked by {look_block} at {}",Point { x: self.x + 0, y: self.y + 1 } );
+        //   println!();
+        //Check down and left
+        //     print!("checking {self} (-1,1): ");
+        look_block = grid_get_by_delta2(grid, self, -1, 1,void);
+        //     print!(" found {} at ", look_block);
+        if look_block.is_open() {
+            let new_pos = Point { x: self.x - 1, y: self.y + 1 };
+            return new_pos;
+        }
+        //  println!("blocked by {look_block} at {}",Point { x: self.x - 1, y: self.y + 1 } );
+        //    println!();
+        //Check down and right
+        //    print!("checking {self} (1,1): ");
+        look_block = grid_get_by_delta2(grid, self, 1, 1,void);
+        //     print!(" found {} at ", look_block);
+        if look_block.is_open() {
+            let new_pos = Point { x: self.x + 1, y: self.y + 1 };
+            return new_pos;
+        }
+        //    println!("blocked by {look_block} at {}",Point { x: self.x + 1, y: self.y + 1 } );
+//println!();
+        // None of the three spots are open so we don't stay where we started
+
+        return self.clone();
+    }
     fn parse(s: &str) -> Self {
         let mut tokens = s.split(',');
         let (x, y) = (tokens.next().unwrap(), tokens.next().unwrap());
@@ -154,7 +193,7 @@ const PART1_INPUT_FILENAME: &str = "data/day14/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day14/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day14/part2_input.txt";
 
-const TEST: bool = false;
+const TEST: bool = true;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -177,25 +216,25 @@ fn main() {
                      answer1, INPUT_ANSWER.0.to_string())
         }
     }
-    //
-    // let start2 = Instant::now();
-    // let answer2 = part2();
-    // let duration2 = start2.elapsed();
-    //
-    // println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-    //
-    //
-    // if TEST {
-    //     if answer2 != TEST_ANSWER.0.to_string() {
-    //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-    //                  answer2,TEST_ANSWER.1.to_string() )
-    //     }
-    // } else {
-    //     if answer2 != INPUT_ANSWER.0.to_string() {
-    //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-    //                  answer2,TEST_ANSWER.1.to_string() )
-    //     }
-    // }
+
+    let start2 = Instant::now();
+    let answer2 = part2();
+    let duration2 = start2.elapsed();
+
+    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+
+
+    if TEST {
+        if answer2 != TEST_ANSWER.1.to_string() {
+            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+                     answer2,TEST_ANSWER.1.to_string() )
+        }
+    } else {
+        if answer2 != INPUT_ANSWER.1.to_string() {
+            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+                     answer2,TEST_ANSWER.1.to_string() )
+        }
+    }
 
 
     println!("----------\ndone");
@@ -215,6 +254,7 @@ const MAX_DIM: usize = 501;
 // sands starts at "500,0" or row 0 and col =500
 const SAND_START_ROW: usize = 0;
 const SAND_START_COL: usize = 500;
+
 
 
 fn grid_set(mut grid: &mut Array2D<Block>, col: usize, row: usize, block: Block) {
@@ -237,6 +277,23 @@ fn grid_get_by_delta(grid: &Array2D<Block>, p: &Point, col_delta: i32, row_delta
 }
 
 fn grid_get(grid: &Array2D<Block>, col: usize, row: usize) -> Block {
+    let res = grid.get(row, col);
+    match res {
+        None => { panic!("unable to read grid at [{row}, {col}]"); }
+        Some(b) => { return *b; }
+    }
+}
+
+fn grid_get_by_delta2(grid: &Array2D<Block>, p: &Point, col_delta: i32, row_delta: i32, void:usize) -> Block {
+    let ip_x = p.x as i32;
+    let ip_y = p.y as i32;
+
+    let new_x = (ip_x + col_delta) as usize;
+    let new_y = (ip_y + row_delta) as usize;
+    return grid_get2(grid, new_x, new_y,void);
+}
+
+fn grid_get2(grid: &Array2D<Block>, col: usize, row: usize,void: usize) -> Block {
     let res = grid.get(row, col);
     match res {
         None => { panic!("unable to read grid at [{row}, {col}]"); }
@@ -318,7 +375,6 @@ fn part1() -> String {
 
     let mut grid = Array2D::filled_with(Block::Empty, max_y + 1, max_x + 20);
     for pl in poly_lines {
-        //     println!("begin poly_line: {:?}", pl);
         let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
         for p_i in 1..pl.len() {
             let mut p_s = pl[p_i - 1];
@@ -338,27 +394,27 @@ fn part1() -> String {
                 }
             }
 
-            //  println!("doing {p_s} -> {p_e} for p_i={p_i} c={:?}", c);
+
 
             let (mut x, mut y) = (p_s.x, p_s.y);
             while x != p_e.x {
-                //      println!("\t setting ({x},{y}) to {}",Block::Stone);
+
                 grid_set(&mut grid, x, y, Block::Stone);
 
 
                 x += 1;
             }
             while y != p_e.y {
-                //       println!("\t setting ({x},{y}) to {}",Block::Stone);
+
                 grid_set(&mut grid, x, y, Block::Stone);
 
 
                 y += 1;
             }
-            //  println!("\t setting ({x},{y}) to {}",Block::Stone);
+
             grid_set(&mut grid, p_e.x, p_e.y, Block::Stone);
         }
-// println!("end poly_line: {:?}", pl);
+
     }
 
     let mut sand_dropped = 0;
@@ -366,7 +422,7 @@ fn part1() -> String {
 
     let mut reach_void = false;
     let mut sand_moving = true;
-    println!("adding sand at {SAND_START_COL}, {SAND_START_ROW}");
+
 
 
     while !reach_void {
@@ -392,7 +448,7 @@ fn part1() -> String {
                     // can' enter the grid
                     println!("sand stuck outside grid, {next_point}");
                 } else {
-                    println!("sand stopped at final position, {next_point}");
+                //    println!("sand stopped at final position, {next_point}");
                     grid_set(&mut grid, next_point.x, next_point.y, Block::Sand);
                 }
                 break;
@@ -438,7 +494,6 @@ fn part2() -> String {
     };
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-
     let mut lines: Vec<&str> = data2_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
@@ -449,13 +504,127 @@ fn part2() -> String {
     }
     let data2_ss = data2_s.trim();
     let split_lines: Vec<&str> = data2_ss.split(LINE_ENDING).collect();
+    let mut max_x = usize::MIN;
+    let mut max_y = usize::MIN;
 
+
+    let mut poly_lines: Vec<Vec<Point>> = Vec::new();
     for l in split_lines {
-        println!("{l}");
+        let poly_line: Vec<Point> = l.split(" -> ").map(Point::parse).collect();
+        for p in &poly_line {
+            if p.x > max_x {
+                max_x = p.x;
+            }
+            if p.y > max_y {
+                max_y = p.y;
+            }
+        }
+        //     println!("{}", PolyLine(&poly_line));
+        poly_lines.push(poly_line);
+    }
+    let void = max_y;
+
+    println!("max x,y: ({max_x}, {max_y})");
+
+    let mut grid = Array2D::filled_with(Block::Empty, max_y + 1, max_x + 20);
+    for pl in poly_lines {
+        let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
+        for p_i in 1..pl.len() {
+            let mut p_s = pl[p_i - 1];
+            let mut p_e = pl[p_i];
+            let c = p_e.compare(p_s);
+            match c {
+                PointCompare::Same => { panic!("p_s and p_e shouldn't be the same, p_s: {p_s} \t p_e: {p_e}"); }
+                PointCompare::Hort => {
+                    if p_e.x < p_s.x {
+                        (p_s, p_e) = (p_e, p_s);
+                    }
+                }
+                PointCompare::Vert => {
+                    if p_e.y < p_s.y {
+                        (p_s, p_e) = (p_e, p_s);
+                    }
+                }
+            }
+
+            let (mut x, mut y) = (p_s.x, p_s.y);
+            while x != p_e.x {
+                grid_set(&mut grid, x, y, Block::Stone);
+                x += 1;
+            }
+            while y != p_e.y {
+                grid_set(&mut grid, x, y, Block::Stone);
+                y += 1;
+            }
+
+            grid_set(&mut grid, p_e.x, p_e.y, Block::Stone);
+        }
+
     }
 
-    let answer2 = String::new();
+    let mut sand_dropped = 0;
 
 
-    return answer2;
+    let mut reach_void = false;
+    let mut sand_moving = true;
+
+    while !reach_void {
+        sand_dropped += 1;
+        let initial_sand = Point { x: SAND_START_COL, y: SAND_START_ROW };
+        let mut sand_current = initial_sand;
+
+        let mut last_point = initial_sand;
+        let mut next_point;
+
+
+
+        loop {
+            next_point = sand_current.one_step2(&grid,void);
+            if next_point.y >= void {
+                println!("sand reached the void, {next_point}");
+                reach_void = true;
+                break;
+            }
+            if next_point == last_point {
+                // can't go any move
+                if next_point.y == 0 {
+                    // can' enter the grid
+                    println!("sand stuck outside grid, {next_point}");
+                } else {
+                    //    println!("sand stopped at final position, {next_point}");
+                    grid_set(&mut grid, next_point.x, next_point.y, Block::Sand);
+                }
+                break;
+            } else {
+                sand_current = next_point;
+                last_point = sand_current;
+            }
+        }
+    }
+
+    let mut count_stone = 0;
+    let mut count_sand = 0;
+    let mut count_empty = 0;
+
+
+    for row_iter in grid.rows_iter() {
+        for element in row_iter {
+            match element {
+                Block::Empty => { count_empty += 1; }
+                Block::Stone => { count_stone += 1; }
+                Block::Sand => { count_sand += 1; }
+            }
+        }
+    }
+
+    println!("count_empty = {count_empty}");
+    println!("count_stone = {count_stone}");
+    println!("count_sand  = {count_sand}");
+
+    if reach_void {
+        println!("sand reached void after {}", sand_dropped-1);
+    }
+
+    let answer2 = (sand_dropped -1 ).to_string();
+    return answer2.to_string();
 }
