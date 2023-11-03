@@ -145,7 +145,7 @@ impl std::fmt::Display for PolyLine<'_> {
 }
 
 
-const TEST_ANSWER: (i64, i64) = (24, 58);
+const TEST_ANSWER: (i64, i64) = (24, 93);
 const INPUT_ANSWER: (i64, i64) = (843, 2452);
 
 const PART1_TEST_FILENAME: &str = "data/day14/part1_test.txt";
@@ -421,7 +421,7 @@ fn part1() -> String {
     println!("count_empty = {count_empty}");
     println!("count_stone = {count_stone}");
     println!("count_sand  = {count_sand}");
-    print_grid(grid);
+
     if reach_void {
         println!("sand reached void after {}", sand_dropped-1);
     }
