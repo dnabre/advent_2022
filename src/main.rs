@@ -204,7 +204,7 @@ fn part1() -> String {
     println!("max x,y: ({max_x}, {max_y})");
 
 
-    let mut grid = Array2D::filled_with(Block::Empty, 15,600);
+    let mut grid = Array2D::filled_with(Block::Empty, max_y+1,2*max_x);
     for pl in poly_lines {
         println!("begin poly_line: {:?}", pl);
         let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
