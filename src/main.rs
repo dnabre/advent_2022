@@ -195,7 +195,7 @@ fn part1() -> String {
             max_y = p.y;
             }
         }
-        println!("{}", PolyLine(&poly_line));
+   //     println!("{}", PolyLine(&poly_line));
         poly_lines.push(poly_line);
 
     }
@@ -204,9 +204,9 @@ fn part1() -> String {
     println!("max x,y: ({max_x}, {max_y})");
 
 
-    let mut grid = Array2D::filled_with(Block::Empty, max_y+1,2*max_x);
+    let mut grid = Array2D::filled_with(Block::Empty, max_y+1,max_x+20);
     for pl in poly_lines {
-        println!("begin poly_line: {:?}", pl);
+   //     println!("begin poly_line: {:?}", pl);
         let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
         for p_i in 1..pl.len() {
             let mut p_s = pl[p_i - 1];
@@ -228,27 +228,27 @@ fn part1() -> String {
 
 
 
-            println!("doing {p_s} -> {p_e} for p_i={p_i} c={:?}", c);
+          //  println!("doing {p_s} -> {p_e} for p_i={p_i} c={:?}", c);
 
             let (mut x, mut y) = (p_s.x, p_s.y);
             while x != p_e.x {
-                println!("\t setting ({x},{y}) to {}",Block::Stone);
+          //      println!("\t setting ({x},{y}) to {}",Block::Stone);
                 let r = grid.set(y, x, Block::Stone);
                 check(r);
                 x += 1;
             }
             while y != p_e.y {
-                println!("\t setting ({x},{y}) to {}",Block::Stone);
+         //       println!("\t setting ({x},{y}) to {}",Block::Stone);
                 let r = grid.set(y, x, Block::Stone);
                 check(r);
                 y += 1;
             }
-            println!("\t setting ({x},{y}) to {}",Block::Stone);
+          //  println!("\t setting ({x},{y}) to {}",Block::Stone);
             let r = grid.set(p_e.y, p_e.x, Block::Stone);
             check(r);
 
         }
-        println!("end poly_line: {:?}", pl);
+// println!("end poly_line: {:?}", pl);
     }
 
 
@@ -269,15 +269,15 @@ fn part1() -> String {
          }
      }
 
-    println!( "count_empty = {count_empty}");
-    println!( "count_stone = {count_stone}");
-    println!( "count_sand  = {count_sand}");
+    // println!( "count_empty = {count_empty}");
+    // println!( "count_stone = {count_stone}");
+    // println!( "count_sand  = {count_sand}");
 
 
 
 
 
-    print_grid(grid);
+   // print_grid(grid);
 
 
 
