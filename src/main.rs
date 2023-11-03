@@ -96,13 +96,13 @@ impl Point {
 
         return self.clone();
     }
-    fn one_step2(&self, grid: &Array2D<Block>, void:usize) -> Point {
+    fn one_step2(&self, grid: &Array2D<Block>, void_level:usize) -> Point {
         let mut look_block;
 
 
         // Check below
         //    print!("checking {self} (0,1): ");
-        look_block = grid_get_by_delta2(grid, self, 0, 1,void);
+        look_block = grid_get_by_delta2(grid, self, 0, 1, void_level);
         //    print!(" found {} at ", look_block);
         if look_block.is_open() {
             let new_pos = Point { x: self.x + 0, y: self.y + 1 };
@@ -113,7 +113,7 @@ impl Point {
         //   println!();
         //Check down and left
         //     print!("checking {self} (-1,1): ");
-        look_block = grid_get_by_delta2(grid, self, -1, 1,void);
+        look_block = grid_get_by_delta2(grid, self, -1, 1, void_level);
         //     print!(" found {} at ", look_block);
         if look_block.is_open() {
             let new_pos = Point { x: self.x - 1, y: self.y + 1 };
@@ -123,7 +123,7 @@ impl Point {
         //    println!();
         //Check down and right
         //    print!("checking {self} (1,1): ");
-        look_block = grid_get_by_delta2(grid, self, 1, 1,void);
+        look_block = grid_get_by_delta2(grid, self, 1, 1, void_level);
         //     print!(" found {} at ", look_block);
         if look_block.is_open() {
             let new_pos = Point { x: self.x + 1, y: self.y + 1 };
@@ -284,16 +284,20 @@ fn grid_get(grid: &Array2D<Block>, col: usize, row: usize) -> Block {
     }
 }
 
-fn grid_get_by_delta2(grid: &Array2D<Block>, p: &Point, col_delta: i32, row_delta: i32, void:usize) -> Block {
+fn grid_get_by_delta2(grid: &Array2D<Block>, p: &Point, col_delta: i32, row_delta: i32, void_level:usize) -> Block {
     let ip_x = p.x as i32;
     let ip_y = p.y as i32;
 
     let new_x = (ip_x + col_delta) as usize;
     let new_y = (ip_y + row_delta) as usize;
-    return grid_get2(grid, new_x, new_y,void);
+    return grid_get2(grid, new_x, new_y,void_level);
 }
 
-fn grid_get2(grid: &Array2D<Block>, col: usize, row: usize,void: usize) -> Block {
+fn grid_get2(grid: &Array2D<Block>, col: usize, row: usize,void_level: usize) -> Block {
+ if row >= void_level {
+     return Block::Stone;
+ }
+
     let res = grid.get(row, col);
     match res {
         None => { panic!("unable to read grid at [{row}, {col}]"); }
@@ -522,11 +526,11 @@ fn part2() -> String {
         //     println!("{}", PolyLine(&poly_line));
         poly_lines.push(poly_line);
     }
-    let void = max_y;
+    let void_level = max_y+2;
 
     println!("max x,y: ({max_x}, {max_y})");
 
-    let mut grid = Array2D::filled_with(Block::Empty, max_y + 1, max_x + 20);
+    let mut grid = Array2D::filled_with(Block::Empty, max_y + 3, max_x + 20);
     for pl in poly_lines {
         let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
         for p_i in 1..pl.len() {
@@ -566,9 +570,9 @@ fn part2() -> String {
 
 
     let mut reach_void = false;
-    let mut sand_moving = true;
+    let mut sand_filled = false;
 
-    while !reach_void {
+    while !reach_void && !sand_filled {
         sand_dropped += 1;
         let initial_sand = Point { x: SAND_START_COL, y: SAND_START_ROW };
         let mut sand_current = initial_sand;
@@ -579,8 +583,8 @@ fn part2() -> String {
 
 
         loop {
-            next_point = sand_current.one_step2(&grid,void);
-            if next_point.y >= void {
+            next_point = sand_current.one_step2(&grid, void_level);
+            if next_point.y >= void_level {
                 println!("sand reached the void, {next_point}");
                 reach_void = true;
                 break;
@@ -590,6 +594,9 @@ fn part2() -> String {
                 if next_point.y == 0 {
                     // can' enter the grid
                     println!("sand stuck outside grid, {next_point}");
+                    println!("sand dropped: {}", sand_dropped);
+                    sand_filled = true;
+                    break;
                 } else {
                     //    println!("sand stopped at final position, {next_point}");
                     grid_set(&mut grid, next_point.x, next_point.y, Block::Sand);
@@ -625,6 +632,6 @@ fn part2() -> String {
         println!("sand reached void after {}", sand_dropped-1);
     }
 
-    let answer2 = (sand_dropped -1 ).to_string();
+    let answer2 = (sand_dropped  ).to_string();
     return answer2.to_string();
 }
