@@ -22,20 +22,18 @@ use array2d::{Array2D, Error};
  */
 
 
-#[derive(Debug, Copy, Clone,PartialEq,Eq, )]
+#[derive(Debug, Copy, Clone,PartialEq,Eq)]
 enum Block {
     Empty,
     Stone,
-    Sand,
-    Void
+    Sand
 }
 impl fmt::Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Block::Empty => {write!(f,"_")}
+            Block::Empty => {write!(f,".")}
             Block::Sand  => {write!(f,"*")}
             Block::Stone => {write!{f,"#"}}
-            Block::Void => {write!(f,"x")}
         }
     }
 }
@@ -66,7 +64,7 @@ impl Point {
         }
     }
 }
-#[derive(Debug)]
+#[derive(Debug,PartialEq, Eq)]
 enum PointCompare {
     Same,
     Hort,
@@ -201,6 +199,7 @@ fn part1() -> String {
         poly_lines.push(poly_line);
 
     }
+    let void = max_y;
 
     println!("max x,y: ({max_x}, {max_y})");
 
@@ -208,44 +207,56 @@ fn part1() -> String {
     let mut grid = Array2D::filled_with(Block::Empty, 15,600);
     for pl in poly_lines {
         println!("begin poly_line: {:?}", pl);
-        let  (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
+        let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
         for p_i in 1..pl.len() {
-            let p_s = pl[p_i - 1];
-            let p_e = pl[p_i];
+            let mut p_s = pl[p_i - 1];
+            let mut p_e = pl[p_i];
             let c = p_e.compare(p_s);
-            println!("doing {p_s} -> {p_e} for p_i={p_i} c={:?}",c);
-
-
             match c {
-                PointCompare::Same => {
-                    panic!("p_s and p_e shouldn't be the same, p_s: {p_s} \t p_e: {p_e}");
-                }
+                PointCompare::Same => {panic!("p_s and p_e shouldn't be the same, p_s: {p_s} \t p_e: {p_e}");}
                 PointCompare::Hort => {
-                    let x = p_e.x;
-                    for y in p_s.y ..=p_e.y{
-                        println!("({x},{y}) = {}  {p_s} -> {p_e}", Block::Stone);
-                        let r = grid.set(y, x, Block::Stone);
-                        check(r);
+                    if p_e.x < p_s.x {
+                        (p_s,p_e) = (p_e,p_s);
                     }
                 }
                 PointCompare::Vert => {
-                    let x = p_e.x;
-                    for y in p_s.y ..=p_e.y {
-
-                        println!("({x},{y}) = {}  {p_s} -> {p_e}", Block::Stone);
-                            let r = grid.set(y,x, Block::Stone);
-                            check(r);
+                    if p_e.y < p_s.y {
+                        (p_s,p_e) = (p_e,p_s);
                     }
                 }
             }
+
+
+
+            println!("doing {p_s} -> {p_e} for p_i={p_i} c={:?}", c);
+
+            let (mut x, mut y) = (p_s.x, p_s.y);
+            while x != p_e.x {
+                println!("\t setting ({x},{y}) to {}",Block::Stone);
+                let r = grid.set(y, x, Block::Stone);
+                check(r);
+                x += 1;
+            }
+            while y != p_e.y {
+                println!("\t setting ({x},{y}) to {}",Block::Stone);
+                let r = grid.set(y, x, Block::Stone);
+                check(r);
+                y += 1;
+            }
+            println!("\t setting ({x},{y}) to {}",Block::Stone);
+            let r = grid.set(p_e.y, p_e.x, Block::Stone);
+            check(r);
+
         }
         println!("end poly_line: {:?}", pl);
     }
 
+
+
     let mut count_stone =0;
     let mut count_sand =0;
     let mut count_empty =0;
-    let mut count_void =0;
+
 
      for row_iter in grid.rows_iter() {
          for element in row_iter {
@@ -253,7 +264,6 @@ fn part1() -> String {
                 Block::Empty => {count_empty += 1;}
                 Block::Stone => {count_stone += 1;}
                 Block::Sand => {count_sand += 1;}
-                Block::Void => {count_void +=1 ;}
             }
 
          }
@@ -262,7 +272,7 @@ fn part1() -> String {
     println!( "count_empty = {count_empty}");
     println!( "count_stone = {count_stone}");
     println!( "count_sand  = {count_sand}");
-    println!( "count_void  = {count_void}");
+
 
 
 
