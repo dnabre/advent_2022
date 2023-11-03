@@ -438,7 +438,6 @@ fn part1() -> String {
         loop {
             next_point = sand_current.one_step(&grid);
             if next_point.y >= void {
-                println!("sand reached the void, {next_point}");
                 reach_void = true;
                 break;
             }
