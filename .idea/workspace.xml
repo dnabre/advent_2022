@@ -7,9 +7,8 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="70ce539f-32dc-490e-937c-9ca9346433e3" name="Changes" comment="Day 14 part #2">
+    <list default="true" id="70ce539f-32dc-490e-937c-9ca9346433e3" name="Changes" comment="Day 23 correct answers for both parts&#10;&#10;Need to clean out debugging, and split into two parts (one for each star.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -93,7 +92,7 @@
       <workItem from="1699058884131" duration="35000" />
       <workItem from="1699059677545" duration="50000" />
       <workItem from="1699197539298" duration="2867000" />
-      <workItem from="1699203002939" duration="10371000" />
+      <workItem from="1699203002939" duration="11290000" />
     </task>
     <task id="LOCAL-00001" summary="drawing polyline isn't work">
       <option name="closed" value="true" />
@@ -191,7 +190,15 @@
       <option name="project" value="LOCAL" />
       <updated>1699210389621</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Day 23 correct answers for both parts&#10;&#10;Need to clean out debugging, and split into two parts (one for each star.">
+      <option name="closed" value="true" />
+      <created>1699213638023</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1699213638023</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -204,7 +211,8 @@
     <MESSAGE value="Day 14 part #1 working" />
     <MESSAGE value="Day 14 part #2 working on test data" />
     <MESSAGE value="Day 14 part #2" />
-    <option name="LAST_COMMIT_MESSAGE" value="Day 14 part #2" />
+    <MESSAGE value="Day 23 correct answers for both parts&#10;&#10;Need to clean out debugging, and split into two parts (one for each star." />
+    <option name="LAST_COMMIT_MESSAGE" value="Day 23 correct answers for both parts&#10;&#10;Need to clean out debugging, and split into two parts (one for each star." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
