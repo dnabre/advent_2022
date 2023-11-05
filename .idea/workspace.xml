@@ -89,7 +89,7 @@
       <workItem from="1699058884131" duration="35000" />
       <workItem from="1699059677545" duration="50000" />
       <workItem from="1699197539298" duration="2867000" />
-      <workItem from="1699203002939" duration="11676000" />
+      <workItem from="1699203002939" duration="11777000" />
     </task>
     <task id="LOCAL-00001" summary="drawing polyline isn't work">
       <option name="closed" value="true" />
@@ -203,7 +203,15 @@
       <option name="project" value="LOCAL" />
       <updated>1699214707317</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="Day 23 correct answers for both parts&#10;&#10;most of debugging purged">
+      <option name="closed" value="true" />
+      <created>1699214796572</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1699214796572</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
