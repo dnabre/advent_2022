@@ -100,13 +100,93 @@ struct Coord {
     col: i32,
 }
 
+impl Coord {
+    fn add(&self, dir: Direction) -> Coord {
+        match dir {
+            Direction::North => {self.plus(-1,0)},
+            Direction::NorthEast => {self.plus(-1,1)},
+            Direction::East => {self.plus(0,1)},
+            Direction::SouthEast => {self.plus(1,1)},
+            Direction::South => {self.plus(1,0)},
+            Direction::SouthWest => {self.plus(1,-1)},
+            Direction::West => {self.plus(0,-1)},
+            Direction::NorthWest => {self.plus(-1,-1)},
+        }
+    }
+    fn plus(&self, row:i32, col:i32) -> Coord {
+        return Coord{row: self.row + row, col: self.col + col};
+    }
+}
+
+impl Coord {
+
+}
 impl fmt::Display for Coord {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "[{},{}]", self.col, self.row)
     }
 }
 
-#[derive(Hash, PartialEq, Eq, Derived_Display)]
+#[derive(Debug,Copy,Clone,PartialEq,Eq, Hash)]
+struct Elf {
+    loc: Coord,
+    proposed: Option<Coord>
+}
+
+impl Elf {
+    fn new(start:Coord) -> Self {
+        Self {loc:start, proposed:None}
+    }
+    fn look(&self, dir:Direction) -> [Coord; 3] {
+        match dir {
+            Direction::North => {
+                [self.loc.plus(-1, 0),
+                self.loc.plus(-1, 1),
+                self.loc.plus(-1, -1)]
+            }
+            Direction::NorthEast => {panic!("got {dir}, not cardinal direction")}
+            Direction::East => {
+                [self.loc.plus(0, 1),
+                    self.loc.plus(-1, 1),
+                    self.loc.plus(1, 1)]
+            }
+            Direction::SouthEast => {panic!("got {dir}, not cardinal direction")}
+            Direction::South => {
+                [self.loc.plus(1, 0),
+                self.loc.plus(1, 1),
+                self.loc.plus(1, -1)]}
+            Direction::SouthWest => {panic!("got {dir}, not cardinal direction")}
+            Direction::West => {
+                [self.loc.plus(0, -1),
+                self.loc.plus(-1, 1),
+                self.loc.plus(1, -1)]}
+            Direction::NorthWest => {panic!("got {dir}, not cardinal direction")}
+        }
+    }
+    fn get_neighbors(&self) -> [Coord; 8] {
+        let result = [
+            self.loc.add(Direction::North),
+            self.loc.add(Direction::NorthEast),
+            self.loc.add(Direction::East),
+            self.loc.add(Direction::SouthEast),
+            self.loc.add(Direction::South),
+            self.loc.add(Direction::SouthWest),
+            self.loc.add(Direction::West),
+            self.loc.add(Direction::NorthWest),
+        ];
+      return result;
+
+    }
+
+}
+impl fmt::Display for Elf {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f,"elf @{} proposed: {:?}", self.loc, self.proposed)
+    }
+}
+
+
+#[derive(Hash, PartialEq, Eq, Derived_Display, Debug)]
 enum Direction {
     North,
     NorthEast,
@@ -137,11 +217,21 @@ fn print_set<T:Display>(set:HashSet<T>) {
 }
 
 
-fn rotate_elf_rules(mut rules:VecDeque<Direction>) {
+fn rotate_elf_rules( rules: &mut VecDeque<Direction>) {
     let top = rules.pop_front().unwrap();
     rules.push_back(top);
 
 }
+
+fn gen_init_rules() -> VecDeque<Direction> {
+    let mut elf_rules:VecDeque<Direction> = VecDeque::with_capacity(4);
+    elf_rules.push_back(Direction::North);
+    elf_rules.push_back(Direction::South);
+    elf_rules.push_back(Direction::West);
+    elf_rules.push_back(Direction::East);
+    return elf_rules;
+}
+
 
 fn part1() -> String {
     let p1_file = match TEST {
@@ -164,33 +254,43 @@ fn part1() -> String {
     let mut c_col;
     let mut c_row;
 
-    let mut coords:HashSet<Coord> = HashSet::new();
+    let mut elf_rules:VecDeque<Direction> = gen_init_rules();
 
+    let mut elf_locations:HashSet<Coord> = HashSet::new();
+
+    let mut elves:Vec<Elf> = Vec::new();
     c_row = 1;
     for l in split_lines {
         c_col = 1;
         for c in l.chars() {
             if c == '#' {
-                coords.insert(Coord{ row: c_row, col: c_col});
+                let c = Coord{ row: c_row, col: c_col};
+                let mut e = Elf::new(c);
+                elves.push(e);
+                elf_locations.insert(c);
+                //println!("new-> {}", &e);
             } c_col += 1;
         } c_row += 1;
     }
 
-//    println!("coords: {:?}",coords);
-print_set(coords);
-    let mut elf_rules:VecDeque<Direction> = VecDeque::with_capacity(4);
-    elf_rules.push_back(Direction::North);
-    elf_rules.push_back(Direction::South);
-    elf_rules.push_back(Direction::West);
-    elf_rules.push_back(Direction::East);
+    let mut target_loc:HashSet<Coord> = HashSet::with_capacity(elves.len());
 
-    rotate_elf_rules(elf_rules);
+    for e in elves {
+        let neighbors:[Coord;8] = e.get_neighbors();
+
+
+
+    }
+
+
 
 
     println!("\n\n\n done");
     let answer1 = String::new();
     return answer1.to_string();
 }
+
+
 
 
 fn part2() -> String {
