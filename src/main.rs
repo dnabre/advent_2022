@@ -4,200 +4,43 @@
 #![allow(unused_mut)]
 
 
+
+
 use std::collections::{HashMap, VecDeque};
 use std::collections::HashSet;
+use std::fmt::{Display,Formatter};
 use std::{cmp, fmt};
-use std::fmt::{Display, Formatter};
 use std::fs;
 use std::time::{Instant, Duration};
-use array2d::{Array2D, Error};
 
+use enum_display_derive::Display as Derived_Display;
 
 /*
-    Advent of Code 2022: Day 14
-        part1 answer:   843
-        part2 answer:   27625
+    Advent of Code 2022: Day 23
+        part1 answer:
+        part2 answer:
 
 
  */
 
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum Block {
-    Empty,
-    Stone,
-    Sand,
-}
-
-impl fmt::Display for Block {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Block::Empty => { write!(f, ".") }
-            Block::Sand => { write!(f, "o") }
-            Block::Stone => { write! {f, "#"} }
-        }
-    }
-}
-
-impl Block {
-    fn is_open(&self) -> bool {
-        match self {
-            Block::Empty => { true }
-            Block::Stone => { false }
-            Block::Sand => { false }
-        }
-    }
-}
-
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, )]
-struct Point {
-    x: usize,
-    y: usize,
-}
-
-impl Point {
-    fn one_step(&self, grid: &Array2D<Block>) -> Point {
-        let mut look_block;
-
-
-        // Check below
-        //    print!("checking {self} (0,1): ");
-        look_block = grid_get_by_delta(grid, self, 0, 1);
-        //    print!(" found {} at ", look_block);
-        if look_block.is_open() {
-            let new_pos = Point { x: self.x + 0, y: self.y + 1 };
-            //        println!("{new_pos}");
-            return new_pos;
-        }
-      //  println!("blocked by {look_block} at {}",Point { x: self.x + 0, y: self.y + 1 } );
-        //   println!();
-        //Check down and left
-        //     print!("checking {self} (-1,1): ");
-        look_block = grid_get_by_delta(grid, self, -1, 1);
-        //     print!(" found {} at ", look_block);
-        if look_block.is_open() {
-            let new_pos = Point { x: self.x - 1, y: self.y + 1 };
-            return new_pos;
-        }
-      //  println!("blocked by {look_block} at {}",Point { x: self.x - 1, y: self.y + 1 } );
-        //    println!();
-        //Check down and right
-        //    print!("checking {self} (1,1): ");
-        look_block = grid_get_by_delta(grid, self, 1, 1);
-        //     print!(" found {} at ", look_block);
-        if look_block.is_open() {
-            let new_pos = Point { x: self.x + 1, y: self.y + 1 };
-            return new_pos;
-        }
-    //    println!("blocked by {look_block} at {}",Point { x: self.x + 1, y: self.y + 1 } );
-//println!();
-        // None of the three spots are open so we don't stay where we started
-
-        return self.clone();
-    }
-    fn one_step2(&self, grid: &Array2D<Block>, void_level:usize) -> Point {
-        let mut look_block;
-
-
-        // Check below
-        //    print!("checking {self} (0,1): ");
-        look_block = grid_get_by_delta2(grid, self, 0, 1, void_level);
-        //    print!(" found {} at ", look_block);
-        if look_block.is_open() {
-            let new_pos = Point { x: self.x + 0, y: self.y + 1 };
-            //        println!("{new_pos}");
-            return new_pos;
-        }
-        //  println!("blocked by {look_block} at {}",Point { x: self.x + 0, y: self.y + 1 } );
-        //   println!();
-        //Check down and left
-        //     print!("checking {self} (-1,1): ");
-        look_block = grid_get_by_delta2(grid, self, -1, 1, void_level);
-        //     print!(" found {} at ", look_block);
-        if look_block.is_open() {
-            let new_pos = Point { x: self.x - 1, y: self.y + 1 };
-            return new_pos;
-        }
-        //  println!("blocked by {look_block} at {}",Point { x: self.x - 1, y: self.y + 1 } );
-        //    println!();
-        //Check down and right
-        //    print!("checking {self} (1,1): ");
-        look_block = grid_get_by_delta2(grid, self, 1, 1, void_level);
-        //     print!(" found {} at ", look_block);
-        if look_block.is_open() {
-            let new_pos = Point { x: self.x + 1, y: self.y + 1 };
-            return new_pos;
-        }
-        //    println!("blocked by {look_block} at {}",Point { x: self.x + 1, y: self.y + 1 } );
-//println!();
-        // None of the three spots are open so we don't stay where we started
-
-        return self.clone();
-    }
-    fn parse(s: &str) -> Self {
-        let mut tokens = s.split(',');
-        let (x, y) = (tokens.next().unwrap(), tokens.next().unwrap());
-        Self {
-            x: x.parse().unwrap(),
-            y: y.parse().unwrap(),
-        }
-    }
-    fn compare(&self, other: Point) -> PointCompare {
-        if other.x == self.x {
-            if other.y == self.y {
-                return PointCompare::Same;
-            }
-            return PointCompare::Vert;
-        } else {
-            assert_eq!(other.y, self.y);
-            return PointCompare::Hort;
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-enum PointCompare {
-    Same,
-    Hort,
-    Vert,
-}
-
-impl fmt::Display for Point {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{},{}", self.x, self.y)
-    }
-}
-
-struct PolyLine<'a>(&'a Vec<Point>);
-
-impl std::fmt::Display for PolyLine<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut result = String::new();
-        for element in &self.0[0..self.0.len() - 1] {
-            result.push_str(&*element.to_string());
-            result.push_str(" -> ")
-        }
-        result.push_str(&self.0[self.0.len() - 1].to_string());
-        write!(f, "{}", result)
-    }
-}
-
-
-const TEST_ANSWER: (i64, i64) = (24, 93);
+const TEST_ANSWER: (i64, i64) = (110, 93);
 const INPUT_ANSWER: (i64, i64) = (843, 27625);
 
-const PART1_TEST_FILENAME: &str = "data/day14/part1_test.txt";
-const PART1_INPUT_FILENAME: &str = "data/day14/part1_input.txt";
+const PART1_TEST_FILENAME: &str = "data/day23/part1_test.txt";
+const PART1_INPUT_FILENAME: &str = "data/day23/part1_input.txt";
 
-const PART2_TEST_FILENAME: &str = "data/day14/part2_test.txt";
-const PART2_INPUT_FILENAME: &str = "data/day14/part2_input.txt";
+const PART2_TEST_FILENAME: &str = "data/day23/part2_test.txt";
+const PART2_INPUT_FILENAME: &str = "data/day23/part2_input.txt";
 
-const TEST: bool = false;
+const TEST: bool = true;
+
+
+
 
 fn main() {
     print!("Advent of Code 2022, Day ");
-    println!("14");                           // insert Day
+    println!("23");                           // insert Day
 
 
     let start1 = Instant::now();
@@ -221,20 +64,20 @@ fn main() {
     let answer2 = part2();
     let duration2 = start2.elapsed();
 
-    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-
-
-    if TEST {
-        if answer2 != TEST_ANSWER.1.to_string() {
-            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-                     answer2,TEST_ANSWER.1.to_string() )
-        }
-    } else {
-        if answer2 != INPUT_ANSWER.1.to_string() {
-            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-                     answer2,TEST_ANSWER.1.to_string() )
-        }
-    }
+    // println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+    //
+    //
+    // if TEST {
+    //     if answer2 != TEST_ANSWER.1.to_string() {
+    //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+    //                  answer2,TEST_ANSWER.1.to_string() )
+    //     }
+    // } else {
+    //     if answer2 != INPUT_ANSWER.1.to_string() {
+    //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+    //                  answer2,TEST_ANSWER.1.to_string() )
+    //     }
+    // }
 
 
     println!("----------\ndone");
@@ -250,92 +93,55 @@ const LINE_ENDING: &'static str = "\r\n";
 #[cfg(not(windows))]
 const LINE_ENDING: &'static str = "\n";
 
-const MAX_DIM: usize = 501;
-// sands starts at "500,0" or row 0 and col =500
-const SAND_START_ROW: usize = 0;
-const SAND_START_COL: usize = 500;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash )]
+struct Coord {
+    row: i32,
+    col: i32,
+}
 
-
-fn grid_set(mut grid: &mut Array2D<Block>, col: usize, row: usize, block: Block) {
-    let res = grid.set(row, col, block);
-    match res {
-        Ok(_) => { return; }
-        Err(e) => {
-            panic!("{:?}", e);
-        }
+impl fmt::Display for Coord {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "[{},{}]", self.col, self.row)
     }
 }
 
-fn grid_get_by_delta(grid: &Array2D<Block>, p: &Point, col_delta: i32, row_delta: i32) -> Block {
-    let ip_x = p.x as i32;
-    let ip_y = p.y as i32;
-
-    let new_x = (ip_x + col_delta) as usize;
-    let new_y = (ip_y + row_delta) as usize;
-    return grid_get(grid, new_x, new_y);
+#[derive(Hash, PartialEq, Eq, Derived_Display)]
+enum Direction {
+    North,
+    NorthEast,
+    East,
+    SouthEast,
+    South,
+    SouthWest,
+    West,
+    NorthWest,
 }
 
-fn grid_get(grid: &Array2D<Block>, col: usize, row: usize) -> Block {
-    let res = grid.get(row, col);
-    match res {
-        None => { panic!("unable to read grid at [{row}, {col}]"); }
-        Some(b) => { return *b; }
+fn print_set<T:Display>(set:HashSet<T>) {
+    let mut c =0;
+    let l = set.len();
+
+    let v:Vec<T> = set.into_iter().collect();
+
+    let Some((last, elements)) = v.split_last()
+    else {
+        panic!("split_last on vector of hashset wonky");
+    };
+    print!("[");
+    for elem in elements {
+        print!("{}, ", elem);
     }
-}
+    println!("{}]", last);
 
-fn grid_get_by_delta2(grid: &Array2D<Block>, p: &Point, col_delta: i32, row_delta: i32, void_level:usize) -> Block {
-    let ip_x = p.x as i32;
-    let ip_y = p.y as i32;
-
-    let new_x = (ip_x + col_delta) as usize;
-    let new_y = (ip_y + row_delta) as usize;
-    return grid_get2(grid, new_x, new_y,void_level);
-}
-
-fn grid_get2(grid: &Array2D<Block>, col: usize, row: usize,void_level: usize) -> Block {
- if row >= void_level {
-     return Block::Stone;
- }
-
-    let res = grid.get(row, col);
-    match res {
-        None => { panic!("unable to read grid at [{row}, {col}]"); }
-        Some(b) => { return *b; }
-    }
 }
 
 
-fn print_grid(grid: Array2D<Block>) {
-    // let (min_x, min_y) = (0, 0);
-    // let (max_x, max_y) = ( grid.row_len() ,grid.column_len());
+fn rotate_elf_rules(mut rules:VecDeque<Direction>) {
+    let top = rules.pop_front().unwrap();
+    rules.push_back(top);
 
-    // let (min_x, min_y) = (450, 0);
-    // let (max_x, max_y) = ( grid.row_len() ,grid.column_len());
-    //
-    //
-    //
-    //
-    // println!("from [{min_x},{min_y}] to [{max_x},{max_y}]");
-    // for x in min_x..max_x {
-    //     for y in min_y..max_y {
-    //         let c = grid.get(y,x).unwrap();
-    //         print!("{}", c);
-    //
-    //     }
-    //     println!();
-    // }
-
-
-    for row_iter in grid.rows_iter() {
-        for element in row_iter {
-            print!("{}", element);
-        }
-        println!();
-    }
 }
-
-
 
 fn part1() -> String {
     let p1_file = match TEST {
@@ -354,126 +160,35 @@ fn part1() -> String {
     }
     let data1_ss = data1_s.trim();
     let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
-    let mut max_x = usize::MIN;
-    let mut max_y = usize::MIN;
 
+    let mut c_col;
+    let mut c_row;
 
-    let mut poly_lines: Vec<Vec<Point>> = Vec::new();
+    let mut coords:HashSet<Coord> = HashSet::new();
+
+    c_row = 1;
     for l in split_lines {
-        let poly_line: Vec<Point> = l.split(" -> ").map(Point::parse).collect();
-        for p in &poly_line {
-            if p.x > max_x {
-                max_x = p.x;
-            }
-            if p.y > max_y {
-                max_y = p.y;
-            }
-        }
-        //     println!("{}", PolyLine(&poly_line));
-        poly_lines.push(poly_line);
-    }
-    let void = max_y+2;
-    let mut grid = Array2D::filled_with(Block::Empty, max_y + 3, max_x * 20);
-    for pl in poly_lines {
-        let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
-        for p_i in 1..pl.len() {
-            let mut p_s = pl[p_i - 1];
-            let mut p_e = pl[p_i];
-            let c = p_e.compare(p_s);
-            match c {
-                PointCompare::Same => { panic!("p_s and p_e shouldn't be the same, p_s: {p_s} \t p_e: {p_e}"); }
-                PointCompare::Hort => {
-                    if p_e.x < p_s.x {
-                        (p_s, p_e) = (p_e, p_s);
-                    }
-                }
-                PointCompare::Vert => {
-                    if p_e.y < p_s.y {
-                        (p_s, p_e) = (p_e, p_s);
-                    }
-                }
-            }
-
-
-
-            let (mut x, mut y) = (p_s.x, p_s.y);
-            while x != p_e.x {
-
-                grid_set(&mut grid, x, y, Block::Stone);
-
-
-                x += 1;
-            }
-            while y != p_e.y {
-
-                grid_set(&mut grid, x, y, Block::Stone);
-
-
-                y += 1;
-            }
-
-            grid_set(&mut grid, p_e.x, p_e.y, Block::Stone);
-        }
-
+        c_col = 1;
+        for c in l.chars() {
+            if c == '#' {
+                coords.insert(Coord{ row: c_row, col: c_col});
+            } c_col += 1;
+        } c_row += 1;
     }
 
-    let mut sand_dropped = 0;
+//    println!("coords: {:?}",coords);
+print_set(coords);
+    let mut elf_rules:VecDeque<Direction> = VecDeque::with_capacity(4);
+    elf_rules.push_back(Direction::North);
+    elf_rules.push_back(Direction::South);
+    elf_rules.push_back(Direction::West);
+    elf_rules.push_back(Direction::East);
+
+    rotate_elf_rules(elf_rules);
 
 
-    let mut reach_void = false;
-    let mut sand_moving = true;
-
-
-
-    while !reach_void {
-        sand_dropped += 1;
-        let initial_sand = Point { x: SAND_START_COL, y: SAND_START_ROW };
-        let mut sand_current = initial_sand;
-
-        let mut last_point = initial_sand;
-        let mut next_point;
-
-
-
-        loop {
-            next_point = sand_current.one_step(&grid);
-            if next_point.y >= void {
-                reach_void = true;
-                break;
-            }
-            if next_point == last_point {
-                // can't go any move
-                if next_point.y == 0 {
-                    // can' enter the grid
-                    println!("sand stuck outside grid, {next_point}");
-                } else {
-                //    println!("sand stopped at final position, {next_point}");
-                    grid_set(&mut grid, next_point.x, next_point.y, Block::Sand);
-                }
-                break;
-            } else {
-                sand_current = next_point;
-                last_point = sand_current;
-            }
-        }
-    }
-
-    let mut count_stone = 0;
-    let mut count_sand = 0;
-    let mut count_empty = 0;
-
-
-    for row_iter in grid.rows_iter() {
-        for element in row_iter {
-            match element {
-                Block::Empty => { count_empty += 1; }
-                Block::Stone => { count_stone += 1; }
-                Block::Sand => { count_sand += 1; }
-            }
-        }
-    }
-
-    let answer1 = (sand_dropped -1 ).to_string();
+    println!("\n\n\n done");
+    let answer1 = String::new();
     return answer1.to_string();
 }
 
@@ -495,120 +210,8 @@ fn part2() -> String {
     }
     let data2_ss = data2_s.trim();
     let split_lines: Vec<&str> = data2_ss.split(LINE_ENDING).collect();
-    let mut max_x = usize::MIN;
-    let mut max_y = usize::MIN;
 
 
-    let mut poly_lines: Vec<Vec<Point>> = Vec::new();
-    for l in split_lines {
-        let poly_line: Vec<Point> = l.split(" -> ").map(Point::parse).collect();
-        for p in &poly_line {
-            if p.x > max_x {
-                max_x = p.x;
-            }
-            if p.y > max_y {
-                max_y = p.y;
-            }
-        }
-        //     println!("{}", PolyLine(&poly_line));
-        poly_lines.push(poly_line);
-    }
-    let void_level = max_y+2;
-
-
-
-    let mut grid = Array2D::filled_with(Block::Empty, max_y + 3, max_x * 2);
-    for pl in poly_lines {
-        let (mut current_x, mut current_y) = (pl[0].x, pl[0].y);
-        for p_i in 1..pl.len() {
-            let mut p_s = pl[p_i - 1];
-            let mut p_e = pl[p_i];
-            let c = p_e.compare(p_s);
-            match c {
-                PointCompare::Same => { panic!("p_s and p_e shouldn't be the same, p_s: {p_s} \t p_e: {p_e}"); }
-                PointCompare::Hort => {
-                    if p_e.x < p_s.x {
-                        (p_s, p_e) = (p_e, p_s);
-                    }
-                }
-                PointCompare::Vert => {
-                    if p_e.y < p_s.y {
-                        (p_s, p_e) = (p_e, p_s);
-                    }
-                }
-            }
-
-            let (mut x, mut y) = (p_s.x, p_s.y);
-            while x != p_e.x {
-                grid_set(&mut grid, x, y, Block::Stone);
-                x += 1;
-            }
-            while y != p_e.y {
-                grid_set(&mut grid, x, y, Block::Stone);
-                y += 1;
-            }
-
-            grid_set(&mut grid, p_e.x, p_e.y, Block::Stone);
-        }
-
-    }
-
-    let mut sand_dropped = 0;
-
-
-    let mut reach_void = false;
-    let mut sand_filled = false;
-
-    while !reach_void && !sand_filled {
-        sand_dropped += 1;
-        let initial_sand = Point { x: SAND_START_COL, y: SAND_START_ROW };
-        let mut sand_current = initial_sand;
-
-        let mut last_point = initial_sand;
-        let mut next_point;
-
-
-
-        loop {
-            next_point = sand_current.one_step2(&grid, void_level);
-            if next_point.y >= void_level {
-                reach_void = true;
-                break;
-            }
-            if next_point == last_point {
-                // can't go any move
-                if next_point.y == 0 {
-                    // can' enter the grid
-                    sand_filled = true;
-                    break;
-                } else {
-                    //    println!("sand stopped at final position, {next_point}");
-                    grid_set(&mut grid, next_point.x, next_point.y, Block::Sand);
-                }
-                break;
-            } else {
-                sand_current = next_point;
-                last_point = sand_current;
-            }
-        }
-    }
-
-    let mut count_stone = 0;
-    let mut count_sand = 0;
-    let mut count_empty = 0;
-
-
-    for row_iter in grid.rows_iter() {
-        for element in row_iter {
-            match element {
-                Block::Empty => { count_empty += 1; }
-                Block::Stone => { count_stone += 1; }
-                Block::Sand => { count_sand += 1; }
-            }
-        }
-    }
-
-
-    let answer2 = (sand_dropped  ).to_string();
+    let answer2 = String::new();
     return answer2.to_string();
 }
