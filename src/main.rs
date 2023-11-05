@@ -1,15 +1,9 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-#![allow(unused_assignments)]
-
 use std::collections::{HashMap, VecDeque};
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
-use std::{cmp, fmt};
+use std::fmt;
 use std::fs;
-use std::time::{Instant, Duration};
+use std::time::Instant;
 
 use enum_display_derive::Display as Derived_Display;
 
@@ -56,9 +50,9 @@ fn main() {
         }
     }
 
-    let start2 = Instant::now();
-    let answer2 = part2();
-    let duration2 = start2.elapsed();
+    // let start2 = Instant::now();
+    // let answer2 = part2();
+    // let duration2 = start2.elapsed();
 
     // println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
     //
@@ -79,10 +73,6 @@ fn main() {
     println!("----------\ndone");
 }
 
-#[cfg(windows)]
-const D_LINE_ENDING: &'static str = "\r\n\r\n";
-#[cfg(not(windows))]
-const D_LINE_ENDING: &'static str = "\n\n";
 
 #[cfg(windows)]
 const LINE_ENDING: &'static str = "\r\n";
@@ -116,7 +106,7 @@ impl Coord {
 
 impl Coord {}
 
-impl fmt::Display for Coord {
+impl Display for Coord {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "[{},{}]", self.row, self.col)
     }
@@ -175,7 +165,7 @@ impl Elf {
     }
 }
 
-impl fmt::Display for Elf {
+impl Display for Elf {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "elf @{} proposed: {:?}", self.loc, self.proposed)
     }
@@ -195,11 +185,7 @@ enum Direction {
 }
 
 fn print_set<T: Display>(set: HashSet<T>) {
-    let mut c = 0;
-    let l = set.len();
-
     let v: Vec<T> = set.into_iter().collect();
-
     let Some((last, elements)) = v.split_last()
         else {
             panic!("split_last on vector of hashset wonky");
@@ -225,6 +211,28 @@ fn gen_init_rules() -> VecDeque<Direction> {
     elf_rules.push_back(Direction::East);
     return elf_rules;
 }
+fn parse_elves(split_lines: Vec<&str>) -> (HashSet<Coord>, Vec<Elf>) {
+    let mut c_col;
+    let mut c_row;
+    let mut elf_locations: HashSet<Coord> = HashSet::new();
+    let mut elves: Vec<Elf> = Vec::new();
+    c_row = 1;
+    for l in split_lines {
+        c_col = 1;
+        for c in l.chars() {
+            if c == '#' {
+                let c = Coord { row: c_row, col: c_col };
+                let e = Elf::new(c);
+                elves.push(e);
+                elf_locations.insert(c);
+            }
+            c_col += 1;
+        }
+        c_row += 1;
+    }
+    return (elf_locations, elves);
+}
+
 
 
 fn part1() -> String {
@@ -234,7 +242,7 @@ fn part1() -> String {
     };
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let mut lines: Vec<&str> = data1_s.trim().split("\n").collect();
+    let lines: Vec<&str> = data1_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
@@ -244,35 +252,17 @@ fn part1() -> String {
     }
     let data1_ss = data1_s.trim();
     let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
-
-    let mut c_col;
-    let mut c_row;
-
     let mut elf_rules: VecDeque<Direction> = gen_init_rules();
+    let (mut elf_locations, mut elves) = parse_elves(split_lines);
 
-    let mut elf_locations: HashSet<Coord> = HashSet::new();
 
-    let mut elves: Vec<Elf> = Vec::new();
-    c_row = 1;
-    for l in split_lines {
-        c_col = 1;
-        for c in l.chars() {
-            if c == '#' {
-                let c = Coord { row: c_row, col: c_col };
-                let mut e = Elf::new(c);
-                elves.push(e);
-                elf_locations.insert(c);
-                //println!("new-> {}", &e);
-            }
-            c_col += 1;
-        }
-        c_row += 1;
-    }
-     let mut changed;
+    let mut changed;
     let mut last_round:Option<i32> = None;
+
+
     for r in 1..=10000{
         changed=false;
-        let mut target_loc: HashSet<Coord> = HashSet::with_capacity(elves.len());
+
         let mut target_count: HashMap<Coord, u32> = HashMap::new();
 
         // First Half
@@ -344,10 +334,10 @@ fn part1() -> String {
        }
     }
 
-    let mut max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
-    let mut max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
-    let mut min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
-    let mut min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
+    let  max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
+    let  max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
+    let  min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
+    let  min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
     let mut dot_count=0;
     for r in min_row..=max_row {
         for c in min_col..=max_col {
@@ -370,7 +360,7 @@ fn part2() -> String {
     };
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-    let mut lines: Vec<&str> = data2_s.trim().split("\n").collect();
+    let lines: Vec<&str> = data2_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p2_file);
