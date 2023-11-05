@@ -8,8 +8,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="70ce539f-32dc-490e-937c-9ca9346433e3" name="Changes" comment="Day 14 part #2">
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -93,7 +93,7 @@
       <workItem from="1699058884131" duration="35000" />
       <workItem from="1699059677545" duration="50000" />
       <workItem from="1699197539298" duration="2867000" />
-      <workItem from="1699203002939" duration="2273000" />
+      <workItem from="1699203002939" duration="10371000" />
     </task>
     <task id="LOCAL-00001" summary="drawing polyline isn't work">
       <option name="closed" value="true" />
@@ -175,7 +175,23 @@
       <option name="project" value="LOCAL" />
       <updated>1699052947308</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Day 14 part #2">
+      <option name="closed" value="true" />
+      <created>1699205611929</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1699205611929</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Day 14 part #2">
+      <option name="closed" value="true" />
+      <created>1699210389621</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1699210389621</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -188,7 +204,7 @@
     <MESSAGE value="Day 14 part #1 working" />
     <MESSAGE value="Day 14 part #2 working on test data" />
     <MESSAGE value="Day 14 part #2" />
-    <option name="LAST_COMMIT_MESSAGE" value="" />
+    <option name="LAST_COMMIT_MESSAGE" value="Day 14 part #2" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

@@ -15,15 +15,15 @@ use enum_display_derive::Display as Derived_Display;
 
 /*
     Advent of Code 2022: Day 23
-        part1 answer:
-        part2 answer:
+        part1 answer:   4195
+        part2 answer:   1069
 
 
  */
 
 
 const TEST_ANSWER: (i64, i64) = (110, 93);
-const INPUT_ANSWER: (i64, i64) = (843, 27625);
+const INPUT_ANSWER: (i64, i64) = (4195, 27625);
 
 const PART1_TEST_FILENAME: &str = "data/day23/part1_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day23/part1_input.txt";
@@ -31,7 +31,7 @@ const PART1_INPUT_FILENAME: &str = "data/day23/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day23/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day23/part2_input.txt";
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 
 fn main() {
@@ -118,7 +118,7 @@ impl Coord {}
 
 impl fmt::Display for Coord {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "[{},{}]", self.col, self.row)
+        write!(f, "[{},{}]", self.row, self.col)
     }
 }
 
@@ -154,7 +154,7 @@ impl Elf {
             Direction::SouthWest => { panic!("got {dir}, not cardinal direction") }
             Direction::West => {
                 [self.loc.plus(0, -1),
-                    self.loc.plus(-1, 1),
+                    self.loc.plus(-1, -1),
                     self.loc.plus(1, -1)]
             }
             Direction::NorthWest => { panic!("got {dir}, not cardinal direction") }
@@ -229,7 +229,7 @@ fn gen_init_rules() -> VecDeque<Direction> {
 
 fn part1() -> String {
     let p1_file = match TEST {
-        true => PART2_TEST_FILENAME,
+        true => PART1_TEST_FILENAME,
         false => PART1_INPUT_FILENAME
     };
     let data1_s =
@@ -272,7 +272,7 @@ fn part1() -> String {
     let mut max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
     let mut min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
     let mut min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
-    //  (min_row,min_col) = (-2,-2); (max_row,max_col) = (8,8);
+    (min_row,min_col) = (-1,-2); (max_row,max_col) = (10,11);
     for r in min_row..=max_row {
         for c in min_col..=max_col {
             if elf_locations.contains(&Coord { row: r, col: c }) {
@@ -283,10 +283,15 @@ fn part1() -> String {
         }
         println!();
     }
-    // First Half
-    let mut target_loc: HashSet<Coord> = HashSet::with_capacity(elves.len());
-    let mut target_count: HashMap<Coord, u32> = HashMap::new();
-    for r in 1..10 {
+
+    let mut changed;
+
+    for r in 1..=10000{
+        changed=false;
+        let mut target_loc: HashSet<Coord> = HashSet::with_capacity(elves.len());
+        let mut target_count: HashMap<Coord, u32> = HashMap::new();
+
+        // First Half
         for e_i in 0..elves.len() {
             let neighbors: [Coord; 8] = elves[e_i].get_neighbors();
             let mut num_neigh = 0;
@@ -298,13 +303,14 @@ fn part1() -> String {
             print!("elf@{} ", elves[e_i].loc);
             if num_neigh == 0 {
                 elves[e_i].proposed = None;
+                println!("elf@{} doesn't want to move because of lack of neighbors", elves[e_i].loc);
             } else {
                 let mut go: Option<Direction> = None;
                 for d in &elf_rules {
                     let dir_coords = elves[e_i].look(*d);
                     println!(" looks {} at {:?} ", d, dir_coords);
-                    if !elf_locations.contains(&dir_coords[0]) ||
-                        !elf_locations.contains(&dir_coords[1]) ||
+                    if !elf_locations.contains(&dir_coords[0]) &&
+                        !elf_locations.contains(&dir_coords[1]) &&
                         !elf_locations.contains(&dir_coords[2]) {
                         go = Some(*d);
                         break;
@@ -338,21 +344,22 @@ fn part1() -> String {
             print!("elf @ {}, proposed: ", elves[e_i].loc);
             match elves[e_i].proposed {
                 None => {
-                    print!(" None ");
+                    println!(" None ");
                 }
                 Some(p) => {
-                    print!(" {} ", p);
+                    println!(" {} ", p);
                     let t = target_count.get(&p);
                     match t {
-                        None => { elves[e_i].loc = p; }
-                        Some(1) => { elves[e_i].loc = p; }
+                        None => { elves[e_i].loc = p; changed = true;}
+                        Some(1) => { elves[e_i].loc = p; changed=true; }
                         Some(x) => {
                             println!("elf@{} can't moved to proposed {} because {} want to", elves[e_i].loc, elves[e_i].proposed.unwrap(), x);
                         }
                     }
                 }
             }
-            println!();
+
+
             elf_locations.insert(elves[e_i].loc);
             elves[e_i].proposed = None;
         }
@@ -362,9 +369,9 @@ fn part1() -> String {
         min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
         min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
 
-        //   println!("({min_row}, {min_col}) -> ({max_row},{max_col})");
+        //  println!("range: ({min_row}, {min_col}) -> ({max_row},{max_col})");
 
-        //   (min_row,min_col) = (-2,-2); (max_row,max_col) = (8,8);
+        (min_row,min_col) = (-1,-2); (max_row,max_col) = (10,11);
         println!("End of Round {r}");
         for r in min_row..=max_row {
             for c in min_col..=max_col {
@@ -377,10 +384,30 @@ fn part1() -> String {
             println!();
         }
         rotate_elf_rules(&mut elf_rules);
+        if !changed {
+            eprintln!("no change in round {r}");
+            break;
+        }else {
+            eprintln!("change in round {r}");
+        }
     }
 
+    max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
+    max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
+    min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
+    min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
+    let mut dot_count=0;
+    for r in min_row..=max_row {
+        for c in min_col..=max_col {
+            if !elf_locations.contains(&Coord { row: r, col: c }) {
+                dot_count += 1;
+            }
+        }
+    }
+    println!("empty ground tiles is {}", dot_count);
+
     println!("\n\n\n done");
-    let answer1 = String::new();
+    let answer1 = dot_count.to_string();
     return answer1.to_string();
 }
 
