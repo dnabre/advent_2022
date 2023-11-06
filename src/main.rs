@@ -7,6 +7,8 @@ use std::time::Instant;
 
 use enum_display_derive::Display as Derived_Display;
 
+use thincollections::thin_map::ThinMap;
+
 /*
     Advent of Code 2022: Day 23
         part1 answer:   4195
@@ -263,7 +265,8 @@ fn part1() -> String {
     for r in 1..=10000{
         changed=false;
 
-        let mut target_count: HashMap<Coord, u32> = HashMap::new();
+        let mut target_count: HashMap<Coord, u32> = HashMap::with_capacity(1500);
+       // let mut target_count: ThinMap<Coord, u32> = ThinMap::new();
 
         // First Half
         for e_i in 0..elves.len() {
@@ -332,6 +335,7 @@ fn part1() -> String {
             last_round = Some(r);
             break;
        }
+
     }
 
     let  max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
