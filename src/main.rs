@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use enum_display_derive::Display as Derived_Display;
 
-use thincollections::thin_map::ThinMap;
+
 
 /*
     Advent of Code 2022: Day 23
@@ -186,18 +186,6 @@ enum Direction {
     NorthWest,
 }
 
-fn print_set<T: Display>(set: HashSet<T>) {
-    let v: Vec<T> = set.into_iter().collect();
-    let Some((last, elements)) = v.split_last()
-        else {
-            panic!("split_last on vector of hashset wonky");
-        };
-    print!("[");
-    for elem in elements {
-        print!("{}, ", elem);
-    }
-    println!("{}]", last);
-}
 
 
 fn rotate_elf_rules(rules: &mut VecDeque<Direction>) {
@@ -265,9 +253,11 @@ fn part1() -> String {
     for r in 1..=10000{
         changed=false;
 
-        let mut target_count: HashMap<Coord, u32> = HashMap::with_capacity(1500);
-       // let mut target_count: ThinMap<Coord, u32> = ThinMap::new();
 
+
+        let mut first_proposer:HashMap<Coord,usize> = HashMap::with_capacity(elves.len());
+        let mut proposed_targets: HashSet<Coord> = HashSet::new();
+        let mut conflicts:HashSet<Coord> = HashSet::new();
         // First Half
         for e_i in 0..elves.len() {
             let neighbors: [Coord; 8] = elves[e_i].get_neighbors();
@@ -300,28 +290,44 @@ fn part1() -> String {
                 }
             }
             if let Some(d) = elves[e_i].proposed {
-                if target_count.contains_key(&d) {
-                    let mut c = *target_count.get(&d).unwrap();
-                    c += 1;
-                    target_count.insert(d, c);
+                if proposed_targets.contains(&d ) {
+                    elves[e_i].proposed = None;
+                    conflicts.insert(d);
                 } else {
-                    target_count.insert(d, 1);
+                    proposed_targets.insert(d);
+                    first_proposer.insert(d,e_i);
                 }
+                //
+                // if target_count.contains_key(&d) {
+                //     let mut c = *target_count.get(&d).unwrap();
+                //     c += 1;
+                //     target_count.insert(d, c);
+                // } else {
+                //     target_count.insert(d, 1);
+                // }
             }
         }
+        for c in conflicts {
+            let e_i = first_proposer.get(&c).unwrap();
+            elves[*e_i].proposed = None;
+        }
+
+
         // Second Half
         elf_locations = HashSet::new();
         for e_i in 0..elves.len() {
             match elves[e_i].proposed {
                 None => {}
                 Some(p) => {
-                    let t = target_count.get(&p);
-                    match t {
-                        None => { elves[e_i].loc = p; changed = true;}
-                        Some(1) => { elves[e_i].loc = p; changed=true; }
-                        Some(_) => {
-                        }
-                    }
+                    elves[e_i].loc = p; changed=true;
+
+                    // let t = target_count.get(&p);
+                    // match t {
+                    //     None => { elves[e_i].loc = p; changed = true;}
+                    //     Some(1) => { elves[e_i].loc = p; changed=true; }
+                    //     Some(_) => {
+                    //     }
+                    // }
                 }
             }
 
