@@ -1,13 +1,17 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(unused_mut)]
+#![allow(unused_assignments)]
+
 use std::collections::{HashMap, VecDeque};
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
-use std::fmt;
+use std::{cmp, fmt};
 use std::fs;
-use std::time::Instant;
+use std::time::{Instant, Duration};
 
 use enum_display_derive::Display as Derived_Display;
-
-
 
 /*
     Advent of Code 2022: Day 23
@@ -18,8 +22,8 @@ use enum_display_derive::Display as Derived_Display;
  */
 
 
-const TEST_ANSWER: (i64, i64) = (20, 110);
-const INPUT_ANSWER: (i64, i64) = (4195, 1069);
+const TEST_ANSWER: (i64, i64) = (110, 93);
+const INPUT_ANSWER: (i64, i64) = (4195, 27625);
 
 const PART1_TEST_FILENAME: &str = "data/day23/part1_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day23/part1_input.txt";
@@ -52,9 +56,9 @@ fn main() {
         }
     }
 
-    // let start2 = Instant::now();
-    // let answer2 = part2();
-    // let duration2 = start2.elapsed();
+    let start2 = Instant::now();
+    let answer2 = part2();
+    let duration2 = start2.elapsed();
 
     // println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
     //
@@ -75,6 +79,10 @@ fn main() {
     println!("----------\ndone");
 }
 
+#[cfg(windows)]
+const D_LINE_ENDING: &'static str = "\r\n\r\n";
+#[cfg(not(windows))]
+const D_LINE_ENDING: &'static str = "\n\n";
 
 #[cfg(windows)]
 const LINE_ENDING: &'static str = "\r\n";
@@ -108,7 +116,7 @@ impl Coord {
 
 impl Coord {}
 
-impl Display for Coord {
+impl fmt::Display for Coord {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "[{},{}]", self.row, self.col)
     }
@@ -167,7 +175,7 @@ impl Elf {
     }
 }
 
-impl Display for Elf {
+impl fmt::Display for Elf {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "elf @{} proposed: {:?}", self.loc, self.proposed)
     }
@@ -186,6 +194,22 @@ enum Direction {
     NorthWest,
 }
 
+fn print_set<T: Display>(set: HashSet<T>) {
+    let mut c = 0;
+    let l = set.len();
+
+    let v: Vec<T> = set.into_iter().collect();
+
+    let Some((last, elements)) = v.split_last()
+        else {
+            panic!("split_last on vector of hashset wonky");
+        };
+    print!("[");
+    for elem in elements {
+        print!("{}, ", elem);
+    }
+    println!("{}]", last);
+}
 
 
 fn rotate_elf_rules(rules: &mut VecDeque<Direction>) {
@@ -201,28 +225,6 @@ fn gen_init_rules() -> VecDeque<Direction> {
     elf_rules.push_back(Direction::East);
     return elf_rules;
 }
-fn parse_elves(split_lines: Vec<&str>) -> (HashSet<Coord>, Vec<Elf>) {
-    let mut c_col;
-    let mut c_row;
-    let mut elf_locations: HashSet<Coord> = HashSet::new();
-    let mut elves: Vec<Elf> = Vec::new();
-    c_row = 1;
-    for l in split_lines {
-        c_col = 1;
-        for c in l.chars() {
-            if c == '#' {
-                let c = Coord { row: c_row, col: c_col };
-                let e = Elf::new(c);
-                elves.push(e);
-                elf_locations.insert(c);
-            }
-            c_col += 1;
-        }
-        c_row += 1;
-    }
-    return (elf_locations, elves);
-}
-
 
 
 fn part1() -> String {
@@ -232,7 +234,7 @@ fn part1() -> String {
     };
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let lines: Vec<&str> = data1_s.trim().split("\n").collect();
+    let mut lines: Vec<&str> = data1_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
@@ -242,22 +244,53 @@ fn part1() -> String {
     }
     let data1_ss = data1_s.trim();
     let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
-    let mut elf_rules: VecDeque<Direction> = gen_init_rules();
-    let (mut elf_locations, mut elves) = parse_elves(split_lines);
 
+    let mut c_col;
+    let mut c_row;
+
+    let mut elf_rules: VecDeque<Direction> = gen_init_rules();
+
+    let mut elf_locations: HashSet<Coord> = HashSet::new();
+
+    let mut elves: Vec<Elf> = Vec::new();
+    c_row = 1;
+    for l in split_lines {
+        c_col = 1;
+        for c in l.chars() {
+            if c == '#' {
+                let c = Coord { row: c_row, col: c_col };
+                let mut e = Elf::new(c);
+                elves.push(e);
+                elf_locations.insert(c);
+                //println!("new-> {}", &e);
+            }
+            c_col += 1;
+        }
+        c_row += 1;
+    }
+    let mut max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
+    let mut max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
+    let mut min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
+    let mut min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
+    (min_row,min_col) = (-1,-2); (max_row,max_col) = (10,11);
+    for r in min_row..=max_row {
+        for c in min_col..=max_col {
+            if elf_locations.contains(&Coord { row: r, col: c }) {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!();
+    }
 
     let mut changed;
-    let mut last_round:Option<i32> = None;
-
 
     for r in 1..=10000{
         changed=false;
+        let mut target_loc: HashSet<Coord> = HashSet::with_capacity(elves.len());
+        let mut target_count: HashMap<Coord, u32> = HashMap::new();
 
-
-
-        let mut first_proposer:HashMap<Coord,usize> = HashMap::with_capacity(elves.len());
-        let mut proposed_targets: HashSet<Coord> = HashSet::new();
-        let mut conflicts:HashSet<Coord> = HashSet::new();
         // First Half
         for e_i in 0..elves.len() {
             let neighbors: [Coord; 8] = elves[e_i].get_neighbors();
@@ -267,12 +300,15 @@ fn part1() -> String {
                     num_neigh += 1;
                 }
             }
+            print!("elf@{} ", elves[e_i].loc);
             if num_neigh == 0 {
                 elves[e_i].proposed = None;
+                println!("elf@{} doesn't want to move because of lack of neighbors", elves[e_i].loc);
             } else {
                 let mut go: Option<Direction> = None;
                 for d in &elf_rules {
                     let dir_coords = elves[e_i].look(*d);
+                    println!(" looks {} at {:?} ", d, dir_coords);
                     if !elf_locations.contains(&dir_coords[0]) &&
                         !elf_locations.contains(&dir_coords[1]) &&
                         !elf_locations.contains(&dir_coords[2]) {
@@ -283,51 +319,43 @@ fn part1() -> String {
                 match go {
                     None => {
                         elves[e_i].proposed = None;
+                        println!("elf @ {}, wants to move None  proposed: None", elves[e_i].loc);
                     }
                     Some(d) => {
                         elves[e_i].proposed = Some(elves[e_i].loc.add(d));
+
+                        println!("elf @ {}, wants to move {d}  proposed: {}", elves[e_i].loc, elves[e_i].proposed.unwrap());
                     }
                 }
             }
             if let Some(d) = elves[e_i].proposed {
-                if proposed_targets.contains(&d ) {
-                    elves[e_i].proposed = None;
-                    conflicts.insert(d);
+                if target_count.contains_key(&d) {
+                    let mut c = *target_count.get(&d).unwrap();
+                    c += 1;
+                    target_count.insert(d, c);
                 } else {
-                    proposed_targets.insert(d);
-                    first_proposer.insert(d,e_i);
+                    target_count.insert(d, 1);
                 }
-                //
-                // if target_count.contains_key(&d) {
-                //     let mut c = *target_count.get(&d).unwrap();
-                //     c += 1;
-                //     target_count.insert(d, c);
-                // } else {
-                //     target_count.insert(d, 1);
-                // }
             }
         }
-        for c in conflicts {
-            let e_i = first_proposer.get(&c).unwrap();
-            elves[*e_i].proposed = None;
-        }
-
-
         // Second Half
         elf_locations = HashSet::new();
         for e_i in 0..elves.len() {
+            print!("elf @ {}, proposed: ", elves[e_i].loc);
             match elves[e_i].proposed {
-                None => {}
+                None => {
+                    println!(" None ");
+                }
                 Some(p) => {
-                    elves[e_i].loc = p; changed=true;
-
-                    // let t = target_count.get(&p);
-                    // match t {
-                    //     None => { elves[e_i].loc = p; changed = true;}
-                    //     Some(1) => { elves[e_i].loc = p; changed=true; }
-                    //     Some(_) => {
-                    //     }
-                    // }
+                    println!(" {} ", p);
+                    let t = target_count.get(&p);
+                    match t {
+                        None => { elves[e_i].loc = p; changed = true;}
+                        Some(1) => { elves[e_i].loc = p; changed=true; }
+                        Some(x) => {
+                            println!("elf@{} can't moved to proposed {} because {} want to", elves[e_i].loc, elves[e_i].proposed.unwrap(), x);
+                        }
+                    }
                 }
             }
 
@@ -336,18 +364,38 @@ fn part1() -> String {
             elves[e_i].proposed = None;
         }
 
+        max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
+        max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
+        min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
+        min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
+
+        //  println!("range: ({min_row}, {min_col}) -> ({max_row},{max_col})");
+
+        (min_row,min_col) = (-1,-2); (max_row,max_col) = (10,11);
+        println!("End of Round {r}");
+        for r in min_row..=max_row {
+            for c in min_col..=max_col {
+                if elf_locations.contains(&Coord { row: r, col: c }) {
+                    print!("#");
+                } else {
+                    print!(".");
+                }
+            }
+            println!();
+        }
         rotate_elf_rules(&mut elf_rules);
         if !changed {
-            last_round = Some(r);
+            eprintln!("no change in round {r}");
             break;
-       }
-
+        }else {
+            eprintln!("change in round {r}");
+        }
     }
 
-    let  max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
-    let  max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
-    let  min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
-    let  min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
+    max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
+    max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
+    min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
+    min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
     let mut dot_count=0;
     for r in min_row..=max_row {
         for c in min_col..=max_col {
@@ -356,9 +404,10 @@ fn part1() -> String {
             }
         }
     }
+    println!("empty ground tiles is {}", dot_count);
 
-        //let answer1 = dot_count.to_string();
-    let answer1 = last_round.unwrap().to_string();
+    println!("\n\n\n done");
+    let answer1 = dot_count.to_string();
     return answer1.to_string();
 }
 
@@ -370,7 +419,7 @@ fn part2() -> String {
     };
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-    let lines: Vec<&str> = data2_s.trim().split("\n").collect();
+    let mut lines: Vec<&str> = data2_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p2_file);

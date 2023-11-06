@@ -9,7 +9,6 @@
   <component name="ChangeListManager">
     <list default="true" id="70ce539f-32dc-490e-937c-9ca9346433e3" name="Changes" comment="Day 23 correct answers for both parts&#10;&#10;most of debugging purged">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -94,7 +93,7 @@
       <workItem from="1699059677545" duration="50000" />
       <workItem from="1699197539298" duration="2867000" />
       <workItem from="1699203002939" duration="12547000" />
-      <workItem from="1699240223756" duration="1700000" />
+      <workItem from="1699240223756" duration="3119000" />
     </task>
     <task id="LOCAL-00001" summary="drawing polyline isn't work">
       <option name="closed" value="true" />
@@ -232,7 +231,23 @@
       <option name="project" value="LOCAL" />
       <updated>1699215577622</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="Day 23 correct answers for both parts&#10;&#10;most of debugging purged">
+      <option name="closed" value="true" />
+      <created>1699242176760</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1699242176760</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Day 23 correct answers for both parts&#10;&#10;most of debugging purged">
+      <option name="closed" value="true" />
+      <created>1699243031147</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1699243031147</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
