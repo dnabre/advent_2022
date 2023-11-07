@@ -12,3 +12,8 @@ rust_decimal = "1.27"
 rust_decimal_macros = "1.27"
 array2d = "0.3.0"
 enum-display-derive = "0.1.1"
+thincollections = "0.5.4"
+
+
+[profile.release]
+
