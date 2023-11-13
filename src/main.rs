@@ -10,7 +10,6 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::time::Instant;
 
-
 /*
     Advent of Code 2022: Day 24`
         part1 answer:
