@@ -177,7 +177,7 @@ impl Blizz {
             'v' => {Direction::Down}
             '<' => {Direction::Left}
             '>' => {Direction::Right}
-            _ => { panic!("bad direction given in Blizz::new -> {d}")}
+            _ => { panic!("bad direction given in Blizz::new -> |{d}|")}
         };
         return Blizz{ row: r, col: c, dir, };
     }
