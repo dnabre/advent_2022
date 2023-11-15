@@ -13,10 +13,10 @@ use std::time::Instant;
 
 /*
     Advent of Code 2022: Day 24`
-        part1 answer:
+        part1 answer: 301
         part2 answer:
 
-
+303 -- too high
  */
 
 
@@ -31,7 +31,7 @@ const PART1_INPUT_FILENAME: &str = "data/day24/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day24/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day24/part2_input.txt";
 
-const TEST: bool = false;
+const TEST: bool = true;
 
 
 fn main() {
@@ -43,37 +43,37 @@ fn main() {
     let answer1 = part1();
     let duration1 = start1.elapsed();
 
-    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
-    if TEST {
-        if answer1 != TEST_ANSWER.0.to_string() {
-            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-                     answer1, TEST_ANSWER.0.to_string())
-        }
-    } else {
-        if answer1 != INPUT_ANSWER.0.to_string() {
-            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-                     answer1, INPUT_ANSWER.0.to_string())
-        }
-    }
-
-    // let start2 = Instant::now();
-    // let answer2 = part2();
-    // let duration2 = start2.elapsed();
-
-    // println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-    //
-    //
+    // println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
     // if TEST {
-    //     if answer2 != TEST_ANSWER.1.to_string() {
+    //     if answer1 != TEST_ANSWER.0.to_string() {
     //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-    //                  answer2,TEST_ANSWER.1.to_string() )
+    //                  answer1, TEST_ANSWER.0.to_string())
     //     }
     // } else {
-    //     if answer2 != INPUT_ANSWER.1.to_string() {
+    //     if answer1 != INPUT_ANSWER.0.to_string() {
     //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-    //                  answer2,TEST_ANSWER.1.to_string() )
+    //                  answer1, INPUT_ANSWER.0.to_string())
     //     }
     // }
+
+    let start2 = Instant::now();
+    let answer2 = part2();
+    let duration2 = start2.elapsed();
+
+    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+
+
+    if TEST {
+        if answer2 != TEST_ANSWER.1.to_string() {
+            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+                     answer2,TEST_ANSWER.1.to_string() )
+        }
+    } else {
+        if answer2 != INPUT_ANSWER.1.to_string() {
+            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+                     answer2,TEST_ANSWER.1.to_string() )
+        }
+    }
 
 
     println!("----------\ndone");
@@ -327,7 +327,7 @@ fn part1() -> String {
     open_places.push_back(State{pos: start_coord, t: 0});
     let goal_loc = end_coord;
     let mut goal_time = 0;
-
+let mut count_timeouts = 0;
 
     let start_neightbors =
                         [start_coord.step(Direction::Down),None, None, None, Some(start_coord)];
@@ -357,8 +357,12 @@ fn part1() -> String {
         for n in neighbors {
             match n {
                 Some(co) => {
-                    if wall_set.contains(&co) || (new_t > 310)
-                    {continue; } else {
+                    if wall_set.contains(&co) {
+                        continue;
+                    } else if new_t > 302 {
+                        count_timeouts += 1;
+                        continue;
+                    } else {
                         let s = State { pos: co, t: new_t };
                         if !visited.contains(&s) {
                             let mut b_check_good = true;
@@ -389,7 +393,11 @@ fn part1() -> String {
 
 
                             if b_check_good {
-                                open_places.push_back(s);
+                                if co==current.pos {
+                                    open_places.push_front(s);
+                                } else {
+                                    open_places.push_back(s);
+                                }
                             }
                         }
                     }
@@ -401,22 +409,17 @@ fn part1() -> String {
    }
     println!("Reached {} in {} steps", goal_loc, goal_time);
 
+    println!("timeouts: {}", count_timeouts);
 
 
-
-
-
-
-
-
-    let answer1 = String::new();
+    let answer1 = goal_time.to_string();
     return answer1.to_string();
 }
 
 
 fn part2() -> String {
     let p2_file = match TEST {
-        true => PART2_TEST_FILENAME,
+        true => PART1B_TEST_FILENAME,
         false => PART2_INPUT_FILENAME
     };
     let data2_s =
@@ -430,7 +433,168 @@ fn part2() -> String {
         }
     }
     let data2_ss = data2_s.trim();
-    let split_lines: Vec<&str> = data2_ss.split(LINE_ENDING).collect();
+
+    let lines: Vec<&str> = data2_s.trim().split("\n").collect();
+    let l_num = lines.len();
+    if TEST {
+        println!("\t read {} lines from {}", l_num, p2_file);
+        if l_num == 1 {
+            println!("\t\t line read has length: {}", lines[0].len());
+        }
+    }
+    let data1_ss = data2_s.trim();
+    let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
+
+    let num_rows = split_lines.len();
+    let num_cols = split_lines[0].len();
+
+    let dims = (num_rows, num_cols);
+    println!("rows: {}, cols: {}", num_rows, num_cols);
+
+    let (start_coord,end_coord) = (Coord{ row: 0, col: 1 },Coord{row: num_rows -1, col: num_cols-2});
+    let start_time = 0;
+    let dims = ( num_rows,  num_cols);
+
+    println!("grid dimensions: {:?}", dims);
+    let v1:Vec<Vec<char>> = split_lines.iter().map(|f| f.chars().collect()).collect();
+
+    let mut wall_set:HashSet<Coord> = HashSet::new();
+    let mut blizz_vec:Vec<Blizz> = Vec::new();
+    let mut coord_to_blizz:HashMap<Coord, Blizz> = HashMap::new();
+
+    let mut row_bs:Vec<HashSet<Blizz>> = Vec::with_capacity(num_rows);
+    for r in 0..num_rows {
+        let mut bs:HashSet<Blizz> = HashSet::new();
+        row_bs.insert(r,bs);
+    }
+
+
+    let mut col_bs:Vec<HashSet<Blizz>> = Vec::with_capacity(num_cols);
+    for c in 0..num_cols {
+        let mut bs:HashSet<Blizz> = HashSet::new();
+        col_bs.insert(c,bs);
+    }
+
+
+
+    for r in 0..num_rows {
+        for c in 0..num_cols {
+            match v1[r][c] {
+                '#' => {wall_set.insert(Coord{row: r, col: c});}
+                '.' => {/*ignore empty spots*/ }
+                d_char => {
+                    let b = Blizz::new(r,c,d_char, num_rows, num_cols);
+                    coord_to_blizz.insert(Coord{row: r, col: c}, b);
+                    blizz_vec.push(b);
+                    if b.dir == Direction::Left || b.dir == Direction::Right {
+                        row_bs[b.row].insert(b);
+                    } else {
+                        col_bs[b.col].insert(b);
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+    println!("found {} blizzards", blizz_vec.len());
+
+
+    let mut found_goal=false;
+
+    let mut open_places:VecDeque<State> = VecDeque::new();
+    let mut visited:HashSet<State> = HashSet::new();
+    open_places.push_back(State{pos: start_coord, t: start_time});
+    let goal_loc = end_coord;
+    let mut goal_time = 0;
+    let mut count_timeouts = 0;
+
+    let start_neightbors =
+        [start_coord.step(Direction::Down),None, None, None, Some(start_coord)];
+
+
+    println!("init open_places: {:?}", open_places);
+//let mut it= 0;
+    while !found_goal && !open_places.is_empty() {
+        //it += 1;
+        let current = open_places.pop_front().unwrap();
+
+        //         println!("current State: {:?},  V={}, O={}", current, visited.len(), open_places.len());
+
+        // println!("visited: {:?}", visited);
+        // println!("open_places: {:?}", open_places);
+
+        visited.insert(current);
+        if current.pos == end_coord {
+            println!("found goal with State: {:?}", current);
+            goal_time = current.t;
+            found_goal = true;
+            break;
+        }
+        let neighbors =
+            if current.pos == start_coord{start_neightbors }
+            else {current.pos.get_neighbors()};
+        let new_t: usize = current.t + 1;
+
+        for n in neighbors {
+            match n {
+                Some(co) => {
+                    if wall_set.contains(&co) {
+                        continue;
+                    } else if new_t > 302 {
+                        count_timeouts += 1;
+                        continue;
+                    } else {
+                        let s = State { pos: co, t: new_t };
+                        if !visited.contains(&s) {
+                            let mut b_check_good = true;
+
+
+
+                            // for b in &blizz_vec {
+                            //     if b.pos_at_time(new_t) == co {
+                            //         b_check_good = false;
+                            //         break;
+                            //     }
+                            // }
+
+                            for b in &col_bs[co.col] {
+                                if b.pos_at_time(new_t) == co {
+                                    b_check_good = false;
+                                    break;
+                                }
+                            }
+                            if b_check_good {
+                                for b in &row_bs[co.row] {
+                                    if b.pos_at_time(new_t) == co {
+                                        b_check_good = false;
+                                        break;
+                                    }
+                                }
+                            }
+
+
+                            if b_check_good {
+                                if co==current.pos {
+                                    open_places.push_front(s);
+                                } else {
+                                    open_places.push_back(s);
+                                }
+                            }
+                        }
+                    }
+                },
+                None => {}
+            }
+        }
+
+    }
+    println!("Reached {} in {} steps", goal_loc, goal_time);
+
+    println!("timeouts: {}", count_timeouts);
+
 
 
     let answer2 = String::new();
