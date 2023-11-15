@@ -40,6 +40,7 @@ const PART2_INPUT_FILENAME: &str = "data/day24/part2_input.txt";
 
 const TEST: bool = false;
 
+const MAX_GEN_SIZE:usize = 1000;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
@@ -339,6 +340,86 @@ fn map_string(a_map: ArrayBase<OwnedRepr<Block>, Ix2>) -> String {
     return sb.to_string();
 }
 
+
+fn search(wall_set: &HashSet<Coord>, start_point: Coord, end_point: Coord, map_index: BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>>) -> usize {
+    let mut pq: DoublePriorityQueue<State, usize> = DoublePriorityQueue::new();
+    pq.push(State { pos: start_point, t: 0 }, 0);
+    let mut found_goal = false;
+    let mut steps: Option<usize> = None;
+    let mut visited: HashSet<State> = HashSet::new();
+    while !found_goal && !pq.is_empty() {
+        let (current_state, current_t) = pq.pop_min().unwrap();
+        if current_state.pos == end_point {
+            found_goal = true;
+            steps = Some(current_t - 1);
+            break;
+        }
+        visited.insert(current_state);
+
+        let neighs = current_state.pos.get_neighbors();
+        let c_map = map_index.get(&current_t).unwrap();
+        for n in neighs {
+            match n {
+                None => {}
+                Some(c) => {
+                    if wall_set.contains(&c) {
+                        continue;
+                    } else {
+                        let b = c_map[[c.row, c.col]];
+                        if let Block::Empty = b {
+                            //empty spot we can move.
+                            let new_state = State { pos: c, t: current_t + 1 };
+                            if !visited.contains(&new_state) {
+                                pq.push(new_state, new_state.t);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    println!("search stopped, found_goal: {}, steps: {:?}, pq.len(): {}", found_goal, steps, pq.len());
+    if let Some(n) = steps {
+        return n;
+    } else {
+        return 0;
+    }
+
+}
+
+fn generate_map_index(num_rows: usize, num_cols: usize, wall_set: &HashSet<Coord>, blizz_vec: &Vec<Blizz>)
+                      -> BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>> {
+    let mut map_vector_init:Vec<Block> = vec![Block::Empty; num_cols*num_rows];
+    let mut map_index: BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>> = BTreeMap::new();
+
+    for min in 0..=MAX_GEN_SIZE {
+        let mut a_map = Array2::from_shape_vec((num_rows, num_cols), map_vector_init.clone()).unwrap();
+
+        for w in wall_set.iter() {
+            a_map[[w.row, w.col]] = Block::Wall;
+        }
+        for b in blizz_vec.iter() {
+            let p = b.pos_at_time2(min);
+            let d = b.dir;
+            match a_map[[p.row, p.col]] {
+                Block::Empty => { a_map[[p.row, p.col]] = Blizzard(b.dir) }
+                Block::Wall => {
+                    println!("trying to put blizzard ({d}) at [{},{}], put Wall is already there", p.row, p.col);
+                    panic!("invalid placement");
+                }
+                Block::EndPoint(_) => { panic!("invalid block"); }
+                Block::Blizzard(_) => { a_map[[p.row, p.col]] = MBlizz(2); }
+                Block::MBlizz(n) => { a_map[[p.row, p.col]] = MBlizz(n + 1); }
+            }
+        }
+
+        map_index.insert(min, a_map);
+    }
+    map_index
+}
+
+
+
 fn part1() -> String {
     println!("\t start part 1");
     let p1_file = match TEST {
@@ -531,51 +612,62 @@ fn part2() -> String {
     }
     let data2_ss = data2_s.trim();
 
-    let lines: Vec<&str> = data2_s.trim().split("\n").collect();
-    let l_num = lines.len();
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p2_file);
-        if l_num == 1 {
-            println!("\t\t line read has length: {}", lines[0].len());
-        }
-    }
     let data1_ss = data2_s.trim();
     let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
+
+
+
+
+
+
+   let (wall_set, blizz_vec, start_point, end_point,(num_rows,num_cols)) = parse(split_lines);
+
+
+
+
+
+
+
+
+    let map_index = generate_map_index(num_rows, num_cols, &wall_set, &blizz_vec);
+
+    let steps = search(&wall_set, start_point, end_point, map_index);
+
+
+
+
+    let answer2 = steps.to_string();
+    return answer2.to_string();
+}
+
+fn parse(split_lines: Vec<&str>) -> (HashSet<Coord>, Vec<Blizz>, Coord, Coord, (usize,usize)) {
+    let v1:Vec<Vec<char>> = split_lines.iter().map(|f| f.chars().collect()).collect();
 
     let num_rows = split_lines.len();
     let num_cols = split_lines[0].len();
 
-    let dims = (num_rows, num_cols);
-    println!("rows: {}, cols: {}", num_rows, num_cols);
 
 
 
-
-    let dims = ( num_rows,  num_cols);
-
-    println!("grid dimensions: {:?}", dims);
-    let v1:Vec<Vec<char>> = split_lines.iter().map(|f| f.chars().collect()).collect();
-
-    let mut wall_set:HashSet<Coord> = HashSet::new();
-    let mut blizz_vec:Vec<Blizz> = Vec::new();
+    let mut wall_set: HashSet<Coord> = HashSet::new();
+    let mut blizz_vec: Vec<Blizz> = Vec::new();
 
 
-    let mut point_b:Option<Coord> = None;
-    let mut point_e:Option<Coord> = None;
-    println!();
+    let mut point_b: Option<Coord> = None;
+    let mut point_e: Option<Coord> = None;
     for r in 0..num_rows {
         for c in 0..num_cols {
             match v1[r][c] {
-                '#' => {wall_set.insert(Coord{row: r, col: c});}
-                '.' => {/*ignore empty spots*/ }
+                '#' => { wall_set.insert(Coord { row: r, col: c }); }
+                '.' => { /*ignore empty spots*/ }
                 'B' => { //begining point
-                    point_b = Some(Coord{row: r, col: c});
+                    point_b = Some(Coord { row: r, col: c });
                 }
                 'E' => { //ending point
-                    point_e = Some(Coord{row: r, col: c});
+                    point_e = Some(Coord { row: r, col: c });
                 }
                 d_char => {
-                    let b = Blizz::new(r-1,c,d_char, num_rows-2, num_cols);
+                    let b = Blizz::new(r - 1, c, d_char, num_rows - 2, num_cols);
                     blizz_vec.push(b);
                 }
             }
@@ -583,116 +675,5 @@ fn part2() -> String {
     }
     let start_point = point_b.unwrap();
     let end_point = point_e.unwrap();
-
-
-    println!("found {} blizzards", blizz_vec.len());
-    println!("start point: {}", start_point);
-    println!("end   point: {}", end_point);
-
-
-    let mut found_goal=false;
-
-    let mut open_places:VecDeque<State> = VecDeque::new();
-    let mut visited:HashSet<State> = HashSet::new();
-
-    let mut goal_time = 0;
-    let mut count_timeouts = 0;
-
-    let mut time=0;
-
-
-
-    let mut map_vector_init:Vec<Block> = vec![Block::Empty; num_cols*num_rows];
-    println!("allocated map_vector_init of length : {}", map_vector_init.len());
-
-   let mut map_vec:Vec<String> = Vec::with_capacity(1001);
-
-    const MAX_GEN_SIZE:usize = 1000;
-
-
-    let mut map_index:BTreeMap<usize,ArrayBase<OwnedRepr<Block>, Ix2>> = BTreeMap::new();
-
- for min in 0..=MAX_GEN_SIZE {
-
-        let mut a_map = Array2::from_shape_vec((num_rows,num_cols), map_vector_init.clone()).unwrap();
-      //  a_map[[start_point.row, start_point.col]] = Block::EndPoint(0);
-      //  a_map[[end_point.row, end_point.col]] = Block::EndPoint(1);
-
-        for w in &wall_set {
-            a_map[[w.row,w.col]] = Block::Wall;
-        }
-        for b in blizz_vec.iter() {
-            let p = b.pos_at_time2(min);
-            let d = b.dir;
-            match a_map[[p.row, p.col]] {
-                Block::Empty => {a_map[[p.row, p.col]] = Blizzard(b.dir)}
-                Block::Wall => {
-                    println!("trying to put blizzard ({d}) at [{},{}], put Wall is already there", p.row, p.col);
-                    panic!("invalid placement");
-                }
-                Block::EndPoint(_) => {panic!("invalid block");}
-                Block::Blizzard(_) => { a_map[[p.row, p.col]] = MBlizz(2); }
-                Block::MBlizz(n) => {a_map[[p.row, p.col]] = MBlizz(n+1); }
-            }
-        }
-
-        map_index.insert(min, a_map);
-     }
-
-    let map_index = map_index;
-    println!("map_index has {} elements stored", map_index.len());
-    let mut pq:DoublePriorityQueue<State,usize> = DoublePriorityQueue::new();
-
-    pq.push(State{pos:start_point,t: 0}, 0);
-
-    let mut found_goal = false;
-
-    let mut steps:Option<usize> = None;
-    let mut visited:HashSet<State> = HashSet::new();
-    while !found_goal && !pq.is_empty()  {
-        let (current_state,current_t) =pq.pop_min().unwrap();
-        if current_state.pos == end_point {
-            found_goal = true;
-            steps = Some(current_t-1);
-            break;
-        }
-        visited.insert(current_state);
-
-        let neighs = current_state.pos.get_neighbors();
-        let c_map = map_index.get(&current_t).unwrap();
-        for n in neighs {
-            match n {
-                None => {}
-                Some(c) => {
-                    if wall_set.contains(&c) {
-                        continue;
-                    } else {
-                        let b = c_map[[c.row,c.col]];
-                        if let Block::Empty = b {
-                            //empty spot we can move.
-                            let new_state = State{pos: c, t: current_t + 1};
-                            if !visited.contains(&new_state) {
-                                pq.push(new_state, new_state.t);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-
-
-    println!("search stopped, found_goal: {}, steps: {:?}, pq.len(): {}", found_goal, steps, pq.len());
-
-
-
-
-
-
-
-
-    let answer2 = String::new();
-    return answer2.to_string();
+    (wall_set, blizz_vec, start_point, end_point, (num_rows,num_cols))
 }
