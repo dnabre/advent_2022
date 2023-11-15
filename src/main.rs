@@ -27,7 +27,7 @@ p2: 860 -- too high
  */
 
 
-const TEST_ANSWER: (i64, i64) = (18, 110);
+const TEST_ANSWER: (i64, i64) = (18, 54);
 // 25.652ms
 const INPUT_ANSWER: (i64, i64) = (301, 859);
 
@@ -47,22 +47,22 @@ fn main() {
     println!("24");                           // insert Day
 
 
-    // let start1 = Instant::now();
-    // let answer1 = part1();
-    // let duration1 = start1.elapsed();
+    let start1 = Instant::now();
+    let answer1 = part1();
+    let duration1 = start1.elapsed();
 
-    // println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
-    // if TEST {
-    //     if answer1 != TEST_ANSWER.0.to_string() {
-    //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-    //                  answer1, TEST_ANSWER.0.to_string())
-    //     }
-    // } else {
-    //     if answer1 != INPUT_ANSWER.0.to_string() {
-    //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-    //                  answer1, INPUT_ANSWER.0.to_string())
-    //     }
-    // }
+    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
+    if TEST {
+        if answer1 != TEST_ANSWER.0.to_string() {
+            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+                     answer1, TEST_ANSWER.0.to_string())
+        }
+    } else {
+        if answer1 != INPUT_ANSWER.0.to_string() {
+            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+                     answer1, INPUT_ANSWER.0.to_string())
+        }
+    }
 
     let start2 = Instant::now();
     let answer2 = part2();
@@ -180,6 +180,11 @@ struct State {
     t: usize
 }
 
+impl Display for State {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "time {} {}", self.t, self.pos)
+    }
+}
 
 
 
@@ -341,9 +346,9 @@ fn map_string(a_map: ArrayBase<OwnedRepr<Block>, Ix2>) -> String {
 }
 
 
-fn search(wall_set: &HashSet<Coord>, start_point: Coord, end_point: Coord, map_index: BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>>) -> usize {
+fn search(start_time:usize, wall_set: &HashSet<Coord>, start_point: Coord, end_point: Coord, map_index: &BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>>) -> usize {
     let mut pq: DoublePriorityQueue<State, usize> = DoublePriorityQueue::new();
-    pq.push(State { pos: start_point, t: 0 }, 0);
+    pq.push(State { pos: start_point, t: start_time }, start_time);
     let mut found_goal = false;
     let mut steps: Option<usize> = None;
     let mut visited: HashSet<State> = HashSet::new();
@@ -419,227 +424,6 @@ fn generate_map_index(num_rows: usize, num_cols: usize, wall_set: &HashSet<Coord
 }
 
 
-
-fn part1() -> String {
-    println!("\t start part 1");
-    let p1_file = match TEST {
-        true => PART1B_TEST_FILENAME,
-        false => PART1_INPUT_FILENAME
-    };
-    let data1_s =
-        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let lines: Vec<&str> = data1_s.trim().split("\n").collect();
-    let l_num = lines.len();
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p1_file);
-        if l_num == 1 {
-            println!("\t\t line read has length: {}", lines[0].len());
-        }
-    }
-    let data1_ss = data1_s.trim();
-    let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
-
-    let num_rows = split_lines.len();
-    let num_cols = split_lines[0].len();
-
-    let dims = (num_rows, num_cols);
-    println!("rows: {}, cols: {}", num_rows, num_cols);
-
-    let start_coord = Coord{ row: 0, col: 1 };
-    let end_coord = Coord{row: num_rows -1, col: num_cols-2};
-
-    let dims = ( num_rows,  num_cols);
-
-    println!("grid dimensions: {:?}", dims);
-    let v1:Vec<Vec<char>> = split_lines.iter().map(|f| f.chars().collect()).collect();
-
-    let mut wall_set:HashSet<Coord> = HashSet::new();
-    let mut blizz_vec:Vec<Blizz> = Vec::new();
-    let mut coord_to_blizz:HashMap<Coord, Blizz> = HashMap::new();
-
-    let mut row_bs:Vec<HashSet<Blizz>> = Vec::with_capacity(num_rows);
-    for r in 0..num_rows {
-        let mut bs:HashSet<Blizz> = HashSet::new();
-        row_bs.insert(r,bs);
-    }
-
-
-    let mut col_bs:Vec<HashSet<Blizz>> = Vec::with_capacity(num_cols);
-    for c in 0..num_cols {
-        let mut bs:HashSet<Blizz> = HashSet::new();
-        col_bs.insert(c,bs);
-    }
-
-
-
-    for r in 0..num_rows {
-        for c in 0..num_cols {
-            match v1[r][c] {
-                '#' => {wall_set.insert(Coord{row: r, col: c});}
-                '.' => {/*ignore empty spots*/ }
-                d_char => {
-                   let b = Blizz::new(r,c,d_char, num_rows, num_cols);
-                    coord_to_blizz.insert(Coord{row: r, col: c}, b);
-                    blizz_vec.push(b);
-                    if b.dir == Direction::Left || b.dir == Direction::Right {
-                        row_bs[b.row].insert(b);
-                    } else {
-                        col_bs[b.col].insert(b);
-                    }
-                }
-            }
-        }
-    }
-
-
-
-
-    println!("found {} blizzards", blizz_vec.len());
-
-
-    let mut found_goal=false;
-
-    let mut open_places:VecDeque<State> = VecDeque::new();
-    let mut visited:HashSet<State> = HashSet::new();
-    open_places.push_back(State{pos: start_coord, t: 0});
-    let goal_loc = end_coord;
-    let mut goal_time = 0;
-let mut count_timeouts = 0;
-
-    let start_neightbors =
-                        [start_coord.step(Direction::Down),None, None, None, Some(start_coord)];
-    println!("init open_places: {:?}", open_places);
-//let mut it= 0;
-   while !found_goal && !open_places.is_empty() {
-       //it += 1;
-        let current = open_places.pop_front().unwrap();
-
-  //         println!("current State: {:?},  V={}, O={}", current, visited.len(), open_places.len());
-
-      // println!("visited: {:?}", visited);
-      // println!("open_places: {:?}", open_places);
-
-        visited.insert(current);
-        if current.pos == end_coord {
-            println!("found goal with State: {:?}", current);
-            goal_time = current.t;
-            found_goal = true;
-            break;
-        }
-        let neighbors =
-            if current.pos == start_coord{start_neightbors }
-            else {current.pos.get_neighbors()};
-        let new_t: usize = current.t + 1;
-
-        for n in neighbors {
-            match n {
-                Some(co) => {
-                    if wall_set.contains(&co) {
-                        continue;
-                    } else if new_t > 302 {
-                        count_timeouts += 1;
-                        continue;
-                    } else {
-                        let s = State { pos: co, t: new_t };
-                        if !visited.contains(&s) {
-                            let mut b_check_good = true;
-
-
-
-                            // for b in &blizz_vec {
-                            //     if b.pos_at_time(new_t) == co {
-                            //         b_check_good = false;
-                            //         break;
-                            //     }
-                            // }
-
-                            for b in &col_bs[co.col] {
-                                if b.pos_at_time(new_t) == co {
-                                    b_check_good = false;
-                                    break;
-                                }
-                            }
-                            if b_check_good {
-                                for b in &row_bs[co.row] {
-                                    if b.pos_at_time(new_t) == co {
-                                        b_check_good = false;
-                                        break;
-                                    }
-                                }
-                            }
-
-
-                            if b_check_good {
-                                if co==current.pos {
-                                    open_places.push_front(s);
-                                } else {
-                                    open_places.push_back(s);
-                                }
-                            }
-                        }
-                    }
-                },
-                None => {}
-            }
-        }
-
-   }
-    println!("Reached {} in {} steps", goal_loc, goal_time);
-
-    println!("timeouts: {}", count_timeouts);
-
-
-    let answer1 = goal_time.to_string();
-    return answer1.to_string();
-}
-
-
-fn part2() -> String {
-    println!("\t start part 2");
-    let p2_file = match TEST {
-        true => PART2_TEST_FILENAME,
-        false => PART2_INPUT_FILENAME
-    };
-    let data2_s =
-        fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-    let lines: Vec<&str> = data2_s.trim().split("\n").collect();
-    let l_num = lines.len();
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p2_file);
-        if l_num == 1 {
-            println!("\t\t line read has length: {}", lines[0].len());
-        }
-    }
-    let data2_ss = data2_s.trim();
-
-    let data1_ss = data2_s.trim();
-    let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
-
-
-
-
-
-
-   let (wall_set, blizz_vec, start_point, end_point,(num_rows,num_cols)) = parse(split_lines);
-
-
-
-
-
-
-
-
-    let map_index = generate_map_index(num_rows, num_cols, &wall_set, &blizz_vec);
-
-    let steps = search(&wall_set, start_point, end_point, map_index);
-
-
-
-
-    let answer2 = steps.to_string();
-    return answer2.to_string();
-}
-
 fn parse(split_lines: Vec<&str>) -> (HashSet<Coord>, Vec<Blizz>, Coord, Coord, (usize,usize)) {
     let v1:Vec<Vec<char>> = split_lines.iter().map(|f| f.chars().collect()).collect();
 
@@ -676,4 +460,91 @@ fn parse(split_lines: Vec<&str>) -> (HashSet<Coord>, Vec<Blizz>, Coord, Coord, (
     let start_point = point_b.unwrap();
     let end_point = point_e.unwrap();
     (wall_set, blizz_vec, start_point, end_point, (num_rows,num_cols))
+}
+
+
+fn part1() -> String {
+    let p1_file = match TEST {
+        true => PART1_TEST_FILENAME,
+        false => PART1_INPUT_FILENAME
+    };
+    let data1_s =
+        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
+    let lines: Vec<&str> = data1_s.trim().split("\n").collect();
+    let l_num = lines.len();
+    if TEST {
+        println!("\t read {} lines from {}", l_num, p1_file);
+        if l_num == 1 {
+            println!("\t\t line read has length: {}", lines[0].len());
+        }
+    }
+    let data1_ss = data1_s.trim();
+    let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
+
+    let (wall_set, blizz_vec, start_point, end_point,(num_rows,num_cols)) = parse(split_lines);
+
+
+    let map_index = generate_map_index(num_rows, num_cols, &wall_set, &blizz_vec);
+
+    let steps = search(0,&wall_set, start_point, end_point, &map_index);
+
+
+    let answer1 = steps;
+    return answer1.to_string();
+}
+
+
+fn part2() -> String {
+    println!("   start part 2");
+    let p2_file = match TEST {
+        true => PART2_TEST_FILENAME,
+        false => PART2_INPUT_FILENAME
+    };
+    let data2_s =
+        fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
+    let lines: Vec<&str> = data2_s.trim().split("\n").collect();
+    let l_num = lines.len();
+    if TEST {
+        println!("\t read {} lines from {}", l_num, p2_file);
+        if l_num == 1 {
+            println!("\t\t line read has length: {}", lines[0].len());
+        }
+    }
+    let data2_ss = data2_s.trim();
+
+    let data1_ss = data2_s.trim();
+    let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
+
+    let (wall_set, blizz_vec, start_point, end_point,(num_rows,num_cols)) = parse(split_lines);
+
+    let map_index = generate_map_index(num_rows, num_cols, &wall_set, &blizz_vec);
+
+    let mut total_minutes = 0;
+    let first_trip = search(total_minutes, &wall_set, start_point, end_point, &map_index);
+
+    println!("first trip from {}{} to {} took {} minutes  ({} total so far)",
+             total_minutes, start_point, end_point, first_trip, first_trip);
+    total_minutes += first_trip;
+
+    let second_trip = search(total_minutes, &wall_set, end_point, start_point, &map_index)
+        - first_trip;
+
+
+    println!("second trip from {}{} to {} took {} minutes  ({} total so far)",
+             total_minutes, end_point, start_point, second_trip, first_trip+second_trip);
+    total_minutes += second_trip;
+
+
+    let third_trip = search(total_minutes, &wall_set, start_point, end_point, &map_index)
+        - total_minutes;
+
+
+    println!("third trip from {}{} to {} took {} minutes  ({} total so far)",
+             total_minutes, start_point, end_point, third_trip, first_trip+second_trip+third_trip);
+    let total_minutes = first_trip + second_trip + third_trip;
+    println!("total_minutes: {total_minutes}");
+
+
+    let answer2 = total_minutes.to_string();
+    return answer2.to_string();
 }
