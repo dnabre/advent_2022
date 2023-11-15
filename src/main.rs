@@ -1,21 +1,10 @@
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-#![allow(dead_code)]
-#![allow(unused_assignments)]
-
-
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::io::BufWriter;
-use std::io::Write;
-use std::path::Component::ParentDir;
-use std::process::exit;
 use std::time::Instant;
 
 use ndarray::{Array2, ArrayBase, Ix2, OwnedRepr};
-use priority_queue::{DoublePriorityQueue, PriorityQueue};
+use priority_queue::DoublePriorityQueue;
 
 /*
     Advent of Code 2022: Day 24`
@@ -24,19 +13,16 @@ use priority_queue::{DoublePriorityQueue, PriorityQueue};
 
  */
 
-
 const TEST_ANSWER: (i64, i64) = (18, 54);
 const INPUT_ANSWER: (i64, i64) = (301, 859);
 
 const PART1_TEST_FILENAME: &str = "data/day24/part1_test.txt";
-const PART1B_TEST_FILENAME: &str = "data/day24/part1b_test.txt";
 const PART1_INPUT_FILENAME: &str = "data/day24/part1_input.txt";
 
 const PART2_TEST_FILENAME: &str = "data/day24/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day24/part2_input.txt";
 
 const TEST: bool = false;
-
 const MAX_GEN_SIZE: usize = 1000;
 
 fn main() {
@@ -112,8 +98,8 @@ impl Blizzard {
         return Blizzard { row: r, col: c, dir, i_max_row: num_rows as i32, i_max_col: num_cols as i32 };
     }
     fn pos_at_time(&self, t: usize) -> Coord {
-        let mut r: i32 = -1;
-        let mut c: i32 = -1;
+        let  r:i32;
+        let  c:i32;
         let i_t = t as i32;
         let (i_max_row, i_max_col) = (self.i_max_row, self.i_max_col);
         let (i_row, i_col) = (self.row as i32, self.col as i32);
@@ -150,7 +136,6 @@ impl Blizzard {
 enum Block {
     Empty,
     Wall,
-    EndPoint(usize),
     Blizzard(Direction),
     MBlizzard(usize),
 }
@@ -160,7 +145,6 @@ impl Display for Block {
         match self {
             Block::Empty => { write!(f, ".") }
             Block::Wall => { write!(f, "#") }
-            Block::EndPoint(n) => { write! {f, "{:1$}", n, 1} }
             Block::Blizzard(d) => { write!(f, "{d}") }
             Block::MBlizzard(n) => { write! {f, "{:1$}", n, 1} }
         }
@@ -257,82 +241,9 @@ impl Display for State {
     }
 }
 
-
-fn print_map(a_map: ArrayBase<OwnedRepr<Block>, Ix2>) {
-    let d0 = a_map.dim().0;
-    let d1 = a_map.dim().1;
-    println!("dimensions {} by {}\n ", d0, d1);
-
-    for r in 0..d0 {
-        for c in 0..d1 {
-            let b = a_map[[r, c]];
-            print!("{b}");
-        }
-        println!();
-    }
-}
-
-fn map_string(a_map: ArrayBase<OwnedRepr<Block>, Ix2>) -> String {
-    let d0 = a_map.dim().0;
-    let d1 = a_map.dim().1;
-    let mut sb = String::with_capacity((d0 * 1) * d1);
-
-
-    for r in 0..d0 {
-        for c in 0..d1 {
-            let b = a_map[[r, c]];
-            //print!("{b}");
-            sb.push_str(&*b.to_string());
-        }
-        sb.push('\n');
-    }
-    return sb.to_string();
-}
-
-
-fn search(start_time: usize, wall_set: &HashSet<Coord>, start_point: Coord, end_point: Coord, map_index: &BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>>) -> Option<usize> {
-    let mut pq: DoublePriorityQueue<State, usize> = DoublePriorityQueue::new();
-    pq.push(State { pos: start_point, t: start_time }, start_time);
-    let mut found_goal = false;
-    let mut steps: Option<usize> = None;
-    let mut visited: HashSet<State> = HashSet::new();
-    while !found_goal && !pq.is_empty() {
-        let (current_state, current_t) = pq.pop_min().unwrap();
-        if current_state.pos == end_point {
-            found_goal = true;
-            steps = Some(current_t - 1);
-            break;
-        }
-        visited.insert(current_state);
-
-        let neighs = current_state.pos.get_neighbors();
-        let c_map = map_index.get(&current_t).unwrap();
-        for n in neighs {
-            match n {
-                None => {}
-                Some(c) => {
-                    if wall_set.contains(&c) {
-                        continue;
-                    } else {
-                        let b = c_map[[c.row, c.col]];
-                        if let Block::Empty = b {
-                            //empty spot we can move.
-                            let new_state = State { pos: c, t: current_t + 1 };
-                            if !visited.contains(&new_state) {
-                                pq.push(new_state, new_state.t);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return steps;
-}
-
 fn generate_map_index(num_rows: usize, num_cols: usize, wall_set: &HashSet<Coord>, blizzard_vec: &Vec<Blizzard>)
                       -> BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>> {
-    let mut map_vector_init: Vec<Block> = vec![Block::Empty; num_cols * num_rows];
+    let map_vector_init: Vec<Block> = vec![Block::Empty; num_cols * num_rows];
     let mut map_index: BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>> = BTreeMap::new();
 
     for min in 0..=MAX_GEN_SIZE {
@@ -350,7 +261,6 @@ fn generate_map_index(num_rows: usize, num_cols: usize, wall_set: &HashSet<Coord
                     println!("trying to put blizzard ({d}) at [{},{}], put Wall is already there", p.row, p.col);
                     panic!("invalid placement");
                 }
-                Block::EndPoint(_) => { panic!("invalid block"); }
                 Block::Blizzard(_) => { a_map[[p.row, p.col]] = Block::MBlizzard(2); }
                 Block::MBlizzard(n) => { a_map[[p.row, p.col]] = Block::MBlizzard(n + 1); }
             }
@@ -361,6 +271,23 @@ fn generate_map_index(num_rows: usize, num_cols: usize, wall_set: &HashSet<Coord
     map_index
 }
 
+fn map_string(a_map: ArrayBase<OwnedRepr<Block>, Ix2>) -> String {
+    #![allow(dead_code)]
+    let d0 = a_map.dim().0;
+    let d1 = a_map.dim().1;
+    let mut sb = String::with_capacity((d0 * 1) * d1);
+
+
+    for r in 0..d0 {
+        for c in 0..d1 {
+            let b = a_map[[r, c]];
+            //print!("{b}");
+            sb.push_str(&*b.to_string());
+        }
+        sb.push('\n');
+    }
+    return sb.to_string();
+}
 
 fn parse(split_lines: Vec<&str>) -> (HashSet<Coord>, Vec<Blizzard>, Coord, Coord, (usize, usize)) {
     let v1: Vec<Vec<char>> = split_lines.iter().map(|f| f.chars().collect()).collect();
@@ -397,6 +324,61 @@ fn parse(split_lines: Vec<&str>) -> (HashSet<Coord>, Vec<Blizzard>, Coord, Coord
     let end_point = point_e.unwrap();
     (wall_set, blizzard_vec, start_point, end_point, (num_rows, num_cols))
 }
+
+fn print_map(a_map: ArrayBase<OwnedRepr<Block>, Ix2>) {
+    #![allow(dead_code)]
+    let d0 = a_map.dim().0;
+    let d1 = a_map.dim().1;
+    println!("dimensions {} by {}\n ", d0, d1);
+
+    for r in 0..d0 {
+        for c in 0..d1 {
+            let b = a_map[[r, c]];
+            print!("{b}");
+        }
+        println!();
+    }
+}
+
+fn search(start_time: usize, wall_set: &HashSet<Coord>, start_point: Coord, end_point: Coord,
+          map_index: &BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>>) -> Option<usize> {
+    let mut pq: DoublePriorityQueue<State, usize> = DoublePriorityQueue::new();
+    pq.push(State { pos: start_point, t: start_time }, start_time);
+    let mut steps: Option<usize> = None;
+    let mut visited: HashSet<State> = HashSet::new();
+    while  !pq.is_empty() {
+        let (current_state, current_t) = pq.pop_min().unwrap();
+        if current_state.pos == end_point {
+            steps = Some(current_t - 1);
+            break;
+        }
+        visited.insert(current_state);
+
+        let neighs = current_state.pos.get_neighbors();
+        let c_map = map_index.get(&current_t).unwrap();
+        for n in neighs {
+            match n {
+                None => {}
+                Some(c) => {
+                    if wall_set.contains(&c) {
+                        continue;
+                    } else {
+                        let b = c_map[[c.row, c.col]];
+                        if let Block::Empty = b {
+                            //empty spot we can move.
+                            let new_state = State { pos: c, t: current_t + 1 };
+                            if !visited.contains(&new_state) {
+                                pq.push(new_state, new_state.t);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return steps;
+}
+
 
 fn part1() -> String {
     let p1_file = match TEST {
