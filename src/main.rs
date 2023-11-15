@@ -31,7 +31,7 @@ const PART1_INPUT_FILENAME: &str = "data/day24/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day24/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day24/part2_input.txt";
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 
 fn main() {
@@ -362,12 +362,32 @@ fn part1() -> String {
                         let s = State { pos: co, t: new_t };
                         if !visited.contains(&s) {
                             let mut b_check_good = true;
-                            for b in &blizz_vec {
+
+
+
+                            // for b in &blizz_vec {
+                            //     if b.pos_at_time(new_t) == co {
+                            //         b_check_good = false;
+                            //         break;
+                            //     }
+                            // }
+
+                            for b in &col_bs[co.col] {
                                 if b.pos_at_time(new_t) == co {
                                     b_check_good = false;
                                     break;
                                 }
                             }
+                            if b_check_good {
+                                for b in &row_bs[co.row] {
+                                    if b.pos_at_time(new_t) == co {
+                                        b_check_good = false;
+                                        break;
+                                    }
+                                }
+                            }
+
+
                             if b_check_good {
                                 open_places.push_back(s);
                             }
