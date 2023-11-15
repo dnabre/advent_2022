@@ -1,42 +1,50 @@
-#![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 #![allow(unused_mut)]
+#![allow(dead_code)]
 #![allow(unused_assignments)]
 
-use std::collections::{HashMap, VecDeque};
-use std::collections::HashSet;
-use std::fmt::{Display, Formatter};
-use std::{cmp, fmt};
-use std::fs;
-use std::time::{Instant, Duration};
 
-use enum_display_derive::Display as Derived_Display;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
+use std::fmt::{Display, Formatter};
+use std::fs;
+use std::io::BufWriter;
+use std::io::Write;
+use std::path::Component::ParentDir;
+use std::process::exit;
+use std::time::Instant;
+use ndarray::{Array2, ArrayBase, Ix2, OwnedRepr};
+use priority_queue::{DoublePriorityQueue, PriorityQueue};
+use crate::Block::{Blizzard, MBlizz};
 
 /*
-    Advent of Code 2022: Day 23
-        part1 answer:   4195
-        part2 answer:   1069
+    Advent of Code 2022: Day 24`
+        part1 answer: 301
+        part2 answer:
 
-
+p1: 303 -- too high
+p2: 860 -- too high
  */
 
 
-const TEST_ANSWER: (i64, i64) = (110, 93);
-const INPUT_ANSWER: (i64, i64) = (4195, 27625);
+const TEST_ANSWER: (i64, i64) = (18, 54);
+// 25.652ms
+const INPUT_ANSWER: (i64, i64) = (301, 859);
 
-const PART1_TEST_FILENAME: &str = "data/day23/part1_test.txt";
-const PART1_INPUT_FILENAME: &str = "data/day23/part1_input.txt";
+const PART1_TEST_FILENAME: &str = "data/day24/part1_test.txt";
+const PART1B_TEST_FILENAME: &str = "data/day24/part1b_test.txt";
+const PART1_INPUT_FILENAME: &str = "data/day24/part1_input.txt";
 
-const PART2_TEST_FILENAME: &str = "data/day23/part2_test.txt";
-const PART2_INPUT_FILENAME: &str = "data/day23/part2_input.txt";
+const PART2_TEST_FILENAME: &str = "data/day24/part2_test.txt";
+const PART2_INPUT_FILENAME: &str = "data/day24/part2_input.txt";
 
 const TEST: bool = false;
 
+const MAX_GEN_SIZE:usize = 1000;
 
 fn main() {
     print!("Advent of Code 2022, Day ");
-    println!("23");                           // insert Day
+    println!("24");                           // insert Day
 
 
     let start1 = Instant::now();
@@ -60,170 +68,398 @@ fn main() {
     let answer2 = part2();
     let duration2 = start2.elapsed();
 
-    // println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-    //
-    //
-    // if TEST {
-    //     if answer2 != TEST_ANSWER.1.to_string() {
-    //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-    //                  answer2,TEST_ANSWER.1.to_string() )
-    //     }
-    // } else {
-    //     if answer2 != INPUT_ANSWER.1.to_string() {
-    //         println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-    //                  answer2,TEST_ANSWER.1.to_string() )
-    //     }
-    // }
+    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
+
+
+    if TEST {
+        if answer2 != TEST_ANSWER.1.to_string() {
+            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+                     answer2,TEST_ANSWER.1.to_string() )
+        }
+    } else {
+        if answer2 != INPUT_ANSWER.1.to_string() {
+            println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
+                     answer2,TEST_ANSWER.1.to_string() )
+        }
+    }
 
 
     println!("----------\ndone");
 }
 
-#[cfg(windows)]
-const D_LINE_ENDING: &'static str = "\r\n\r\n";
-#[cfg(not(windows))]
-const D_LINE_ENDING: &'static str = "\n\n";
 
 #[cfg(windows)]
 const LINE_ENDING: &'static str = "\r\n";
 #[cfg(not(windows))]
 const LINE_ENDING: &'static str = "\n";
 
+#[derive(Hash, PartialEq, Eq, Debug, Copy, Clone)]
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right
+}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+impl std::fmt::Display for Direction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}",
+        match self {
+            Direction::Up => {"^"}
+            Direction::Down => {"v"}
+            Direction::Left => {"<"}
+            Direction::Right => {">"}
+        })
+    }
+}
+impl Direction {
+    fn iterator() -> impl Iterator<Item = Direction> {
+        [Direction::Up, Direction::Down, Direction::Right, Direction::Left].iter().copied()
+    }
+}
+
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 struct Coord {
-    row: i32,
-    col: i32,
+    row: usize,
+    col: usize,
 }
 
 impl Coord {
-    fn add(&self, dir: Direction) -> Coord {
-        match dir {
-            Direction::North => { self.plus(-1, 0) }
-            Direction::NorthEast => { self.plus(-1, 1) }
-            Direction::East => { self.plus(0, 1) }
-            Direction::SouthEast => { self.plus(1, 1) }
-            Direction::South => { self.plus(1, 0) }
-            Direction::SouthWest => { self.plus(1, -1) }
-            Direction::West => { self.plus(0, -1) }
-            Direction::NorthWest => { self.plus(-1, -1) }
+    fn get_neighbors(&self) -> [Option<Coord>; 5] {
+        let mut result:[Option<Coord>;5] = Default::default();
+        let mut i =0 ;
+        for d in Direction::iterator() {
+            result[i] = self.step(d);
+            i += 1;
         }
-    }
-    fn plus(&self, row: i32, col: i32) -> Coord {
-        return Coord { row: self.row + row, col: self.col + col };
-    }
-}
-
-impl Coord {}
-
-impl fmt::Display for Coord {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "[{},{}]", self.row, self.col)
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct Elf {
-    loc: Coord,
-    proposed: Option<Coord>,
-}
-
-impl Elf {
-    fn new(start: Coord) -> Self {
-        Self { loc: start, proposed: None }
-    }
-    fn look(&self, dir: Direction) -> [Coord; 3] {
-        match dir {
-            Direction::North => {
-                [self.loc.plus(-1, 0),
-                    self.loc.plus(-1, 1),
-                    self.loc.plus(-1, -1)]
-            }
-            Direction::NorthEast => { panic!("got {dir}, not cardinal direction") }
-            Direction::East => {
-                [self.loc.plus(0, 1),
-                    self.loc.plus(-1, 1),
-                    self.loc.plus(1, 1)]
-            }
-            Direction::SouthEast => { panic!("got {dir}, not cardinal direction") }
-            Direction::South => {
-                [self.loc.plus(1, 0),
-                    self.loc.plus(1, 1),
-                    self.loc.plus(1, -1)]
-            }
-            Direction::SouthWest => { panic!("got {dir}, not cardinal direction") }
-            Direction::West => {
-                [self.loc.plus(0, -1),
-                    self.loc.plus(-1, -1),
-                    self.loc.plus(1, -1)]
-            }
-            Direction::NorthWest => { panic!("got {dir}, not cardinal direction") }
-        }
-    }
-    fn get_neighbors(&self) -> [Coord; 8] {
-        let result = [
-            self.loc.add(Direction::North),
-            self.loc.add(Direction::NorthEast),
-            self.loc.add(Direction::East),
-            self.loc.add(Direction::SouthEast),
-            self.loc.add(Direction::South),
-            self.loc.add(Direction::SouthWest),
-            self.loc.add(Direction::West),
-            self.loc.add(Direction::NorthWest),
-        ];
+        result[i] = Some(self.clone());
         return result;
     }
 }
 
-impl fmt::Display for Elf {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "elf @{} proposed: {:?}", self.loc, self.proposed)
+impl Display for Coord {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f,"@[row={}, col={}]", self.row, self.col )
+    }
+}
+
+impl Coord {
+    fn step(&self, d:Direction) -> Option<Coord> {
+        let (r,c) = (self.row, self.col);
+        match d {
+            Direction::Up => {
+                if r == 0 {
+                    return None
+                } else {
+                    return Some(Coord { row: r - 1, col: c });
+                }
+            }
+            Direction::Down => {
+                return Some(Coord { row: r+1,col: c});
+            }
+            Direction::Left => {
+                if c == 0 {
+                    return None;
+                } else {
+                    return Some(Coord { row: r, col: c - 1 });
+                }
+            }
+            Direction::Right => {
+                return Some(Coord { row: r, col: c+1});
+            }
+        }
+    }
+
+}
+
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+struct State {
+    pos: Coord,
+    t: usize
+}
+
+impl Display for State {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "time {} {}", self.t, self.pos)
     }
 }
 
 
-#[derive(Hash, PartialEq, Eq, Derived_Display, Debug, Copy, Clone)]
-enum Direction {
-    North,
-    NorthEast,
-    East,
-    SouthEast,
-    South,
-    SouthWest,
-    West,
-    NorthWest,
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+struct Blizz {
+    row: usize,
+    col: usize,
+    dir: Direction,
+    i_max_row: i32,
+    i_max_col: i32
 }
 
-fn print_set<T: Display>(set: HashSet<T>) {
-    let mut c = 0;
-    let l = set.len();
+impl Blizz {
+     fn pos_at_time(&self, t: usize ) -> Coord {
+         let mut r:i32 = -1;
+         let mut c:i32 = -1;
+            let i_t = t as i32;
+         let (i_max_row, i_max_col) = (self.i_max_row, self.i_max_col);
+         let (i_row, i_col) = (self.row as i32, self.col as i32);
 
-    let v: Vec<T> = set.into_iter().collect();
 
-    let Some((last, elements)) = v.split_last()
-        else {
-            panic!("split_last on vector of hashset wonky");
+         match self.dir{
+             Direction::Up => {
+                 c = i_col;
+                 // messy to ignore modulo of negative
+                 r =  (i_row - 1 +  (i_t * (i_max_row -2) -i_t))
+                     % (i_max_row - 2) + 1 ;
+
+             }
+             Direction::Down => {
+                 c = i_col;
+                 r =  ((i_row - 1 + i_t) % (i_max_row - 2)) + 1 ;
+             }
+             Direction::Left => {
+                 r = i_row;
+                 // messy to ignore modulo of negative
+                 c =   (i_col - 1 +  (i_t * (i_max_col -2) -i_t))
+                     % (i_max_col - 2) + 1 ;
+
+
+             }
+             Direction::Right => {
+                 r = i_row;
+                 c= ((i_col - 1 + i_t) % (i_max_col - 2)) + 1 ;
+             }
+         }
+
+        return Coord{row: r as usize, col: c as usize};
+    }
+    fn pos_at_time2(&self, t: usize ) -> Coord {
+        let mut r:i32 = -1;
+        let mut c:i32 = -1;
+        let i_t = t as i32;
+        let (i_max_row, i_max_col) = (self.i_max_row, self.i_max_col);
+        let (i_row, i_col) = (self.row as i32, self.col as i32);
+
+
+        match self.dir{
+            Direction::Up => {
+                c = i_col;
+                // messy to ignore modulo of negative
+                r =  (i_row - 1 +  (i_t * (i_max_row -2) -i_t))
+                    % (i_max_row - 2) + 1 ;
+
+            }
+            Direction::Down => {
+                c = i_col;
+                r =  ((i_row - 1 + i_t) % (i_max_row - 2)) + 1 ;
+            }
+            Direction::Left => {
+                r = i_row;
+                // messy to ignore modulo of negative
+                c =   (i_col - 1 +  (i_t * (i_max_col -2) -i_t))
+                    % (i_max_col - 2) + 1 ;
+
+
+            }
+            Direction::Right => {
+                r = i_row;
+                c= ((i_col - 1 + i_t) % (i_max_col - 2)) + 1 ;
+            }
+        }
+
+        return Coord{row: (r + 1)  as usize, col: c as usize};
+    }
+}
+
+impl Display for Blizz {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+       write!(f, "@[row={}, col={}] dir={}", self.row, self.col, self.dir)
+    }
+}
+
+impl Blizz {
+    fn new(r:usize, c:usize, d:char, num_rows: usize, num_cols: usize) -> Blizz {
+        let dir = match d
+        {
+            '^' => {Direction::Up}
+            'v' => {Direction::Down}
+            '<' => {Direction::Left}
+            '>' => {Direction::Right}
+            _ => { panic!("bad direction given in Blizz::new -> |{d}|")}
         };
-    print!("[");
-    for elem in elements {
-        print!("{}, ", elem);
+        return Blizz{ row: r, col: c, dir, i_max_row:  num_rows as i32, i_max_col: num_cols as i32 };
     }
-    println!("{}]", last);
 }
 
 
-fn rotate_elf_rules(rules: &mut VecDeque<Direction>) {
-    let top = rules.pop_front().unwrap();
-    rules.push_back(top);
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Block {
+    Empty,
+    Wall,
+    EndPoint(usize),
+    Blizzard(Direction),
+    MBlizz(usize)
 }
 
-fn gen_init_rules() -> VecDeque<Direction> {
-    let mut elf_rules: VecDeque<Direction> = VecDeque::with_capacity(4);
-    elf_rules.push_back(Direction::North);
-    elf_rules.push_back(Direction::South);
-    elf_rules.push_back(Direction::West);
-    elf_rules.push_back(Direction::East);
-    return elf_rules;
+impl std::fmt::Display for Block {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Block::Empty => { write!(f, ".") }
+            Block::Wall => { write!(f, "#") }
+            Block::EndPoint(n) => { write! {f, "{:1$}", n, 1} }
+            Block::Blizzard(d) => { write!(f, "{d}") }
+            Block::MBlizz(n) => { write! {f, "{:1$}", n, 1} }
+        }
+    }
+}
+
+
+fn print_map(a_map: ArrayBase<OwnedRepr<Block>, Ix2>) {
+    let d0 = a_map.dim().0;
+    let d1 = a_map.dim().1;
+    println!("dimensions {} by {}\n ",d0, d1);
+
+    for r in 0..d0 {
+        for c in 0..d1 {
+            let b = a_map[[r,c]];
+            print!("{b}");
+        }
+        println!();
+    }
+}
+fn map_string(a_map: ArrayBase<OwnedRepr<Block>, Ix2>) -> String {
+    let d0 = a_map.dim().0;
+    let d1 = a_map.dim().1;
+    let mut sb = String::with_capacity((d0*1)* d1);
+
+
+    for r in 0..d0 {
+        for c in 0..d1 {
+            let b = a_map[[r,c]];
+            //print!("{b}");
+            sb.push_str(&*b.to_string());
+        }
+        sb.push('\n');
+    }
+    return sb.to_string();
+}
+
+
+fn search(start_time:usize, wall_set: &HashSet<Coord>, start_point: Coord, end_point: Coord, map_index: &BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>>) -> usize {
+    let mut pq: DoublePriorityQueue<State, usize> = DoublePriorityQueue::new();
+    pq.push(State { pos: start_point, t: start_time }, start_time);
+    let mut found_goal = false;
+    let mut steps: Option<usize> = None;
+    let mut visited: HashSet<State> = HashSet::new();
+    while !found_goal && !pq.is_empty() {
+        let (current_state, current_t) = pq.pop_min().unwrap();
+        if current_state.pos == end_point {
+            found_goal = true;
+            steps = Some(current_t - 1);
+            break;
+        }
+        visited.insert(current_state);
+
+        let neighs = current_state.pos.get_neighbors();
+        let c_map = map_index.get(&current_t).unwrap();
+        for n in neighs {
+            match n {
+                None => {}
+                Some(c) => {
+                    if wall_set.contains(&c) {
+                        continue;
+                    } else {
+                        let b = c_map[[c.row, c.col]];
+                        if let Block::Empty = b {
+                            //empty spot we can move.
+                            let new_state = State { pos: c, t: current_t + 1 };
+                            if !visited.contains(&new_state) {
+                                pq.push(new_state, new_state.t);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    println!("search stopped, found_goal: {}, steps: {:?}, pq.len(): {}", found_goal, steps, pq.len());
+    if let Some(n) = steps {
+        return n;
+    } else {
+        return 0;
+    }
+
+}
+
+fn generate_map_index(num_rows: usize, num_cols: usize, wall_set: &HashSet<Coord>, blizz_vec: &Vec<Blizz>)
+                      -> BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>> {
+    let mut map_vector_init:Vec<Block> = vec![Block::Empty; num_cols*num_rows];
+    let mut map_index: BTreeMap<usize, ArrayBase<OwnedRepr<Block>, Ix2>> = BTreeMap::new();
+
+    for min in 0..=MAX_GEN_SIZE {
+        let mut a_map = Array2::from_shape_vec((num_rows, num_cols), map_vector_init.clone()).unwrap();
+
+        for w in wall_set.iter() {
+            a_map[[w.row, w.col]] = Block::Wall;
+        }
+        for b in blizz_vec.iter() {
+            let p = b.pos_at_time2(min);
+            let d = b.dir;
+            match a_map[[p.row, p.col]] {
+                Block::Empty => { a_map[[p.row, p.col]] = Blizzard(b.dir) }
+                Block::Wall => {
+                    println!("trying to put blizzard ({d}) at [{},{}], put Wall is already there", p.row, p.col);
+                    panic!("invalid placement");
+                }
+                Block::EndPoint(_) => { panic!("invalid block"); }
+                Block::Blizzard(_) => { a_map[[p.row, p.col]] = MBlizz(2); }
+                Block::MBlizz(n) => { a_map[[p.row, p.col]] = MBlizz(n + 1); }
+            }
+        }
+
+        map_index.insert(min, a_map);
+    }
+    map_index
+}
+
+
+fn parse(split_lines: Vec<&str>) -> (HashSet<Coord>, Vec<Blizz>, Coord, Coord, (usize,usize)) {
+    let v1:Vec<Vec<char>> = split_lines.iter().map(|f| f.chars().collect()).collect();
+
+    let num_rows = split_lines.len();
+    let num_cols = split_lines[0].len();
+
+
+
+
+    let mut wall_set: HashSet<Coord> = HashSet::new();
+    let mut blizz_vec: Vec<Blizz> = Vec::new();
+
+
+    let mut point_b: Option<Coord> = None;
+    let mut point_e: Option<Coord> = None;
+    for r in 0..num_rows {
+        for c in 0..num_cols {
+            match v1[r][c] {
+                '#' => { wall_set.insert(Coord { row: r, col: c }); }
+                '.' => { /*ignore empty spots*/ }
+                'B' => { //begining point
+                    point_b = Some(Coord { row: r, col: c });
+                }
+                'E' => { //ending point
+                    point_e = Some(Coord { row: r, col: c });
+                }
+                d_char => {
+                    let b = Blizz::new(r - 1, c, d_char, num_rows - 2, num_cols);
+                    blizz_vec.push(b);
+                }
+            }
+        }
+    }
+    let start_point = point_b.unwrap();
+    let end_point = point_e.unwrap();
+    (wall_set, blizz_vec, start_point, end_point, (num_rows,num_cols))
 }
 
 
@@ -234,7 +470,7 @@ fn part1() -> String {
     };
     let data1_s =
         fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let mut lines: Vec<&str> = data1_s.trim().split("\n").collect();
+    let lines: Vec<&str> = data1_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p1_file);
@@ -245,181 +481,28 @@ fn part1() -> String {
     let data1_ss = data1_s.trim();
     let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
 
-    let mut c_col;
-    let mut c_row;
-
-    let mut elf_rules: VecDeque<Direction> = gen_init_rules();
-
-    let mut elf_locations: HashSet<Coord> = HashSet::new();
-
-    let mut elves: Vec<Elf> = Vec::new();
-    c_row = 1;
-    for l in split_lines {
-        c_col = 1;
-        for c in l.chars() {
-            if c == '#' {
-                let c = Coord { row: c_row, col: c_col };
-                let mut e = Elf::new(c);
-                elves.push(e);
-                elf_locations.insert(c);
-                //println!("new-> {}", &e);
-            }
-            c_col += 1;
-        }
-        c_row += 1;
-    }
-    let mut max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
-    let mut max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
-    let mut min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
-    let mut min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
-    (min_row,min_col) = (-1,-2); (max_row,max_col) = (10,11);
-    for r in min_row..=max_row {
-        for c in min_col..=max_col {
-            if elf_locations.contains(&Coord { row: r, col: c }) {
-                print!("#");
-            } else {
-                print!(".");
-            }
-        }
-        println!();
-    }
-
-    let mut changed;
-
-    for r in 1..=10000{
-        changed=false;
-        let mut target_loc: HashSet<Coord> = HashSet::with_capacity(elves.len());
-        let mut target_count: HashMap<Coord, u32> = HashMap::new();
-
-        // First Half
-        for e_i in 0..elves.len() {
-            let neighbors: [Coord; 8] = elves[e_i].get_neighbors();
-            let mut num_neigh = 0;
-            for c in neighbors {
-                if elf_locations.contains(&c) {
-                    num_neigh += 1;
-                }
-            }
-            print!("elf@{} ", elves[e_i].loc);
-            if num_neigh == 0 {
-                elves[e_i].proposed = None;
-                println!("elf@{} doesn't want to move because of lack of neighbors", elves[e_i].loc);
-            } else {
-                let mut go: Option<Direction> = None;
-                for d in &elf_rules {
-                    let dir_coords = elves[e_i].look(*d);
-                    println!(" looks {} at {:?} ", d, dir_coords);
-                    if !elf_locations.contains(&dir_coords[0]) &&
-                        !elf_locations.contains(&dir_coords[1]) &&
-                        !elf_locations.contains(&dir_coords[2]) {
-                        go = Some(*d);
-                        break;
-                    }
-                }
-                match go {
-                    None => {
-                        elves[e_i].proposed = None;
-                        println!("elf @ {}, wants to move None  proposed: None", elves[e_i].loc);
-                    }
-                    Some(d) => {
-                        elves[e_i].proposed = Some(elves[e_i].loc.add(d));
-
-                        println!("elf @ {}, wants to move {d}  proposed: {}", elves[e_i].loc, elves[e_i].proposed.unwrap());
-                    }
-                }
-            }
-            if let Some(d) = elves[e_i].proposed {
-                if target_count.contains_key(&d) {
-                    let mut c = *target_count.get(&d).unwrap();
-                    c += 1;
-                    target_count.insert(d, c);
-                } else {
-                    target_count.insert(d, 1);
-                }
-            }
-        }
-        // Second Half
-        elf_locations = HashSet::new();
-        for e_i in 0..elves.len() {
-            print!("elf @ {}, proposed: ", elves[e_i].loc);
-            match elves[e_i].proposed {
-                None => {
-                    println!(" None ");
-                }
-                Some(p) => {
-                    println!(" {} ", p);
-                    let t = target_count.get(&p);
-                    match t {
-                        None => { elves[e_i].loc = p; changed = true;}
-                        Some(1) => { elves[e_i].loc = p; changed=true; }
-                        Some(x) => {
-                            println!("elf@{} can't moved to proposed {} because {} want to", elves[e_i].loc, elves[e_i].proposed.unwrap(), x);
-                        }
-                    }
-                }
-            }
+    let (wall_set, blizz_vec, start_point, end_point,(num_rows,num_cols)) = parse(split_lines);
 
 
-            elf_locations.insert(elves[e_i].loc);
-            elves[e_i].proposed = None;
-        }
+    let map_index = generate_map_index(num_rows, num_cols, &wall_set, &blizz_vec);
 
-        max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
-        max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
-        min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
-        min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
+    let steps = search(0,&wall_set, start_point, end_point, &map_index);
 
-        //  println!("range: ({min_row}, {min_col}) -> ({max_row},{max_col})");
 
-        (min_row,min_col) = (-1,-2); (max_row,max_col) = (10,11);
-        println!("End of Round {r}");
-        for r in min_row..=max_row {
-            for c in min_col..=max_col {
-                if elf_locations.contains(&Coord { row: r, col: c }) {
-                    print!("#");
-                } else {
-                    print!(".");
-                }
-            }
-            println!();
-        }
-        rotate_elf_rules(&mut elf_rules);
-        if !changed {
-            eprintln!("no change in round {r}");
-            break;
-        }else {
-            eprintln!("change in round {r}");
-        }
-    }
-
-    max_row = elf_locations.iter().map(|e| e.row).max().unwrap();
-    max_col = elf_locations.iter().map(|e| e.col).max().unwrap();
-    min_row = elf_locations.iter().map(|e| e.row).min().unwrap();
-    min_col = elf_locations.iter().map(|e| e.col).min().unwrap();
-    let mut dot_count=0;
-    for r in min_row..=max_row {
-        for c in min_col..=max_col {
-            if !elf_locations.contains(&Coord { row: r, col: c }) {
-                dot_count += 1;
-            }
-        }
-    }
-    println!("empty ground tiles is {}", dot_count);
-
-    println!("\n\n\n done");
-    let answer1 = dot_count.to_string();
+    let answer1 = steps;
     return answer1.to_string();
 }
 
 
 fn part2() -> String {
+    println!("   start part 2");
     let p2_file = match TEST {
         true => PART2_TEST_FILENAME,
         false => PART2_INPUT_FILENAME
     };
     let data2_s =
         fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-    let mut lines: Vec<&str> = data2_s.trim().split("\n").collect();
+    let lines: Vec<&str> = data2_s.trim().split("\n").collect();
     let l_num = lines.len();
     if TEST {
         println!("\t read {} lines from {}", l_num, p2_file);
@@ -428,9 +511,40 @@ fn part2() -> String {
         }
     }
     let data2_ss = data2_s.trim();
-    let split_lines: Vec<&str> = data2_ss.split(LINE_ENDING).collect();
+
+    let data1_ss = data2_s.trim();
+    let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
+
+    let (wall_set, blizz_vec, start_point, end_point,(num_rows,num_cols)) = parse(split_lines);
+
+    let map_index = generate_map_index(num_rows, num_cols, &wall_set, &blizz_vec);
+
+    let mut total_minutes = 0;
+    let first_trip = search(total_minutes, &wall_set, start_point, end_point, &map_index);
+
+    println!("first trip from {}{} to {} took {} minutes  ({} total so far)",
+             total_minutes, start_point, end_point, first_trip, first_trip);
+    total_minutes += first_trip;
+
+    let second_trip = search(total_minutes, &wall_set, end_point, start_point, &map_index)
+        - first_trip;
 
 
-    let answer2 = String::new();
+    println!("second trip from {}{} to {} took {} minutes  ({} total so far)",
+             total_minutes, end_point, start_point, second_trip, first_trip+second_trip);
+    total_minutes += second_trip;
+
+
+    let third_trip = search(total_minutes, &wall_set, start_point, end_point, &map_index)
+        - total_minutes;
+
+
+    println!("third trip from {}{} to {} took {} minutes  ({} total so far)",
+             total_minutes, start_point, end_point, third_trip, first_trip+second_trip+third_trip);
+    let total_minutes = first_trip + second_trip + third_trip;
+    println!("total_minutes: {total_minutes}");
+
+
+    let answer2 = total_minutes.to_string();
     return answer2.to_string();
 }
