@@ -116,6 +116,14 @@ impl Display for Coord {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+struct State {
+    pos: Coord,
+    t: usize
+}
+
+
+
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 struct Blizz {
