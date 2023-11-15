@@ -5,9 +5,10 @@
 #![allow(unused_assignments)]
 
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::fs;
+use std::process::exit;
 use std::time::Instant;
 
 /*
@@ -29,7 +30,7 @@ const PART1_INPUT_FILENAME: &str = "data/day24/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day24/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day24/part2_input.txt";
 
-const TEST: bool = true;
+const TEST: bool = false;
 
 
 fn main() {
@@ -102,6 +103,11 @@ impl std::fmt::Display for Direction {
         })
     }
 }
+impl Direction {
+    fn iterator() -> impl Iterator<Item = Direction> {
+        [Direction::Up, Direction::Down, Direction::Right, Direction::Left].iter().copied()
+    }
+}
 
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -110,11 +116,54 @@ struct Coord {
     col: usize,
 }
 
+impl Coord {
+    fn get_neighbors(&self) -> [Option<Coord>; 5] {
+        let mut result:[Option<Coord>;5] = Default::default();
+        let mut i =0 ;
+        for d in Direction::iterator() {
+            result[i] = self.step(d);
+            i += 1;
+        }
+        result[i] = Some(self.clone());
+        return result;
+    }
+}
+
 impl Display for Coord {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f,"@[row={}, col={}]", self.row, self.col )
     }
 }
+
+impl Coord {
+    fn step(&self, d:Direction) -> Option<Coord> {
+        let (r,c) = (self.row, self.col);
+        match d {
+            Direction::Up => {
+                if r == 0 {
+                    return None
+                } else {
+                    return Some(Coord { row: r - 1, col: c });
+                }
+            }
+            Direction::Down => {
+                return Some(Coord { row: r+1,col: c});
+            }
+            Direction::Left => {
+                if c == 0 {
+                    return None;
+                } else {
+                    return Some(Coord { row: r, col: c - 1 });
+                }
+            }
+            Direction::Right => {
+                return Some(Coord { row: r, col: c+1});
+            }
+        }
+    }
+
+}
+
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 struct State {
@@ -129,15 +178,17 @@ struct State {
 struct Blizz {
     row: usize,
     col: usize,
-    dir: Direction
+    dir: Direction,
+    i_max_row: i32,
+    i_max_col: i32
 }
 
 impl Blizz {
-     fn pos_at_time(&self, t: i32, (max_row, max_col):(usize,usize) ) -> Coord {
+     fn pos_at_time(&self, t: usize ) -> Coord {
          let mut r:i32 = -1;
          let mut c:i32 = -1;
-
-         let (i_max_row, i_max_col) = (max_row as i32, max_col as i32);
+            let i_t = t as i32;
+         let (i_max_row, i_max_col) = (self.i_max_row, self.i_max_col);
          let (i_row, i_col) = (self.row as i32, self.col as i32);
 
 
@@ -145,25 +196,25 @@ impl Blizz {
              Direction::Up => {
                  c = i_col;
                  // messy to ignore modulo of negative
-                 r =  (i_row - 1 +  (t * (i_max_row -2) -t))
+                 r =  (i_row - 1 +  (i_t * (i_max_row -2) -i_t))
                      % (i_max_row - 2) + 1 ;
 
              }
              Direction::Down => {
                  c = i_col;
-                 r =  ((i_row - 1 + t) % (i_max_row - 2)) + 1 ;
+                 r =  ((i_row - 1 + i_t) % (i_max_row - 2)) + 1 ;
              }
              Direction::Left => {
                  r = i_row;
                  // messy to ignore modulo of negative
-                 c =   (i_col - 1 +  (t * (i_max_col -2) -t))
+                 c =   (i_col - 1 +  (i_t * (i_max_col -2) -i_t))
                      % (i_max_col - 2) + 1 ;
 
 
              }
              Direction::Right => {
                  r = i_row;
-                 c= ((i_col - 1 + t) % (i_max_col - 2)) + 1 ;
+                 c= ((i_col - 1 + i_t) % (i_max_col - 2)) + 1 ;
              }
          }
 
@@ -178,7 +229,7 @@ impl Display for Blizz {
 }
 
 impl Blizz {
-    fn new(r:usize, c:usize, d:char) -> Blizz {
+    fn new(r:usize, c:usize, d:char, num_rows: usize, num_cols: usize) -> Blizz {
         let dir = match d
         {
             '^' => {Direction::Up}
@@ -187,14 +238,14 @@ impl Blizz {
             '>' => {Direction::Right}
             _ => { panic!("bad direction given in Blizz::new -> |{d}|")}
         };
-        return Blizz{ row: r, col: c, dir, };
+        return Blizz{ row: r, col: c, dir, i_max_row:  num_rows as i32, i_max_col: num_cols as i32 };
     }
 }
 
 
 fn part1() -> String {
     let p1_file = match TEST {
-        true => PART1_TEST_FILENAME,
+        true => PART1B_TEST_FILENAME,
         false => PART1_INPUT_FILENAME
     };
     let data1_s =
@@ -234,7 +285,7 @@ fn part1() -> String {
                 '#' => {wall_set.insert(Coord{row: r, col: c});}
                 '.' => {/*ignore empty spots*/ }
                 d_char => {
-                    let b = Blizz::new(r,c,d_char);
+                    let b = Blizz::new(r,c,d_char, num_rows, num_cols);
                     coord_to_blizz.insert(Coord{row: r, col: c}, b);
                     blizz_vec.push(b);
                 }
@@ -243,57 +294,76 @@ fn part1() -> String {
     }
 
     println!("found {} blizzards", blizz_vec.len());
-    //
-    // for b in blizz_vec.iter() {
-    //     println!("start {}", b);
-    //     for t in 0..10 {
-    //         let c = b.pos_at_time(t,dims);
-    //         println!("\t at time {t}, {c}");
-    //     }
-    //     println!();
-    // }
 
 
-    for t in 0..=5 {
-        println!(" === time {t} ===");
-        for r in 0..num_rows {
-            for c in 0..num_cols {
-                let mut empty = true;
-                let co = Coord { row: r, col: c };
-                if co == start_coord {
-                    print!("B");
-                    empty = false;
-                    continue
-                } else if co == end_coord {
-                    print!("E");
-                    empty = false;
-                    continue
-                } else if wall_set.contains(&co) {
-                    print!("#");
-                    empty = false;
-                    continue
-                }
+    let mut found_goal=false;
 
-                for b in &blizz_vec {
-                    let t_coord = b.pos_at_time(t, dims);
-                    if t_coord == co {
-                        print!("{}", b.dir);
-                        empty = false;
-                        break;
-                    }
+    let mut open_places:VecDeque<State> = VecDeque::new();
+    let mut visited:HashSet<State> = HashSet::new();
+    open_places.push_back(State{pos: start_coord, t: 0});
+    let goal_loc = end_coord;
+    let mut goal_time = 0;
 
-                }
-                if empty {
-                    print!(".");
-                }
-            }
-            println!();
+
+    let start_neightbors =
+                        [start_coord.step(Direction::Down),None, None, None, Some(start_coord)];
+    println!("init open_places: {:?}", open_places);
+//let mut it= 0;
+   while !found_goal && !open_places.is_empty() {
+       //it += 1;
+        let current = open_places.pop_front().unwrap();
+
+  //         println!("current State: {:?},  V={}, O={}", current, visited.len(), open_places.len());
+
+      // println!("visited: {:?}", visited);
+      // println!("open_places: {:?}", open_places);
+
+        visited.insert(current);
+        if current.pos == end_coord {
+            println!("found goal with State: {:?}", current);
+            goal_time = current.t;
+            found_goal = true;
+            break;
         }
-        println!("===================\n");
-    }
+        let neighbors =
+            if current.pos == start_coord{start_neightbors }
+            else {current.pos.get_neighbors()};
+        let new_t: usize = current.t + 1;
+        for n in neighbors {
+            match n {
+                Some(co) => {
+                    if wall_set.contains(&co) {continue; } else {
+                        let s = State { pos: co, t: new_t };
+                        if !visited.contains(&s) {
+                            let mut b_check_good = true;
+                            for b in &blizz_vec {
+                                if b.pos_at_time(new_t) == co {
+                                    b_check_good = false;
+                                    break;
+                                }
+                            }
+                            if b_check_good {
+                                open_places.push_back(s);
+                            }
+                        }
+                    }
+                },
+                None => {}
+            }
+        }
+
+   }
+    println!("Reached {} in {} steps", goal_loc, goal_time);
 
 
-            let answer1 = String::new();
+
+
+
+
+
+
+
+    let answer1 = String::new();
     return answer1.to_string();
 }
 
