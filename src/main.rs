@@ -20,8 +20,9 @@ use std::time::Instant;
  */
 
 
-const TEST_ANSWER: (i64, i64) = (20, 110);
-const INPUT_ANSWER: (i64, i64) = (4195, 1069);
+const TEST_ANSWER: (i64, i64) = (18, 110);
+// 25.652ms
+const INPUT_ANSWER: (i64, i64) = (301, 859);
 
 const PART1_TEST_FILENAME: &str = "data/day24/part1_test.txt";
 const PART1B_TEST_FILENAME: &str = "data/day24/part1b_test.txt";
@@ -30,7 +31,7 @@ const PART1_INPUT_FILENAME: &str = "data/day24/part1_input.txt";
 const PART2_TEST_FILENAME: &str = "data/day24/part2_test.txt";
 const PART2_INPUT_FILENAME: &str = "data/day24/part2_input.txt";
 
-const TEST: bool = false;
+const TEST: bool = true;
 
 
 fn main() {
@@ -279,19 +280,42 @@ fn part1() -> String {
     let mut blizz_vec:Vec<Blizz> = Vec::new();
     let mut coord_to_blizz:HashMap<Coord, Blizz> = HashMap::new();
 
+    let mut row_bs:Vec<HashSet<Blizz>> = Vec::with_capacity(num_rows);
+    for r in 0..num_rows {
+        let mut bs:HashSet<Blizz> = HashSet::new();
+        row_bs.insert(r,bs);
+    }
+
+
+    let mut col_bs:Vec<HashSet<Blizz>> = Vec::with_capacity(num_cols);
+    for c in 0..num_cols {
+        let mut bs:HashSet<Blizz> = HashSet::new();
+        col_bs.insert(c,bs);
+    }
+
+
+
     for r in 0..num_rows {
         for c in 0..num_cols {
             match v1[r][c] {
                 '#' => {wall_set.insert(Coord{row: r, col: c});}
                 '.' => {/*ignore empty spots*/ }
                 d_char => {
-                    let b = Blizz::new(r,c,d_char, num_rows, num_cols);
+                   let b = Blizz::new(r,c,d_char, num_rows, num_cols);
                     coord_to_blizz.insert(Coord{row: r, col: c}, b);
                     blizz_vec.push(b);
+                    if b.dir == Direction::Left || b.dir == Direction::Right {
+                        row_bs[b.row].insert(b);
+                    } else {
+                        col_bs[b.col].insert(b);
+                    }
                 }
             }
         }
     }
+
+
+
 
     println!("found {} blizzards", blizz_vec.len());
 
@@ -329,10 +353,12 @@ fn part1() -> String {
             if current.pos == start_coord{start_neightbors }
             else {current.pos.get_neighbors()};
         let new_t: usize = current.t + 1;
+
         for n in neighbors {
             match n {
                 Some(co) => {
-                    if wall_set.contains(&co) {continue; } else {
+                    if wall_set.contains(&co) || (new_t > 310)
+                    {continue; } else {
                         let s = State { pos: co, t: new_t };
                         if !visited.contains(&s) {
                             let mut b_check_good = true;
