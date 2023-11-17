@@ -5,20 +5,23 @@
 #![allow(unused_assignments)]
 
 
+
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
-use std::fs;
-use std::io::BufWriter;
+use std::{fmt, fs};
+use std::fs::File;
+use std::io::{BufRead, BufReader, BufWriter};
 use std::io::Write;
 use std::path::Component::ParentDir;
 use std::process::exit;
 use std::time::Instant;
+use itertools::Itertools;
 use ndarray::{Array2, ArrayBase, Ix2, OwnedRepr};
 use priority_queue::{DoublePriorityQueue, PriorityQueue};
 use crate::Block::{Blizzard, MBlizz};
 
 /*
-    Advent of Code 2022: Day 24`
+    Advent of Code 2022: Day 16`
         part1 answer: 301
         part2 answer:
 
@@ -27,25 +30,26 @@ p2: 860 -- too high
  */
 
 
-const TEST_ANSWER: (i64, i64) = (18, 54);
+const TEST_ANSWER: (i64, i64) = (1651, 54);
 // 25.652ms
 const INPUT_ANSWER: (i64, i64) = (301, 859);
 
-const PART1_TEST_FILENAME: &str = "data/day24/part1_test.txt";
-const PART1B_TEST_FILENAME: &str = "data/day24/part1b_test.txt";
-const PART1_INPUT_FILENAME: &str = "data/day24/part1_input.txt";
 
-const PART2_TEST_FILENAME: &str = "data/day24/part2_test.txt";
-const PART2_INPUT_FILENAME: &str = "data/day24/part2_input.txt";
+const PART1_TEST_FILENAME: &str = "data/day16/part1_test.txt";
+const PART1_INPUT_FILENAME: &str = "data/day16/part1_input.txt";
+const PART2_TEST_FILENAME: &str = "data/day16/part2_test.txt";
+const PART2_INPUT_FILENAME: &str = "data/day16/part2_input.txt";
 
-const TEST: bool = false;
 
-const MAX_GEN_SIZE:usize = 1000;
+
+
+const TEST: bool = true;
+
+
 
 fn main() {
     print!("Advent of Code 2022, Day ");
     println!("24");                           // insert Day
-
 
     let start1 = Instant::now();
     let answer1 = part1();
@@ -67,31 +71,36 @@ fn main() {
     let start2 = Instant::now();
     let answer2 = part2();
     let duration2 = start2.elapsed();
-
     println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-
 
     if TEST {
         if answer2 != TEST_ANSWER.1.to_string() {
             println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-                     answer2,TEST_ANSWER.1.to_string() )
+                     answer2, TEST_ANSWER.1.to_string())
         }
     } else {
         if answer2 != INPUT_ANSWER.1.to_string() {
             println!("\t\t ERROR: Answer is WRONG. Got: {} , Expected {}",
-                     answer2,TEST_ANSWER.1.to_string() )
+                     answer2, TEST_ANSWER.1.to_string())
         }
     }
-
-
     println!("----------\ndone");
 }
 
 
-#[cfg(windows)]
-const LINE_ENDING: &'static str = "\r\n";
-#[cfg(not(windows))]
-const LINE_ENDING: &'static str = "\n";
+
+
+
+
+
+
+
+
+
+
+const MAX_GEN_SIZE:usize = 1000;
+
+
 
 #[derive(Hash, PartialEq, Eq, Debug, Copy, Clone)]
 enum Direction {
@@ -463,33 +472,150 @@ fn parse(split_lines: Vec<&str>) -> (HashSet<Coord>, Vec<Blizz>, Coord, Coord, (
 }
 
 
+
+
+#[derive(PartialEq, Debug,Eq,Hash)]
+struct Room {
+    id:i32,
+    value:i32,
+    connected:Vec<i32>
+}
+//Valve LW has flow rate=0; tunnels lead to valves AA, HT
+
+impl fmt::Display for Room {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Value {} has flow rate={}; tunnels leads to values: {:?}",
+               self.id, self.value, self.connected
+        )
+    }
+}
+
+
+impl Default for Room {
+    fn default() -> Room {
+        Room {
+            id: -1,
+            value: -1,
+            connected: Vec::new(),
+        }
+    }
+}
+
+
+
+fn alpha_to_num(s:&String) -> i32{
+    let ch1:u8 = s.chars().nth(0).unwrap() as u8;
+    let ch2:u8 = s.chars().nth(1).unwrap() as u8;
+    let mut base:i32 = 0;
+    let right =  ch1 - ('A' as u8) ;
+    if ch1 == ch2 {
+        return right as i32;
+    } else {
+        base = 26;
+    }
+    let left:i32 =  (ch2 - ('A' as u8)) as i32;
+    let p = (right as i32) + (26  * left) as i32 + base ;
+    return p;
+}
+
+
+fn generate_alpha_mapping()->HashMap<(char,char),i32> {
+    let mut n_to_a: HashMap<(char, char), i32> = HashMap::new();
+
+    for ch1 in 'A'..='Z' {
+        for ch2 in 'A'..='Z' {
+            let p = (ch1, ch2);
+            let mut sb = String::new();
+            sb.push(ch1);
+            sb.push(ch2);
+            let n = alpha_to_num(&sb);
+            let r = n_to_a.insert(p, n);
+            if r != None {
+                panic!("overwrote {sb}");
+            }
+        }
+    }
+    return n_to_a;
+}
+
+
+fn parse_room(ln: &mut &str) -> Room {
+    let (mut l, mut r) = ln.split_once("=").unwrap();
+    // println!("l=|{}|", l);
+    let (ch1, ch2) = (l.chars().nth(6).unwrap(), l.chars().nth(7).unwrap());
+    let mut s_id = String::with_capacity(2);
+    s_id.push(ch1);
+    s_id.push(ch2);
+    // println!("ch1={ch1}, ch2={ch2}");
+    let (mut l, mut r) = r.split_once(";").unwrap();
+    let val: i32 = l.parse().unwrap();
+    // println!("val= |{}|", val);
+    // println!("r=|{r}| pre tunnels");
+    let mut v_part;
+    if r.contains("tunnels") {
+        let (mut l, mut r) = r.split_at(24);
+        v_part = r;
+        // println!("l= |{l}| r=|{r}|");
+    } else {
+        let (mut l , mut r) = r.split_at(23);
+        v_part = r;
+        // println!("l= |{l}| r=|{r}|");
+    }
+
+    let parts: Vec<&str> = v_part.split(", ").collect();
+    // println!("{:?}", parts);
+    let mut v: Vec<i32> = Vec::new();
+
+    for p in parts {
+        let n = alpha_to_num(&p.to_string());
+        // println!("p=|{p}|");
+        // println!("p=|{p}|, n={n}");
+        v.push(n);
+    }
+    // println!("s_id: |{}|", s_id);
+    // println!("{:?}", v);
+
+    let mut r=   Room {
+        id: alpha_to_num(&s_id),
+        value: val,
+        connected: v.clone(),
+    };
+    return r;
+}
+pub fn factorial(num: u128) -> u128 {
+    match num {
+        0  => 1,
+        1.. => (1..num+1).product(),
+    }
+}
+
+
 fn part1() -> String {
     let p1_file = match TEST {
         true => PART1_TEST_FILENAME,
         false => PART1_INPUT_FILENAME
     };
-    let data1_s =
-        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let lines: Vec<&str> = data1_s.trim().split("\n").collect();
-    let l_num = lines.len();
+    let file = File::open(p1_file).expect(&*format!("error opening file {}", p1_file));
+    let bfile = BufReader::new(file);
+    let lines:Vec<String> = bfile.lines().filter_map(|x| x.ok()).collect();
+
     if TEST {
+        let l_num = lines.len();
         println!("\t read {} lines from {}", l_num, p1_file);
         if l_num == 1 {
             println!("\t\t line read has length: {}", lines[0].len());
         }
     }
-    let data1_ss = data1_s.trim();
-    let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
-
-    let (wall_set, blizz_vec, start_point, end_point,(num_rows,num_cols)) = parse(split_lines);
 
 
-    let map_index = generate_map_index(num_rows, num_cols, &wall_set, &blizz_vec);
-
-    let steps = search(0,&wall_set, start_point, end_point, &map_index);
 
 
-    let answer1 = steps;
+
+
+
+
+
+    let answer1 = String::new();
     return answer1.to_string();
 }
 
@@ -500,51 +626,21 @@ fn part2() -> String {
         true => PART2_TEST_FILENAME,
         false => PART2_INPUT_FILENAME
     };
-    let data2_s =
-        fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-    let lines: Vec<&str> = data2_s.trim().split("\n").collect();
-    let l_num = lines.len();
+
+    let file = File::open(p2_file).expect(&*format!("error opening file {}", p2_file));
+    let bfile = BufReader::new(file);
+    let lines:Vec<String> = bfile.lines().filter_map(|x| x.ok()).collect();
+
     if TEST {
+        let l_num = lines.len();
         println!("\t read {} lines from {}", l_num, p2_file);
         if l_num == 1 {
             println!("\t\t line read has length: {}", lines[0].len());
         }
     }
-    let data2_ss = data2_s.trim();
-
-    let data1_ss = data2_s.trim();
-    let split_lines: Vec<&str> = data1_ss.split(LINE_ENDING).collect();
-
-    let (wall_set, blizz_vec, start_point, end_point,(num_rows,num_cols)) = parse(split_lines);
-
-    let map_index = generate_map_index(num_rows, num_cols, &wall_set, &blizz_vec);
-
-    let mut total_minutes = 0;
-    let first_trip = search(total_minutes, &wall_set, start_point, end_point, &map_index);
-
-    println!("first trip from {}{} to {} took {} minutes  ({} total so far)",
-             total_minutes, start_point, end_point, first_trip, first_trip);
-    total_minutes += first_trip;
-
-    let second_trip = search(total_minutes, &wall_set, end_point, start_point, &map_index)
-        - first_trip;
 
 
-    println!("second trip from {}{} to {} took {} minutes  ({} total so far)",
-             total_minutes, end_point, start_point, second_trip, first_trip+second_trip);
-    total_minutes += second_trip;
 
-
-    let third_trip = search(total_minutes, &wall_set, start_point, end_point, &map_index)
-        - total_minutes;
-
-
-    println!("third trip from {}{} to {} took {} minutes  ({} total so far)",
-             total_minutes, start_point, end_point, third_trip, first_trip+second_trip+third_trip);
-    let total_minutes = first_trip + second_trip + third_trip;
-    println!("total_minutes: {total_minutes}");
-
-
-    let answer2 = total_minutes.to_string();
+    let answer2 = String::new();
     return answer2.to_string();
 }
