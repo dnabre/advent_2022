@@ -57,13 +57,22 @@ fn string_to_pair(s:&str) -> (char,char) {
 struct Room {
     id: usize,
     flow: i32,
-    connects: HashSet<usize>,
+    connects: Vec<usize>,
 }
 
 impl Display for Room {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Room [{}] @ {}: {:?}", self.id, self.flow, self.connects)
     }
+}
+
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+struct State {
+    opened: BTreeSet<usize>,
+    c_room: usize,
+    m_elapsed: i32,
+    p_relieved: i32,
 }
 
 
@@ -118,8 +127,14 @@ fn main() {
 
 
 
+fn id_from_string(s: &str, char_to_number: HashMap<(char, char), usize>) -> (usize, (char, char)) {
+    let p = string_to_pair(s);
+    let id = char_to_number.get(&p).unwrap();
+    return (*id,p);
+}
 
-fn parse_room(line: &String, char_map:&HashMap<(char,char),usize>) -> (usize, i32, HashSet<usize>) {
+
+fn parse_room(line: &String, char_map:&HashMap<(char,char),usize>) -> (usize, i32, Vec<usize>) {
     let (valve, neighbors) = line.split_once("; ").unwrap();
     let valve = valve.strip_prefix("Valve ").unwrap();
     let (name, flow) = valve.split_once(" has flow rate=").unwrap();
@@ -129,15 +144,34 @@ fn parse_room(line: &String, char_map:&HashMap<(char,char),usize>) -> (usize, i3
         .or_else(|| neighbors.strip_prefix("tunnel leads to valve "))
         .unwrap();
 
-    let neighbors:HashSet<&str> = neighbors.split_terminator(", ").collect();
+    let neighbors:Vec<&str> = neighbors.split_terminator(", ").collect();
 
     let id:usize = *char_map.get(&string_to_pair(name)).unwrap();
-    let i_neigh:HashSet<usize> = neighbors.iter().map(|s|*char_map.get(&string_to_pair(s)).unwrap()).collect();
+    let i_neigh:Vec<usize> = neighbors.iter().map(|s|*char_map.get(&string_to_pair(s)).unwrap()).collect();
     (id, flow,i_neigh)
 }
 
 const MAX_MINUTES: i32 = 30;
 const START_ROOM:&str = "AA";
+
+
+fn wait_until_ending(
+    elapsed: i32,
+    relieved: i32,
+    opened: &BTreeSet<usize>,
+    room_vec:&Vec<Option<&Room>>
+
+) -> i32 {
+    let mut final_relieved = relieved;
+    let time_left = MAX_MINUTES - elapsed;
+    for v in opened.iter() {
+        let r = room_vec[*v].unwrap();
+        let f = r.flow;
+        final_relieved += f * time_left;
+    }
+    final_relieved
+}
+
 
 fn part1() -> String {
     let p1_file = match TEST {
@@ -162,6 +196,7 @@ fn part1() -> String {
     let mut char_index:usize =0;
     let mut char_to_number:HashMap<(char,char), usize> = HashMap::new();
     let mut char_name_vec:Vec<(char,char)> = Vec::new();
+    let mut room_vec:Vec<Option<&Room>> = Vec::new();
 
     for one in 'A'..='Z' {
         for two in 'A' ..='Z'{
@@ -169,32 +204,90 @@ fn part1() -> String {
             char_name_vec.push(t);
             char_to_number.insert(t, char_index);
             char_index += 1;
+            room_vec.push(None);
         }
     }
-    let char_to_number = char_to_number;
-    let char_name_vec = char_name_vec;
 
-    let mut room_vec:Vec<Room> = Vec::new();
+    let char_to_number: HashMap<(char, char), usize> = char_to_number;
+    let char_name_vec: Vec<(char, char)> = char_name_vec;
+
+    let mut raw_room_vec:Vec<Room> = Vec::new();
+
     for i in 0..lines.len() {
         let  (name, flow,neighbors) =   parse_room(&lines[i], &char_to_number);
         let new_room = Room{
             id: name,
             flow: flow,
             connects: neighbors,
-        };
-
-        println!("{}", lines[i]);
-        println!("\t {}", new_room);
-        let p_list:Vec<(char,char)> = new_room.connects.iter().map(|s| char_name_vec[*s]).collect();
-        println!("\t Room [{:?}] @ {}: {:?}", char_name_vec[new_room.id], new_room.flow,p_list);
-
-
-        room_vec.push(new_room);
-
+            };
+        raw_room_vec.push(new_room);
     }
+    let raw_room_vec = raw_room_vec;
+    for i in 0..raw_room_vec.len() {
+        let id:usize = raw_room_vec[i].id;
+        room_vec[id] = Some(&raw_room_vec[i]);
+    }
+    //number of valves
+    let flowing = raw_room_vec.len();
+
+    println!("number of rooms: {}", raw_room_vec.len());
 
 
     // note in search expansion, include an option to stand sill for round
+
+    let (id ,(c1,c2)) = id_from_string(START_ROOM ,char_to_number);
+    let room = room_vec[id].unwrap();
+    println!("Starting in {START_ROOM}, id: {id}, {:?}:\n\t {}", (c1,c2), room);
+
+    let mut current_state = State {
+        opened: BTreeSet::new(),
+        c_room: id,
+        m_elapsed: 0,
+        p_relieved: 0,
+    };
+
+    let mut max_press = -1;
+    let mut visited:HashSet<State> = HashSet::new();
+    let mut search_queue:VecDeque<State> = VecDeque::new();
+    // clone because we're going to mutate it
+    visited.insert(current_state.clone());
+
+    while !search_queue.is_empty() {
+        current_state = search_queue.pop_front().unwrap();
+        if current_state.opened.len() == flowing || current_state.m_elapsed >= 30 {
+
+            // No more valves to open or out of time. Tally final release and discard
+            let final_relieve = wait_until_ending(current_state.m_elapsed, current_state.p_relieved,
+                                                  &current_state.opened, &room_vec);
+            if final_relieve > max_press {
+                max_press = final_relieve;
+                println!("new max found: {}", max_press);
+            }
+
+
+        } else {   // Expand State
+            println!("expanding {:?}", current_state);
+            //add any pressure for any openned values
+            for v in current_state.opened.iter() {
+                let r = room_vec[*v].unwrap();
+                let f = r.flow;
+                current_state.p_relieved += f;
+            }
+            current_state.m_elapsed += 1;
+
+
+            let neighs = &room_vec[current_state.c_room].unwrap().connects;
+            for n in neighs {
+                let mut new_state = current_state.clone();
+                new_state.c_room = *n;
+                if !visited.contains(&current_state) {
+                    search_queue.push_front(current_state.clone());
+                }
+            }
+        }
+    }
+    println!("search finished, best pressure: {}", max_press);
+
 
 
 
