@@ -69,10 +69,9 @@ impl Display for Room {
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 struct State {
-    opened: BTreeSet<usize>,
+    opened: BTreeMap<usize,i32>,
     c_room: usize,
-    m_elapsed: i32,
-    p_relieved: i32,
+    m_elapsed: i32
 }
 
 
@@ -237,56 +236,16 @@ fn part1() -> String {
 
     let (id ,(c1,c2)) = id_from_string(START_ROOM ,char_to_number);
     let room = room_vec[id].unwrap();
-    println!("Starting in {START_ROOM}, id: {id}, {:?}:\n\t {}", (c1,c2), room);
+    println!("Starting in {START_ROOM}, id: {id}, {:?}:\n\t {}", (c1,c2), *room);
+
+    let mut max_press:i32 = i32::MIN;
+
 
     let mut current_state = State {
-        opened: BTreeSet::new(),
+        opened: Default::default(),
         c_room: id,
         m_elapsed: 0,
-        p_relieved: 0,
     };
-
-    let mut max_press = -1;
-    let mut visited:HashSet<State> = HashSet::new();
-    let mut search_queue:VecDeque<State> = VecDeque::new();
-    // clone because we're going to mutate it
-    visited.insert(current_state.clone());
-
-    while !search_queue.is_empty() {
-        current_state = search_queue.pop_front().unwrap();
-        if current_state.opened.len() == flowing || current_state.m_elapsed >= 30 {
-
-            // No more valves to open or out of time. Tally final release and discard
-            let final_relieve = wait_until_ending(current_state.m_elapsed, current_state.p_relieved,
-                                                  &current_state.opened, &room_vec);
-            if final_relieve > max_press {
-                max_press = final_relieve;
-                println!("new max found: {}", max_press);
-            }
-
-
-        } else {   // Expand State
-            println!("expanding {:?}", current_state);
-            //add any pressure for any openned values
-            for v in current_state.opened.iter() {
-                let r = room_vec[*v].unwrap();
-                let f = r.flow;
-                current_state.p_relieved += f;
-            }
-            current_state.m_elapsed += 1;
-
-
-            let neighs = &room_vec[current_state.c_room].unwrap().connects;
-            for n in neighs {
-                let mut new_state = current_state.clone();
-                new_state.c_room = *n;
-                if !visited.contains(&current_state) {
-                    search_queue.push_front(current_state.clone());
-                }
-            }
-        }
-    }
-    println!("search finished, best pressure: {}", max_press);
 
 
 
