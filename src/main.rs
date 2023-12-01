@@ -247,6 +247,13 @@ fn part1() -> String {
         m_elapsed: 0,
     };
 
+    let mut visited:BTreeSet<State> = BTreeSet::new();
+    let mut work_queue:VecDeque<State> = VecDeque::new();
+
+    // ::q
+
+
+
 
 
 
