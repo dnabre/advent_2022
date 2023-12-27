@@ -1,249 +1,141 @@
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-#![allow(dead_code)]
-#![allow(unused_assignments)]
-
-
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::fs;
-use std::time::Instant;
-use std::fmt;
-
-use parse_display::FromStr;
+use std::collections::{BTreeSet, HashSet};
+use std::hash::Hash;
+use std::ops::Range;
+use std::time::{Instant, SystemTime};
 
 /*
-    Advent of Code 2022: Day 16
-        part1 answer:
+    Advent of Code 2023: Day 25
+        part1 answer:   514786
         part2 answer:
 
- */
-
-const TEST_ANSWER: (u32, u32) = (0, 0);
-const INPUT_ANSWER: (u32, u32) = (0, 0);
-
-const PART1_TEST_FILENAME: &str = "data/day16/part1_test.txt";
-const PART1_INPUT_FILENAME: &str = "data/day16/part1_input.txt";
-const PART2_TEST_FILENAME: &str = "data/day16/part2_test.txt";
-const PART2_INPUT_FILENAME: &str = "data/day16/part2_input.txt";
-
-
-const TEST: bool = false;
+*/
+const ANSWER: (&str, &str) = ("514786", "Button Pressed");
 
 fn main() {
-    print!("Advent of Code 2022, Day ");
-    println!("16");
+    let _filename_test = "data/day25/test_input_01.txt";
+    let _filename_test2 = "data/day25/test_input_02.txt";
 
+    let filename_part1 = "data/day25/part1_input.txt";
+
+    println!("Advent of Code, Day 25");
+    println!("    ---------------------------------------------");
     let start1 = Instant::now();
-    let answer1 = part1();
+    let answer1 = part1(filename_part1);
     let duration1 = start1.elapsed();
 
-    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
-
-    // if TEST {
-    //     assert_eq!(answer1, TEST_ANSWER.0.to_string());
-    // } else {
-    //     assert_eq!(answer1, INPUT_ANSWER.0.to_string());
-    // }
+    println!("\t Part 1: {:14} time: {:?}", answer1, duration1);
+    if ANSWER.0 != answer1 {
+        println!(
+            "\t\t ERROR: Answer is WRONG. Got: {}, Expected {}",
+            answer1, ANSWER.0
+        );
+    }
 
     let start2 = Instant::now();
     let answer2 = part2();
     let duration2 = start2.elapsed();
 
-    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-
-    // if TEST {
-    //     assert_eq!(answer2, TEST_ANSWER.1.to_string());
-    // } else {
-    //     assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-    // }
-
-
-    println!("----------\ndone");
-}
-
-const MAX_TIME:i32 = 30;
-
-
-#[derive(PartialEq, Debug,Eq,Hash)]
-struct Room {
-    id:i32,
-    value:i32,
-    connected:Vec<i32>
-}
-//Valve LW has flow rate=0; tunnels lead to valves AA, HT
-
-impl fmt::Display for Room {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Value {} has flow rate={}; tunnels leads to values: {:?}",
-               self.id, self.value, self.connected
-        )
+    println!("\t Part 2: {:14} time: {:?}", answer2, duration2);
+    if ANSWER.1 != answer2 {
+        println!(
+            "\t\t ERROR: Answer is WRONG. Got: {}, Expected {}",
+            answer2, ANSWER.1
+        );
     }
+    println!("    ---------------------------------------------");
 }
 
-
-impl Default for Room {
-    fn default() -> Room {
-        Room {
-            id: -1,
-            value: -1,
-            connected: Vec::new(),
-        }
-    }
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+struct Node {
+    id: usize,
+    adjacent: BTreeSet<usize>,
 }
 
+type Graph = (V, E);
+type V = HashSet<String>;
+type E = Vec<(String, String)>;
 
+fn get_random(seed: &mut u128, range: Range<usize>) -> usize {
+    const M: u128 = 9223372036854775808u128;
+    const A: u128 = 1103515245u128;
+    const C: u128 = 12345u128;
 
-fn alpha_to_num(s:&String) -> i32{
-    let ch1:u8 = s.chars().nth(0).unwrap() as u8;
-    let ch2:u8 = s.chars().nth(1).unwrap() as u8;
-    let mut base:i32 = 0;
-    let right =  ch1 - ('A' as u8) ;
-    if ch1 == ch2 {
-        return right as i32;
-    } else {
-        base = 26;
-    }
-    let left:i32 =  (ch2 - ('A' as u8)) as i32;
-    let p = (right as i32) + (26  * left) as i32 + base ;
-    return p;
+    *seed = (A * *seed + C) % M;
+    let b = range.end - range.start;
+    let offset = (*seed % b as u128) as usize;
+    return range.start + offset;
 }
 
+fn part1(input_file: &str) -> String {
+    let lines = advent_2023::file_to_lines(input_file);
 
-fn generate_alpha_mapping()->HashMap<(char,char),i32> {
-    let mut n_to_a: HashMap<(char, char), i32> = HashMap::new();
+    let (vertices, edges) = parse_input(&lines);
 
-    for ch1 in 'A'..='Z' {
-        for ch2 in 'A'..='Z' {
-            let p = (ch1, ch2);
-            let mut sb = String::new();
-            sb.push(ch1);
-            sb.push(ch2);
-            let n = alpha_to_num(&sb);
-            let r = n_to_a.insert(p, n);
-            if r != None {
-                panic!("overwrote {sb}");
+    let mut prng_seed = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+
+    loop {
+        let mut vertices = vertices.clone();
+        let mut edges = edges.clone();
+        while vertices.len() > 2 {
+            let i = get_random(&mut prng_seed, 0..edges.len());
+            let (v1, v2) = edges[i].clone();
+
+            edges.swap_remove(i);
+            vertices.remove(&v1);
+            vertices.remove(&v2);
+
+            let new_v = format!("{}:{}", v1, v2);
+            vertices.insert(new_v.clone());
+            for (e1, e2) in edges.iter_mut() {
+                if *e1 == v1 || *e1 == v2 {
+                    *e1 = new_v.clone()
+                }
+                if *e2 == v1 || *e2 == v2 {
+                    *e2 = new_v.clone()
+                }
+            }
+
+            let mut j = 0;
+            while j < edges.len() {
+                let (e1, e2) = &edges[j];
+                if e1 == e2 {
+                    edges.swap_remove(j);
+                } else {
+                    j += 1;
+                }
             }
         }
-    }
-    return n_to_a;
-}
-
-
-fn parse_room(ln: &mut &str) -> Room {
-    let (mut l, mut r) = ln.split_once("=").unwrap();
-    // println!("l=|{}|", l);
-    let (ch1, ch2) = (l.chars().nth(6).unwrap(), l.chars().nth(7).unwrap());
-    let mut s_id = String::with_capacity(2);
-    s_id.push(ch1);
-    s_id.push(ch2);
-    // println!("ch1={ch1}, ch2={ch2}");
-    let (mut l, mut r) = r.split_once(";").unwrap();
-    let val: i32 = l.parse().unwrap();
-    // println!("val= |{}|", val);
-    // println!("r=|{r}| pre tunnels");
-    let mut v_part;
-    if r.contains("tunnels") {
-        let (mut l, mut r) = r.split_at(24);
-        v_part = r;
-        // println!("l= |{l}| r=|{r}|");
-    } else {
-        let (mut l , mut r) = r.split_at(23);
-        v_part = r;
-        // println!("l= |{l}| r=|{r}|");
-    }
-
-    let parts: Vec<&str> = v_part.split(", ").collect();
-    // println!("{:?}", parts);
-    let mut v: Vec<i32> = Vec::new();
-
-    for p in parts {
-        let n = alpha_to_num(&p.to_string());
-        // println!("p=|{p}|");
-        // println!("p=|{p}|, n={n}");
-        v.push(n);
-    }
-    // println!("s_id: |{}|", s_id);
-    // println!("{:?}", v);
-
-    let mut r=   Room {
-        id: alpha_to_num(&s_id),
-        value: val,
-        connected: v.clone(),
-    };
-    return r;
-}
-pub fn factorial(num: u128) -> u128 {
-    match num {
-        0  => 1,
-        1.. => (1..num+1).product(),
-    }
-}
-
-
-
-fn part1() -> String {
-    let p1_file = match TEST {
-        true => PART1_TEST_FILENAME,
-        false => PART1_INPUT_FILENAME
-    };
-    let data1_s =
-        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let mut lines: Vec<&str> = data1_s.trim().split("\n").collect();
-    let l_num = lines.len();
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p1_file);
-    }
-    let n_to_a = generate_alpha_mapping();
-
-    let mut v_room:Vec<Room> = Vec::new();
-    for i in 0..lines.len() {
-        let mut ln = lines[i];
-        ln = ln.trim();
-        let mut r = parse_room(&mut ln);
-        v_room.push(r);
-    }
-    println!("parsed {} rooms", v_room.len());
-    for r in &v_room {
-        println!("room: {:?}", r);
-    }
-
-    let mut rooms_without_zeros:u32 = 0;
-    for r in &v_room {
-        if r.value != 0 {
-            rooms_without_zeros += 1;
-
+        if edges.len() == 3 {
+            return vertices
+                .iter()
+                .map(|s| s.split(':').count())
+                .product::<usize>()
+                .to_string();
         }
     }
-    println!("non-zero values : {}, permutes: {}",
-        rooms_without_zeros, factorial(rooms_without_zeros as u128));
+}
 
-    let answer1 = String::new();
-    return answer1;
+fn parse_input(lines: &Vec<String>) -> Graph {
+    let n = lines.len();
+    let mut vertices: HashSet<String> = HashSet::with_capacity(n);
+    let mut edges: Vec<(String, String)> = Vec::with_capacity(n * n);
+
+    for i in 0..n {
+        let line = &lines[i];
+        let (left, right_side) = line.split_once(":").unwrap();
+        vertices.insert(left.to_string());
+        for right in right_side.split_whitespace() {
+            vertices.insert(right.to_string());
+            edges.push((left.to_string(), right.to_string()));
+        }
+    }
+    return (vertices, edges);
 }
 
 fn part2() -> String {
-    let p2_file = match TEST {
-        true => PART2_TEST_FILENAME,
-        false => PART2_INPUT_FILENAME
-    };
-    let data2_s =
-        fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-    let mut lines: Vec<&str> = data2_s.trim().split("\n").collect();
-    let l_num = lines.len();
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p2_file);
-    }
-    let n_to_a = generate_alpha_mapping();
-
-
-
-
-
-
-
-
-    let answer2 = String::new();
-    return answer2;
+    let answer = "Button Pressed";
+    return answer.to_string();
 }
