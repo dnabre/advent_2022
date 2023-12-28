@@ -7,7 +7,7 @@
 
 use std::fmt::{Display, Formatter};
 use std::time::Instant;
-use advent_2022::print_grid;
+use advent_2022::{Direction, LeftOrRight, print_grid};
 
 /*
     Advent of Code 2022: Day 22
@@ -52,25 +52,28 @@ fn main() {
     // }
     println!("    ---------------------------------------------");
 }
-
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-enum LeftOrRight {
-    Left,
-    Right
+enum Tile {
+    Open,
+    Block,
+    OffMap
 }
-impl Display for LeftOrRight {
+impl Display for Tile {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            LeftOrRight::Left => {'L'}
-            LeftOrRight::Right => {'R'}
+            Tile::Open => {'.'}
+            Tile::Block => {'#'}
+            Tile::OffMap => {' '}
         })
     }
 }
 
+
+
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 enum Code {
     Turn(LeftOrRight),
-    Forward(u32)
+    Forward(usize)
 }
 
 impl Display for Code {
@@ -112,6 +115,12 @@ fn part1(input_file: &str) -> String {
 
 
     let grid = advent_2022::parse_grid(&grid_lines);
+    let grid = advent_2022::convert_grid_using(&grid, |ch| match ch {
+        '.' => { Tile::Open}
+        '#' => {Tile::Block}
+        ' ' => {Tile::OffMap}
+        _ => {panic!("character for map tile unknown: {}", ch)}
+    });
     print_grid(&grid);
     println!();
     let mut instructions;
@@ -125,8 +134,18 @@ fn part1(input_file: &str) -> String {
     let max_y = grid.len();
     let max_x = grid[0].len();
 
+    let mut pos:(usize,usize) = (0,0);  // (y,x) or (row, col)
+    let mut dir = Direction::Right;
 
-
+    loop {
+        let ch = grid[pos.0][pos.1];
+        if ch != Tile::Open {
+            pos.1 += 1;
+        } else {
+            break;
+        }
+    }
+    println!("starting pos: {:?}", pos);
 
 
 
@@ -139,13 +158,13 @@ fn part1(input_file: &str) -> String {
 fn parse_codes(input: String) -> Vec<Code> {
     let mut codes:Vec<Code> = Vec::new();
     let array = advent_2022::str_to_char_vec(input.as_str());
-    let mut digits = Vec::new();
+    let mut digits:Vec<usize> = Vec::new();
    for c in array {
        if c.is_numeric() {
-           let digit = c.to_digit(10).unwrap();
+           let digit:usize = c.to_digit(10).unwrap()  as usize;
            digits.push(digit);
        } else {
-           let num = digits.iter().fold(0,|num,digit| num * 10 + digit);
+           let num:usize = digits.iter().fold(0,|num,digit| num * 10usize + digit);
            digits.clear();
            codes.push(Code::Forward(num));
            let l_of_r = match c {

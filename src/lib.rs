@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::str::FromStr;
@@ -178,27 +178,23 @@ pub fn list_to_pairs<T: Copy>(galaxy_list: Vec<(T, T)>) -> Vec<((T, T), (T, T))>
 
 pub fn parse_number_list_comma<T: FromStr>(number_string: &str) -> Vec<T> {
     let oo = number_string.split(",").map(|s| s.trim().parse());
-    let un_oo: Vec<T> = oo
-        .map(|r| match r {
-            Ok(n) => n,
-            Err(_) => {
-                panic!("Error parsing")
-            }
-        })
-        .collect();
+    let un_oo: Vec<T> = oo.map(|r| match r {
+        Ok(n) => n,
+        Err(_) => {
+            panic!("Error parsing")
+        }
+    }).collect();
     return un_oo;
 }
 
 pub fn parse_number_list_whitespace<T: FromStr>(number_string: &str) -> Vec<T> {
     let oo = number_string.split_whitespace().map(|s| s.trim().parse());
-    let un_oo: Vec<T> = oo
-        .map(|r| match r {
-            Ok(n) => n,
-            Err(_) => {
-                panic!("Error parsing")
-            }
-        })
-        .collect();
+    let un_oo: Vec<T> = oo.map(|r| match r {
+        Ok(n) => n,
+        Err(_) => {
+            panic!("Error parsing")
+        }
+    }).collect();
     return un_oo;
 }
 
@@ -211,6 +207,24 @@ pub fn str_to_char_vec(s: &str) -> Vec<char> {
     }
     return r_vec;
 }
+
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub enum LeftOrRight {
+    Left,
+    Right,
+}
+
+impl Display for LeftOrRight {
+     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            LeftOrRight::Left => { 'L' }
+            LeftOrRight::Right => { 'R' }
+        })
+    }
+}
+
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum Direction {
     Up,
@@ -218,6 +232,7 @@ pub enum Direction {
     Left,
     Right,
 }
+
 pub const DIRECTION_ARRAY: [Direction; 4] = [
     Direction::Up,
     Direction::Down,
@@ -234,6 +249,36 @@ impl Direction {
             Direction::Right => Direction::Left,
         }
     }
+    pub fn turn_to(&self, turn_to: LeftOrRight) -> Direction{
+        match self {
+            Direction::Up => {
+                match turn_to {
+                    LeftOrRight::Left => { Direction::Left }
+                    LeftOrRight::Right => { Direction::Right }
+                }
+            }
+            Direction::Down => {
+                match turn_to {
+                    LeftOrRight::Left => { Direction::Right }
+                    LeftOrRight::Right => { Direction::Left }
+                }
+            }
+            Direction::Left => {
+                match turn_to {
+                    LeftOrRight::Left => { Direction::Down }
+                    LeftOrRight::Right => {
+                        Direction::Up
+                    }
+                }
+            }
+            Direction::Right => {
+                match turn_to {
+                    LeftOrRight::Left => { Direction::Up }
+                    LeftOrRight::Right => { Direction::Down }
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
@@ -243,6 +288,7 @@ pub enum Compass {
     West,
     East,
 }
+
 impl Compass {
     pub fn opposite(dir: Compass) -> Compass {
         match dir {
