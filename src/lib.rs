@@ -451,6 +451,23 @@ pub fn equal_grid<T: std::cmp::PartialEq>(g1: &Vec<Vec<T>>, g2: &Vec<Vec<T>>) ->
     return true;
 }
 
+
+pub fn print_grid_with_displayer<T:Copy>(grid: &Vec<Vec<T>>, display: fn(T) -> String) {
+    if grid.len() == 0 || grid[0].len() == 0 {
+        println!(" Error: trying to print empty grid");
+    }
+
+    for y in 0..grid.len() {
+        for x in 0..grid[0].len() - 1 {
+            print!("{}", display(grid[y][x]));
+        }
+       println!("{}", display(*grid[y].last().unwrap()));
+    }
+
+}
+
+
+
 pub fn print_grid<T: std::fmt::Display>(grid: &Vec<Vec<T>>) -> () {
     if grid.len() == 0 || grid[0].len() == 0 {
         println!(" Error: trying to print empty grid");
