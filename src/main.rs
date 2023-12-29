@@ -7,17 +7,17 @@
 use std::fmt::{Display, Formatter};
 use std::time::Instant;
 
-use advent_2022::{Direction, LeftOrRight, print_grid};
+use advent_2022::{Direction, LeftOrRight, print_grid, print_grid_window};
 
-use crate::Tile1::OffMap;
+use crate::Tile::OffMap;
 
 /*
     Advent of Code 2022: Day 22
         part1 answer:   155060
-        part2 answer:
+        part2 answer:   3479
 
 */
-const ANSWER: (&str, &str) = ("155060", "Button Pressed");
+const ANSWER: (&str, &str) = ("155060", "3479");
 
 fn main() {
     let _filename_test = "data/day22/test_input_01.txt";
@@ -56,28 +56,10 @@ fn main() {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-enum Tile1 {
-    Open,
-    Block,
-    OffMap,
-}
-
-impl Display for Tile1 {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Tile1::Open => { '.' }
-            Tile1::Block => { '#' }
-            Tile1::OffMap => { ' ' }
-        })
-    }
-}
-
-
-#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 enum Tile {
     Open,
     Block,
-    Null
+    OffMap,
 }
 
 impl Display for Tile {
@@ -85,10 +67,13 @@ impl Display for Tile {
         write!(f, "{}", match self {
             Tile::Open => { '.' }
             Tile::Block => { '#' }
-            Tile::Null => { '?' }
+            Tile::OffMap => { ' ' }
         })
     }
 }
+
+
+
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 enum Code {
     Turn(LeftOrRight),
@@ -106,7 +91,7 @@ impl Display for Code {
 }
 
 
-fn parse_flatgrid_and_code(mut lines: &mut Vec<String>) -> (Vec<Vec<char>>, Vec<Vec<Tile1>>, Vec<Code>) {
+fn parse_flatgrid_and_code(mut lines: &mut Vec<String>) -> (Vec<Vec<char>>, Vec<Vec<Tile>>, Vec<Code>) {
     let mut grid_lines: Vec<String> = Vec::new();
     let mut instruction_lines = None;
     let mut max_grid_line_length: usize = usize::MIN;
@@ -132,9 +117,9 @@ fn parse_flatgrid_and_code(mut lines: &mut Vec<String>) -> (Vec<Vec<char>>, Vec<
     let grid = advent_2022::parse_grid(&grid_lines);
     let mut c_grid = grid.clone();
     let grid = advent_2022::convert_grid_using(&grid, |ch| match ch {
-        '.' => { Tile1::Open }
-        '#' => { Tile1::Block }
-        ' ' => { Tile1::OffMap }
+        '.' => { Tile::Open }
+        '#' => { Tile::Block }
+        ' ' => { Tile::OffMap }
         _ => { panic!("character for map tile unknown: {}", ch) }
     });
     let instructions;
@@ -190,7 +175,7 @@ fn part1(input_file: &str) -> String {
     let mut dir = Direction::Right;
     loop {
         let ch = grid[pos.0][pos.1];
-        if ch != Tile1::Open {
+        if ch != Tile::Open {
             pos.1 += 1;
         } else {
             break;
@@ -214,7 +199,7 @@ fn part1(input_file: &str) -> String {
                             Direction::Up => {
                                 let mut wrap_r = max_row - 1;
                                 let c = pos.1;
-                                while grid[wrap_r][c] == Tile1::OffMap {
+                                while grid[wrap_r][c] == Tile::OffMap {
                                     wrap_r -= 1;
                                 }
                                 n_pos = Some((wrap_r, c));
@@ -222,7 +207,7 @@ fn part1(input_file: &str) -> String {
                             Direction::Down => {
                                 let mut wrap_r = 0;
                                 let c = pos.1;
-                                while grid[wrap_r][c] == Tile1::OffMap {
+                                while grid[wrap_r][c] == Tile::OffMap {
                                     wrap_r += 1;
                                 }
                                 n_pos = Some((wrap_r, c))
@@ -230,7 +215,7 @@ fn part1(input_file: &str) -> String {
                             Direction::Left => {
                                 let mut wrap_c = max_col - 1;
                                 let r = pos.0;
-                                while grid[r][wrap_c] == Tile1::OffMap {
+                                while grid[r][wrap_c] == Tile::OffMap {
                                     wrap_c -= 1;
                                 }
                                 n_pos = Some((r, wrap_c))
@@ -238,7 +223,7 @@ fn part1(input_file: &str) -> String {
                             Direction::Right => {
                                 let mut wrap_c = 0;
                                 let r = pos.0;
-                                while grid[r][wrap_c] == Tile1::OffMap {
+                                while grid[r][wrap_c] == Tile::OffMap {
                                     wrap_c += 1;
                                 }
                                 n_pos = Some((r, wrap_c))
@@ -256,12 +241,12 @@ fn part1(input_file: &str) -> String {
                     if let Some((n_r,n_c)) = n_pos {
                         let ch = grid[n_r][n_c];
                         match ch {
-                            Tile1::Open => {
+                            Tile::Open => {
                                 pos = (n_r,n_c);
                                 n_pos = dir.grid_go_in_dir_rc(pos, max_row, max_col);
                                 steps -= 1;
                             }
-                            Tile1::Block => {
+                            Tile::Block => {
                                 // We are blocked. Abort any steps left over
                                 break;
                             }
@@ -274,7 +259,7 @@ fn part1(input_file: &str) -> String {
             }
         }
     }
-    let answer = (pos.0 + 1) * 1000 + 4 * (pos.1 + 1);
+    let answer = (pos.0 + 1) * 1000 + 4 * (pos.1 + 1) + get_facing(dir);
     return answer.to_string();
 }
 
@@ -283,60 +268,172 @@ const PART2_SIDE_SIZE:(usize,usize)=(4,50);
 fn part2(input_file: &str) -> String {
     let mut lines = advent_2022::file_to_lines(input_file);
     println!("read {} lines", lines.len());
-    let (_, grid, codes) = parse_flatgrid_and_code(&mut lines);
-    let grid = advent_2022::convert_grid_using(&grid, |t| match t {
-        Tile1::Open => {Tile::Open }
-        Tile1::Block => {Tile::Block}
-        Tile1::OffMap => {Tile::Null}
-    });
-    //nulls shouldbe removed in the end
+    let (mut c_grid, grid, codes) = parse_flatgrid_and_code(&mut lines);
 
+    let mut start_pos = (0,0);
+    while grid[start_pos.0][start_pos.1] !=  Tile::Open {
+        start_pos.1 += 1;
+    }
+    println!("start position: {:?}", start_pos);
+    let mut pos = start_pos;
+    let mut dir = Direction::Right;
 
+    let max_row = PART2_SIDE_SIZE.1;
+    let max_col = PART2_SIDE_SIZE.1;
 
-    let (piece_map, chunk_list):(Vec<Vec<Option<char>>>, Vec<Vec<Vec<Tile>>>) = split_grid_into_faces(grid, PART2_SIDE_SIZE.1);
-
-    let sq = PART2_SIDE_SIZE.0;
-
-
-
-
-    let answer = 0;
-    return answer.to_string();
-}
-
-fn split_grid_into_faces(grid: Vec<Vec<Tile>>, sq_size: usize) -> (Vec<Vec<Option<char>>>, Vec<Vec<Vec<Tile>>>) {
-    let mut map_vec:Vec<Vec<Option<char>>> =  Vec::new();
-    let mut grid_list:Vec<Vec<Vec<Tile>>> = Vec::new();
-
-
-    let sq_high = grid.len() / sq_size;
-    let sq_wide = grid[0].len() /  sq_size;
-    println!("grid {} high by {} wide", sq_high, sq_wide);
-    for h in 0..sq_high {
-            let mut line_vec = Vec::new();
-            for w in 0..sq_wide {
-                line_vec.push(None);
+    for c in codes {
+        match c {
+            Code::Turn(l_or_r) => {
+                dir = dir.turn_to(l_or_r);
             }
-        map_vec.push(line_vec);
+            Code::Forward(much) => {
+                c_grid[pos.0][pos.1] = dir.to_arrow();
+                let mut steps = much;
+                let mut n_pos = grid_go_in_dir_mrc(dir,pos);
+                while steps > 0 {
+                    c_grid[pos.0][pos.1] = dir.to_arrow();
+                    let mut n_pos = grid_go_in_dir_mrc(dir,pos);
+                 //   println!("n_pos: {:?}", n_pos);
+                    if let (Some((n_r, n_c)), _ ) = n_pos {
+                        let ch = grid.get(n_r).and_then(|row| row.get(n_c)).unwrap_or(&Tile::OffMap);
+                        match ch {
+                            Tile::Open => {
+                                pos =(n_r,n_c);
+
+                            }
+                            Tile::Block => {
+                                break;
+                            }
+                            OffMap => {
+                                let (new_pos, new_dir) = wrap2(&pos, &dir);
+
+                                if grid[new_pos.0][new_pos.1] == Tile::Block {
+                                    break;
+                                }
+                                pos = new_pos;
+                                dir = new_dir;
+
+                            }
+                        }
+                    } else {
+                        let off = n_pos.1;
+
+                        let (new_pos, new_dir) = wrap2(&pos, &dir);
+                        if grid[new_pos.0][new_pos.1] == Tile::Block {
+                            break;
+                        }
+                        pos = new_pos;
+                        dir = new_dir;
+
+                    }
+                    steps = steps - 1;
+
+
+
+
+                }
+            }
+        }
     }
 
-    //print_grid(&map_vec);
-   advent_2022::print_grid_with_displayer(&map_vec, |o_ch| format!("{:?}", o_ch));
+    println!("final pos: {}@{:?}", dir.to_arrow(), pos);
+    let answer = (pos.0 + 1) * 1000 + 4 * (pos.1 + 1) + get_facing(dir);
+    return answer.to_string();
 
-    let mut r_offset = 0;
-    for h in 0..sq_high {
-        let mut chunk_list = Vec::new();
-        let mut c_offset = 0;
-        for w in 0..sq_wide {
+    //correct answer is 3479 with final pos (2,118)
+}
+fn wrap2(pos: &(usize,usize), dir: &Direction) -> ((usize,usize), Direction) {
+    // find idxes of entire cube
+    // this huge match statement only covers cases in the real input, but can be expanded to cover everything. It's just tedious
+    let (cube_row, cube_col, new_dir) = match (pos.0 / 50, pos.1 / 50, dir) {
+        (0, 1, Direction::Up) => (3, 0, Direction::Right),
+        (0, 1, Direction::Left) => (2, 0, Direction::Right),
+        (0, 2, Direction::Up) => (3, 0, Direction::Up),
+        (0, 2, Direction::Right) => (2, 1, Direction::Left),
+        (0, 2, Direction::Down) => (1, 1, Direction::Left),
+        (1, 1, Direction::Right) => (0, 2, Direction::Up),
+        (1, 1, Direction::Left) => (2, 0, Direction::Down),
+        (2, 0, Direction::Up) => (1, 1, Direction::Right),
+        (2, 0, Direction::Left) => (0, 1, Direction::Right),
+        (2, 1, Direction::Right) => (0, 2, Direction::Left),
+        (2, 1, Direction::Down) => (3, 0, Direction::Left),
+        (3, 0, Direction::Right) => (2, 1, Direction::Up),
+        (3, 0, Direction::Down) => (0, 2, Direction::Down),
+        (3, 0, Direction::Left) => (0, 1, Direction::Down),
+        _ => unreachable!(),
+    };
+    // find idxes within the cube
+    let (row_idx, col_idx) = (pos.0 % 50, pos.1 % 50);
 
+    let i = match dir {
+        Direction::Left => 49 - row_idx,
+        Direction::Right => row_idx,
+        Direction::Up => col_idx,
+        Direction::Down => 49 - col_idx,
+    };
+
+    // find new idxes within the cube
+    let new_row = match new_dir {
+        Direction::Left => 49 - i,
+        Direction::Right => i,
+        Direction::Up => 49,
+        Direction::Down => 0,
+    };
+    let new_col = match new_dir {
+        Direction::Left => 49,
+        Direction::Right => 0,
+        Direction::Up => i,
+        Direction::Down => 49 - i,
+    };
+
+    let new_pos = (
+        cube_row * 50 + new_row,
+        cube_col * 50 + new_col,
+    );
+
+    (new_pos, new_dir)
+}
+
+pub fn grid_go_in_dir_mrc(dir:Direction, (r, c):(usize, usize)) -> (Option<(usize, usize)>, (i32,i32)) {
+    match dir {
+        Direction::Up => {
+            if r > 0 {
+(Some((r - 1, c)), (0,0))
+            } else {
+
+
+            (None,(-1, 0))
+
+            }
+        }
+        Direction::Down => {
+
+(Some((r + 1, c)), (0,0))
 
 
         }
-        grid_list.push(chunk_list);
+
+        Direction::Left => {
+            if c > 0 {
+                (Some((r, c - 1)),(0,0))
+            } else {
+(None, (0,-1))
+            }
+        }
+        Direction::Right => {
+
+(Some((r, c + 1)), (0,0))
+
+
+        }
     }
-
-
-
-    return (map_vec,grid_list);
 }
 
+fn get_facing(dir:Direction) -> usize {
+    match dir {
+        Direction::Up => {3}
+        Direction::Down => {1}
+        Direction::Left => {2}
+        Direction::Right => {0}
+    }
+}

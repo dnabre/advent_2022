@@ -27,7 +27,7 @@
 | [Day 19: Not Enough Minerals: ](https://adventofcode.com/2022/day/19)  | culling search space | * | * |
 | [Day 20: Grove Positioning System ](https://adventofcode.com/2022/day/20)  | list scramble | * | * |
 | [Day 21: Monkey Math  ](https://adventofcode.com/2022/day/21)  | AST/binary-search | * | * |
-| [Day 22: Monkey Map ](https://adventofcode.com/2022/day/22)  | path walking 2D/3D | * | _ |
+| [Day 22: Monkey Map ](https://adventofcode.com/2022/day/22)  | path walking 2D/3D | * | * |
 | [Day 23: Unstable Diffusion ](https://adventofcode.com/2022/day/23)  | automata | * | * |
 | [Day 24: Blizzard Basin  ](https://adventofcode.com/2022/day/24)  | maze search  | * | * |
 | [Day 25: Full of Hot Air](https://adventofcode.com/2022/day/25)  | base conversion | * | _ |

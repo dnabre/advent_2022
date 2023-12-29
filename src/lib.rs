@@ -264,6 +264,12 @@ impl Direction {
             Direction::Right => {'>'}
         }
     }
+
+
+
+
+
+
     pub fn grid_go_in_dir_rc(&self, (r, c):(usize, usize), max_y: usize, max_x: usize) -> Option<(usize, usize)> {
         match self {
             Direction::Up => {
@@ -466,7 +472,18 @@ pub fn print_grid_with_displayer<T:Copy>(grid: &Vec<Vec<T>>, display: fn(T) -> S
 
 }
 
+pub fn print_grid_window<T: std::fmt::Display>(grid: &Vec<Vec<T>>,min_row:usize, min_col:usize, max_row:usize, max_col:usize) -> () {
+    if grid.len() == 0 || grid[0].len() == 0 {
+        println!(" Error: trying to print empty grid");
+    }
 
+    for y in min_row..max_row {
+        for x in min_col..max_col {
+            print!("{}", grid[y][x]);
+        }
+        println!();
+    }
+}
 
 pub fn print_grid<T: std::fmt::Display>(grid: &Vec<Vec<T>>) -> () {
     if grid.len() == 0 || grid[0].len() == 0 {
