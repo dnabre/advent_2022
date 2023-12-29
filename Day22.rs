@@ -1,466 +1,378 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-
-
-use std::collections::{HashMap, VecDeque};
-use std::collections::HashSet;
-use std::{cmp, fmt};
 use std::fmt::{Display, Formatter};
-use std::fs;
-use std::time::{Instant,Duration};
+use std::time::Instant;
 
-use ndarray::{Array, Array2, Array3, ArrayBase, OwnedRepr, Dim};
-use parse_display::FromStr;
-use crate::Voxel::Outside;
+use advent_2022::{Direction, LeftOrRight};
 
+use crate::Tile::OffMap;
 
 /*
-    Advent of Code 2022: Day 18
-        part1 answer: 4282
-        part2 answer: 2452
+    Advent of Code 2022: Day 22
+        part1 answer:   155060
+        part2 answer:   3479
 
-part2,  4036 is too high
- */
-
-const TEST_ANSWER: (i64, i64) = (64, 58);
-const INPUT_ANSWER: (i64, i64) = (4282, 2452);
-
-const PART1_TEST_FILENAME: &str = "data/day18/part1_test.txt";
-const PART1_INPUT_FILENAME: &str = "data/day18/part1_input.txt";
-
-const PART2_TEST_FILENAME: &str = "data/day18/part2_test.txt";
-const PART2_INPUT_FILENAME: &str = "data/day18/part2_input.txt";
-
-const TEST: bool = false;
+*/
+const ANSWER: (&str, &str) = ("155060", "3479");
 
 fn main() {
-    print!("Advent of Code 2022, Day ");
-    println!("18");                           // insert Day
+    let _filename_test = "data/day22/test_input_01.txt";
+    let _filename_test2 = "data/day22/test_input_02.txt";
+
+    let filename_part1 = "data/day22/part1_input.txt";
+    let filename_part2 = "data/day22/part2_input.txt";
 
 
+    println!("Advent of Code, Day 22");
+    println!("    ---------------------------------------------");
     let start1 = Instant::now();
-    let answer1 = part1();
+    let answer1 = part1(filename_part1);
     let duration1 = start1.elapsed();
 
-    println!("\t Part 1: {answer1} ,\t time: {:?}", duration1);
-    //
-    if TEST {
-        assert_eq!(answer1, TEST_ANSWER.0.to_string());
-    } else {
-        assert_eq!(answer1, INPUT_ANSWER.0.to_string());
+    println!("\t Part 1: {:14} time: {:?}", answer1, duration1);
+    if ANSWER.0 != answer1 {
+        println!(
+            "\t\t ERROR: Answer is WRONG. Got: {}, Expected {}",
+            answer1, ANSWER.0
+        );
     }
 
     let start2 = Instant::now();
-    let answer2 = part2();
+    let answer2 = part2(filename_part2);
     let duration2 = start2.elapsed();
 
-    println!("\t Part 2: {answer2} ,\t time: {:?}", duration2);
-
-    // if TEST {
-    //     assert_eq!(answer2, TEST_ANSWER.1.to_string());
-    // } else {
-    //     assert_eq!(answer2, INPUT_ANSWER.1.to_string());
-    // }
-
-    println!("----------\ndone");
+    println!("\t Part 2: {:14} time: {:?}", answer2, duration2);
+    if ANSWER.1 != answer2 {
+        println!(
+            "\t\t ERROR: Answer is WRONG. Got: {}, Expected {}",
+            answer2, ANSWER.1
+        );
+    }
+    println!("    ---------------------------------------------");
 }
 
-#[cfg(windows)]
-const D_LINE_ENDING: &'static str = "\r\n\r\n";
-#[cfg(not(windows))]
-const D_LINE_ENDING: &'static str = "\n\n";
+const PART2_FACE_SIZE:usize = 50;
 
-#[cfg(windows)]
-const LINE_ENDING: &'static str = "\r\n";
-#[cfg(not(windows))]
-const LINE_ENDING: &'static str = "\n";
 
-const ARRAY_SIZE:usize = 25;
-
-#[derive(FromStr, Debug, Copy, Clone,Eq, Hash)]
-#[display("{x},{y},{z}")]
-struct Point3D {
-    x:usize,
-    y:usize,
-    z:usize
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+enum Code {
+    Turn(LeftOrRight),
+    Forward(usize),
 }
 
-impl PartialEq for Point3D {
-    fn eq(&self, other: &Self) -> bool {
-        (self.x == other.x) && (self.y == other.y) && (self.z == other.z)
+impl Display for Code {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let t = match self {
+            Code::Turn(a) => { ("Turn", (*a).to_string()) }
+            Code::Forward(n) => { ("Forward", (*n).to_string()) }
+        };
+        write!(f, "{}:{}", t.0, t.1)
     }
 }
 
-impl Display for Point3D{
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f,"<{},{},{}>", self.x,self.y,self.z)
-    }
-}
-#[derive(Debug, Copy, Clone,PartialEq,Eq, Hash)]
-enum Voxel  {
-    Unknown=0,
-    Outside,
-    Lava
+
+
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+enum Tile {
+    Open,
+    Block,
+    OffMap,
 }
 
-impl Display for Voxel{
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Voxel::Lava => {write!(f,"L")}
-            Voxel::Outside => {write!(f,"O")}
-            Voxel::Unknown => {write!(f,"?")}
+impl Display for Tile {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Tile::Open => { '.' }
+            Tile::Block => { '#' }
+            Tile::OffMap => { ' ' }
+        })
+    }
+}
+
+
+
+
+
+fn part1(input_file: &str) -> String {
+    let mut lines = advent_2022::file_to_lines(input_file);
+
+    let (_, grid, codes) = parse_flat_grid_and_code(&mut lines);
+
+    let max_row = grid.len();
+    let max_col = grid[0].len();
+
+    let mut pos: (usize, usize) = (0, 0);
+    let mut dir = Direction::Right;
+    loop {
+        let ch = grid[pos.0][pos.1];
+        if ch != Tile::Open {
+            pos.1 += 1;
+        } else {
+            break;
         }
     }
+
+    for c in codes {
+        match c {
+            Code::Turn(l_or_r) => {
+                dir = dir.turn_to(l_or_r);
+            }
+            Code::Forward(much) => {
+                let mut steps = much;
+                let mut n_pos = dir.grid_go_in_dir_rc(pos, max_row, max_col);
+                let mut wrapped_n_pos = None;
+                while steps > 0 {
+                    if n_pos.is_none() || (grid[n_pos.unwrap().0][n_pos.unwrap().1] == OffMap) {
+                        // Either ran off grid or fit a place on the grid that is explicitly Off the Map.
+                        // Either way, we wrap:
+                        match dir {
+                            Direction::Up => {
+                                let mut wrap_r = max_row - 1;
+                                let c = pos.1;
+                                while grid[wrap_r][c] == Tile::OffMap {
+                                    wrap_r -= 1;
+                                }
+                                n_pos = Some((wrap_r, c));
+                            }
+                            Direction::Down => {
+                                let mut wrap_r = 0;
+                                let c = pos.1;
+                                while grid[wrap_r][c] == Tile::OffMap {
+                                    wrap_r += 1;
+                                }
+                                n_pos = Some((wrap_r, c))
+                            }
+                            Direction::Left => {
+                                let mut wrap_c = max_col - 1;
+                                let r = pos.0;
+                                while grid[r][wrap_c] == Tile::OffMap {
+                                    wrap_c -= 1;
+                                }
+                                n_pos = Some((r, wrap_c))
+                            }
+                            Direction::Right => {
+                                let mut wrap_c = 0;
+                                let r = pos.0;
+                                while grid[r][wrap_c] == Tile::OffMap {
+                                    wrap_c += 1;
+                                }
+                                n_pos = Some((r, wrap_c))
+                            }
+                        }
+                        wrapped_n_pos = n_pos;
+                    };
+                    n_pos = match wrapped_n_pos {
+                        None => { n_pos }
+                        Some(nw_pos) => {
+                            wrapped_n_pos = None;
+                            Some(nw_pos)
+                        }
+                    };
+                    if let Some((n_r, n_c)) = n_pos {
+                        let ch = grid[n_r][n_c];
+                        match ch {
+                            Tile::Open => {
+                                pos = (n_r, n_c);
+                                n_pos = dir.grid_go_in_dir_rc(pos, max_row, max_col);
+                                steps -= 1;
+                            }
+                            Tile::Block => {
+                                // We are blocked. Abort any steps left over
+                                break;
+                            }
+                            OffMap => { panic!("should have fixed this position to be on map") }
+                        }
+                    } else {
+                        panic!("n_pos should have a value at this point");
+                    }
+                }
+            }
+        }
+    }
+    let answer = (pos.0 + 1) * 1000 + 4 * (pos.1 + 1) + get_facing(dir);
+    return answer.to_string();
 }
 
-impl Default for Voxel {
-    fn default() -> Voxel {
-        return Voxel::Unknown
+fn part2(input_file: &str) -> String {
+    let mut lines = advent_2022::file_to_lines(input_file);
+    let (mut c_grid, grid, codes) = parse_flat_grid_and_code(&mut lines);
+
+    let mut start_pos = (0, 0);
+    while grid[start_pos.0][start_pos.1] != Tile::Open {
+        start_pos.1 += 1;
+    }
+
+    let mut pos = start_pos;
+    let mut dir = Direction::Right;
+
+    for c in codes {
+        match c {
+            Code::Turn(l_or_r) => {
+                dir = dir.turn_to(l_or_r);
+            }
+            Code::Forward(much) => {
+                c_grid[pos.0][pos.1] = dir.to_arrow();
+                let mut steps = much;
+                while steps > 0 {
+                    c_grid[pos.0][pos.1] = dir.to_arrow();
+
+                    let n_pos = dir.grid_go_in_dir_rc(pos,grid.len(), grid[0].len());
+                    if let Some((n_r, n_c)) = n_pos {
+                        let ch = grid.get(n_r).and_then(|row| row.get(n_c)).unwrap_or(&Tile::OffMap);
+                        match ch {
+                            Tile::Open => {
+                                pos = (n_r, n_c);
+                            }
+                            Tile::Block => {
+                                break;
+                            }
+                            OffMap => {
+                                let (new_pos, new_dir) = map_around_cube(&pos, &dir);
+
+                                if grid[new_pos.0][new_pos.1] == Tile::Block {
+                                    break;
+                                }
+                                pos = new_pos;
+                                dir = new_dir;
+                            }
+                        }
+                    } else {
+                        let (new_pos, new_dir) = map_around_cube(&pos, &dir);
+                        if grid[new_pos.0][new_pos.1] == Tile::Block {
+                            break;
+                        }
+                        pos = new_pos;
+                        dir = new_dir;
+                    }
+                    steps = steps - 1;
+                }
+            }
+        }
+    }
+
+
+    let answer = (pos.0 + 1) * 1000 + 4 * (pos.1 + 1) + get_facing(dir);
+    return answer.to_string();
+}
+
+fn get_facing(dir: Direction) -> usize {
+    match dir {
+        Direction::Up => { 3 }
+        Direction::Down => { 1 }
+        Direction::Left => { 2 }
+        Direction::Right => { 0 }
     }
 }
-
-
-
-
-fn part1() -> String {
-    let p1_file = match TEST {
-        true => PART1_TEST_FILENAME,
-        false => PART1_INPUT_FILENAME
+fn map_around_cube(pos: &(usize, usize), dir: &Direction) -> ((usize, usize), Direction) {
+    // Figure out by hand. Won't work if the cube is flatten in a different way, but this is far easier.
+    let (cube_row, cube_col, new_dir) = match (pos.0 / PART2_FACE_SIZE, pos.1 / PART2_FACE_SIZE, dir) {
+        (0, 1, Direction::Up) => (3, 0, Direction::Right),
+        (0, 1, Direction::Left) => (2, 0, Direction::Right),
+        (0, 2, Direction::Up) => (3, 0, Direction::Up),
+        (0, 2, Direction::Right) => (2, 1, Direction::Left),
+        (0, 2, Direction::Down) => (1, 1, Direction::Left),
+        (1, 1, Direction::Right) => (0, 2, Direction::Up),
+        (1, 1, Direction::Left) => (2, 0, Direction::Down),
+        (2, 0, Direction::Up) => (1, 1, Direction::Right),
+        (2, 0, Direction::Left) => (0, 1, Direction::Right),
+        (2, 1, Direction::Right) => (0, 2, Direction::Left),
+        (2, 1, Direction::Down) => (3, 0, Direction::Left),
+        (3, 0, Direction::Right) => (2, 1, Direction::Up),
+        (3, 0, Direction::Down) => (0, 2, Direction::Down),
+        (3, 0, Direction::Left) => (0, 1, Direction::Down),
+        _ => {panic!("cube mapping not found")},
     };
-    let data1_s =
-        fs::read_to_string(p1_file).expect(&*format!("error opening file {}", p1_file));
-    let mut lines: Vec<&str> = data1_s.trim().split("\n").collect();
-    let l_num = lines.len();
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p1_file);
-        if l_num == 1 {
-            println!("\t\t line read has length: {}", lines[0].len());
-        }
-    }
-    let data1_ss = data1_s.trim();
-    let split_lines:Vec<&str> = data1_ss.split(LINE_ENDING).collect();
 
-    let mut v_points:Vec<Point3D> = Vec::new();
-    for i in 0..split_lines.len() {
-        let pp = split_lines[i].parse::<Point3D>().unwrap();
-        let s_pp = Point3D{x:pp.x+1, y:pp.y+1, z:pp.z+1};
-        v_points.push(s_pp);
-    }
+    let (row_idx, col_idx) = (pos.0 % PART2_FACE_SIZE, pos.1 % PART2_FACE_SIZE);
 
-    let v_points = v_points.clone();
-
-    let v_points = v_points.clone();
-
-    let mut p_cloud:HashSet<Point3D> = HashSet::new();
-    for p in v_points.clone() {
-        p_cloud.insert(p.clone());
-    }
-    let mut cube_count =0;
-
-   for p in &v_points {
-       let mut sides:i32=0;
-       let mut h_sides:HashSet<Point3D> = HashSet::new();
-
-       let mut pp = Point3D{x:p.x+1, y:p.y, z:p.z};
-       h_sides.insert(pp.clone());
-       let mut pp = Point3D{x:p.x-1  , y:p.y, z:p.z};
-       h_sides.insert(pp.clone());
-       let mut pp = Point3D{x:p.x, y:p.y+1, z:p.z};
-       h_sides.insert(pp.clone());
-       let mut pp = Point3D{x:p.x, y:p.y-1, z:p.z};
-       h_sides.insert(pp.clone());
-       let mut pp = Point3D{x:p.x, y:p.y, z:p.z+1};
-       h_sides.insert(pp.clone());
-       let mut pp = Point3D{x:p.x, y:p.y, z:p.z-1};
-       h_sides.insert(pp.clone());
-
-        for h in h_sides {
-            if !p_cloud.contains(&h) {
-                cube_count +=1;
-            }
-        }
-   }
-
-
-    let answer1 = cube_count.to_string();
-    return answer1.to_string();
-}
-
-fn part2() -> String {
-    let p2_file = match TEST {
-        true => PART2_TEST_FILENAME,
-        false => PART2_INPUT_FILENAME
+    let i = match dir {
+        Direction::Left => (PART2_FACE_SIZE -1) - row_idx,
+        Direction::Right => row_idx,
+        Direction::Up => col_idx,
+        Direction::Down => (PART2_FACE_SIZE -1) - col_idx,
     };
-    let data2_s =
-        fs::read_to_string(p2_file).expect(&*format!("error opening file {}", p2_file));
-
-    let mut lines: Vec<&str> = data2_s.trim().split("\n").collect();
-    let l_num = lines.len();
-    if TEST {
-        println!("\t read {} lines from {}", l_num, p2_file);
-        if l_num == 1 {
-            println!("\t\t line read has length: {}", lines[0].len());
-        }
-    }
-    let data2_ss = data2_s.trim();
-    let split_lines:Vec<&str> = data2_ss.split(LINE_ENDING).collect();
-
-    let mut v_points:Vec<Point3D> = Vec::new();
-    for i in 0..split_lines.len() {
-        let pp = split_lines[i].parse::<Point3D>().unwrap();
-        let s_pp = Point3D{x:pp.x+2, y:pp.y+2, z:pp.z+2};
-        v_points.push(s_pp);
-    }
-
-    let v_points = v_points.clone();
 
 
-    let v_points = v_points.clone();
+    let (new_row,new_col) = match new_dir {
+        Direction::Up => {((PART2_FACE_SIZE -1),i)}
+        Direction::Down => {(0,(PART2_FACE_SIZE -1)-i)}
+        Direction::Left => {((PART2_FACE_SIZE -1)-i, (PART2_FACE_SIZE -1))}
+        Direction::Right => {(i,0)}
+    };
 
-    let  (mut x_min,mut x_max) = (usize::MAX, usize::MIN);
-    let  (mut y_min,mut y_max) = (usize::MAX, usize::MIN);
-    let  (mut z_min,mut z_max) = (usize::MAX, usize::MIN);
+    return ((cube_row * PART2_FACE_SIZE + new_row, cube_col*PART2_FACE_SIZE + new_col), new_dir);
 
-    let mut p_cloud:HashSet<Point3D> = HashSet::new();
-    for p in v_points.clone() {
-        x_min = cmp::min(p.x, x_min);
-        y_min = cmp::min(p.y, y_min);
-        z_min = cmp::min(p.z, z_min);
-
-        x_max = cmp::max(p.x, x_max);
-        y_max = cmp::max(p.y, y_max);
-        z_max = cmp::max(p.z, z_max);
-
-        p_cloud.insert(p.clone());
-    }
-
-
-    let mut cube_count =0;
-
-    for p in &v_points {
-        let mut sides:usize=0;
-        let mut h_sides:HashSet<Point3D> = HashSet::new();
-
-        let mut pp = Point3D{x:p.x+1, y:p.y, z:p.z};
-        h_sides.insert(pp.clone());
-        let mut pp = Point3D{x:p.x-1, y:p.y, z:p.z};
-        h_sides.insert(pp.clone());
-        let mut pp = Point3D{x:p.x, y:p.y+1, z:p.z};
-        h_sides.insert(pp.clone());
-        let mut pp = Point3D{x:p.x, y:p.y-1, z:p.z};
-        h_sides.insert(pp.clone());
-        let mut pp = Point3D{x:p.x, y:p.y, z:p.z+1};
-        h_sides.insert(pp.clone());
-        let mut pp = Point3D{x:p.x, y:p.y, z:p.z-1};
-        h_sides.insert(pp.clone());
-
-        for h in h_sides {
-            if !p_cloud.contains(&h) {
-                cube_count +=1;
-            }
-        }
-    }
-
-    let mut hole_count:usize = 0;
-    let mut considered_holes:usize = 0;
-    // v_holes: count of single voxel holes
-    let mut v_holes:HashSet<Point3D> = HashSet::new();
-    for xx in (x_min-1)..=(x_max+1) {
-        for yy in (y_min-1)..=(y_max+1) {
-            for zz in (z_min-1)..=(z_max+1) {
-                let p = Point3D{x:xx,y:yy,z:zz};
-                if p_cloud.contains(&p) {
-                    // point is lava, ignore
-                    continue;
-                }
-                considered_holes +=1;
-                let mut sides =0;
-                // check point on each side, and count how many are lava
-
-                let mut pp = Point3D{x:p.x+1, y:p.y, z:p.z};
-                if p_cloud.contains(&pp) {
-                    sides += 1;
-                }
-                let mut pp = Point3D{x:p.x-1, y:p.y, z:p.z};
-                if p_cloud.contains(&pp) {
-                    sides += 1;
-                }
-                let mut pp = Point3D{x:p.x, y:p.y+1, z:p.z};
-                if p_cloud.contains(&pp) {
-                    sides += 1;
-                }
-                let mut pp = Point3D{x:p.x, y:p.y-1, z:p.z};
-                if p_cloud.contains(&pp) {
-                    sides += 1;
-                }
-                let mut pp = Point3D{x:p.x, y:p.y, z:p.z+1};
-                if p_cloud.contains(&pp) {
-                    sides += 1;
-                }
-                let mut pp = Point3D{x:p.x, y:p.y, z:p.z-1};
-                if p_cloud.contains(&pp) {
-                    sides += 1;
-                }
-                if sides == 6 {
-                    //println!("\tquery point {p} has lava on {} sides", sides);
-                    hole_count +=1;
-                    v_holes.insert(p.clone());
-                }
-            }
-        }
-    }
-
-    let mut previous = v_holes.len();
-
-    let mut longest_dir = cmp::max(x_max, y_max);
-    longest_dir = cmp::max(longest_dir, z_max);
-    longest_dir +=1;
-    let a_size:usize = longest_dir as usize;
-
-    let v = vec![Voxel::Unknown; a_size * a_size * a_size];
-
-
-    let mut grid: [[[Voxel; ARRAY_SIZE]; ARRAY_SIZE]; ARRAY_SIZE] = Default::default();
-let mut inital_markings = 0;
-    for xx in 0..ARRAY_SIZE {
-        for yy in 0..ARRAY_SIZE {
-            for zz in 0..ARRAY_SIZE {
-                grid[xx][yy][0] = Voxel::Outside; // bottom side
-                grid[xx][yy][ARRAY_SIZE - 1] = Voxel::Outside;// top side
-
-                grid[0][yy][zz] = Voxel::Outside;
-                grid[ARRAY_SIZE - 1][yy][zz] = Voxel::Outside;
-
-                grid[xx][0][zz] = Voxel::Outside;
-                grid[xx][ARRAY_SIZE - 1][zz] = Voxel::Outside;
-                inital_markings += 6;
-            }
-        }
-    }
-
-    for p in p_cloud {
-        let (x,y,z) =(p.x, p.y, p.z);
-        grid[x][y][z] = Voxel::Lava;
-    }
-
-
-    let mut flood_loops =-1;
-    // array has outside marked, and lava quares mark. flood-fill outside
-    let mut progress = true;
-    while progress {
-        progress = false;
-        for xx in 0..ARRAY_SIZE {
-            for yy in 0..ARRAY_SIZE {
-                for zz in 0..ARRAY_SIZE {
-                    if grid[xx][yy][zz] != Voxel::Unknown {
-                        continue;
-                    }
-
-
-                    let (dx, dy, dz) = (xx + 1, yy, zz);
-                    if grid[dx][dy][dz] == Voxel::Outside {
-                        progress = true;
-                        grid[xx][yy][zz] = Voxel::Outside;
-                        continue;
-                    }
-                    let (dx, dy, dz) = ((xx as i64 + -1) as usize, yy, zz);
-                    if grid[dx][dy][dz] == Voxel::Outside {
-                        progress = true;
-                        grid[xx][yy][zz] = Voxel::Outside;
-                        continue;
-                    }
-
-                    let (dx, dy, dz) = (xx, yy + 1, zz);
-                    if grid[dx][dy][dz] == Voxel::Outside {
-                        progress = true;
-                        grid[xx][yy][zz] = Voxel::Outside;
-                        continue;
-                    }
-
-                    let (dx, dy, dz) = (xx, (yy as i64 + -1) as usize, zz);
-
-                    if grid[dx][dy][dz] == Voxel::Outside {
-                        progress = true;
-                        grid[xx][yy][zz] = Voxel::Outside;
-                        continue;
-                    }
-                    let (dx, dy, dz) = (xx, yy, zz + 1);
-                    if grid[dx][dy][dz] == Voxel::Outside {
-                        progress = true;
-                        grid[xx][yy][zz] = Voxel::Outside;
-                        continue;
-                    }
-
-                    let (dx, dy, dz) = (xx, yy, (zz as i64 + -1) as usize);
-                    if grid[dx][dy][dz] == Voxel::Outside {
-                        progress = true;
-                        grid[xx][yy][zz] = Voxel::Outside;
-                        continue;
-                    }
-                }
-            }
-        }
-    }
-    let mut out_count = 0;
-    let mut unknown_count = 0;
-    let mut lava_count = 0;
-    for xx in 0..ARRAY_SIZE {
-        for yy in 0..ARRAY_SIZE {
-            for zz in 0..ARRAY_SIZE {
-                let q = grid[xx][yy][zz];
-                match q {
-                    Voxel::Unknown => {unknown_count += 1 ; }
-                    Outside => { out_count += 1;}
-                    Voxel::Lava => {lava_count +=1;}
-                }
-            }
-        }
-    }
-
-    let mut outside_lava_count = 0;
-    for xx in 0..ARRAY_SIZE {
-        for yy in 0..ARRAY_SIZE {
-            for zz in 0..ARRAY_SIZE {
-                if grid[xx][yy][zz] != Voxel::Lava {
-                    continue;
-                }
-
-
-                let (dx, dy, dz) = (xx + 1, yy, zz);
-                if grid[dx][dy][dz] == Voxel::Outside {
-                    outside_lava_count += 1;
-                }
-                let (dx, dy, dz) = ((xx as i64 + -1) as usize, yy, zz);
-                if grid[dx][dy][dz] == Voxel::Outside {
-                    outside_lava_count += 1;
-                }
-
-                let (dx, dy, dz) = (xx, yy + 1, zz);
-                if grid[dx][dy][dz] == Voxel::Outside {
-                    outside_lava_count += 1;
-                }
-
-                let (dx, dy, dz) = (xx, (yy as i64 + -1) as usize, zz);
-
-                if grid[dx][dy][dz] == Voxel::Outside {
-                    outside_lava_count += 1;
-                }
-                let (dx, dy, dz) = (xx, yy, zz + 1);
-                if grid[dx][dy][dz] == Voxel::Outside {
-                    outside_lava_count += 1;
-                }
-
-                let (dx, dy, dz) = (xx, yy, (zz as i64 + -1) as usize);
-                if grid[dx][dy][dz] == Voxel::Outside {
-                    outside_lava_count += 1;
-                }
-            }
-        }
-    }
-
-
-    let mut answer2 = outside_lava_count.to_string();
-    return answer2;
 }
+fn parse_codes(input: String) -> Vec<Code> {
+    let mut codes: Vec<Code> = Vec::new();
+    let array = advent_2022::str_to_char_vec(input.as_str());
+    let mut digits: Vec<usize> = Vec::new();
+    for c in array {
+        if c.is_numeric() {
+            let digit: usize = c.to_digit(10).unwrap() as usize;
+            digits.push(digit);
+        } else {
+            let num: usize = digits.iter().fold(0, |num, digit| num * 10usize + digit);
+            digits.clear();
+            codes.push(Code::Forward(num));
+            let l_of_r = match c {
+                'L' => LeftOrRight::Left,
+                'R' => LeftOrRight::Right,
+                x => panic!("not left or right: {}", x)
+            };
+            codes.push(Code::Turn(l_of_r));
+        }
+    }
+    if !digits.is_empty() {
+        let num = digits.iter().fold(0, |num, digit| num * 10 + digit);
+        digits.clear();
+        codes.push(Code::Forward(num));
+    }
+    return codes;
+}
+fn parse_flat_grid_and_code(lines: &mut Vec<String>) -> (Vec<Vec<char>>, Vec<Vec<Tile>>, Vec<Code>) {
+    let mut grid_lines: Vec<String> = Vec::new();
+    let mut instruction_lines = None;
+    let mut max_grid_line_length: usize = usize::MIN;
+    for i in 0..lines.len() - 2 {
+        let len = lines[i].len();
+        max_grid_line_length = max_grid_line_length.max(len);
+    }
+    let mut index = 0;
+    while index < lines.len() {
+        let lin = &lines[index];
+        if lin.is_empty() {
+            instruction_lines = Some(lines[index + 1].clone());
+            break;
+        }
+        if lin.len() < max_grid_line_length {
+            let diff = max_grid_line_length - lin.len();
+            let blanks_to_add = std::iter::repeat(" ").take(diff).collect::<String>();
+            lines[index].push_str(&blanks_to_add);
+        }
+        grid_lines.push(lines[index].clone());
+        index += 1;
+    }
+    let grid = advent_2022::parse_grid(&grid_lines);
+    let c_grid = grid.clone();
+    let grid = advent_2022::convert_grid_using(&grid, |ch| match ch {
+        '.' => { Tile::Open }
+        '#' => { Tile::Block }
+        ' ' => { Tile::OffMap }
+        _ => { panic!("character for map tile unknown: {}", ch) }
+    });
+    let instructions;
+    if let Some(s_instructions) = instruction_lines {
+        instructions = s_instructions;
+    } else {
+        panic!("no instruction line;")
+    }
+    let codes: Vec<Code> = parse_codes(instructions);
+    (c_grid, grid, codes)
+}
+
+
+
+
+
+
+
