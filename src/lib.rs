@@ -216,7 +216,7 @@ pub enum LeftOrRight {
 }
 
 impl Display for LeftOrRight {
-     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
             LeftOrRight::Left => { 'L' }
             LeftOrRight::Right => { 'R' }
@@ -233,6 +233,21 @@ pub enum Direction {
     Right,
 }
 
+
+impl Display for Direction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}",
+               match self {
+                   Direction::Up => { "Up" }
+                   Direction::Down => { "Down" }
+                   Direction::Left => { "Left" }
+                   Direction::Right => { "Right" }
+               }
+        )
+    }
+}
+
+
 pub const DIRECTION_ARRAY: [Direction; 4] = [
     Direction::Up,
     Direction::Down,
@@ -241,6 +256,53 @@ pub const DIRECTION_ARRAY: [Direction; 4] = [
 ];
 
 impl Direction {
+    pub fn to_arrow(&self) -> char {
+        match self {
+            Direction::Up => {'^'}
+            Direction::Down => {'v'}
+            Direction::Left => {'<'}
+            Direction::Right => {'>'}
+        }
+    }
+    pub fn grid_go_in_dir_rc(&self, (r, c):(usize, usize), max_y0: usize, max_y: usize) -> Option<(usize, usize)> {
+        match self {
+            Direction::Up => {
+                if r > 0 {
+                    Some((r - 1, c))
+                } else {
+                    None
+                }
+            }
+            Direction::Down => {
+
+                    Some((r + 1, c))
+
+            }
+
+            Direction::Left => {
+                if c > 0 {
+                    Some((r, c - 1))
+                } else {
+                    None
+                }
+            }
+            Direction::Right => {
+                Some((r,c+1))
+            }
+        }
+    }
+
+
+    pub fn grid_offset_in_xy(&self) -> (i32, i32) {
+        match self {
+            Direction::Up => { (0, -1) }
+            Direction::Down => { (0, 1) }
+            Direction::Left => { (-1, 0) }
+            Direction::Right => { (1, 0) }
+        }
+    }
+
+
     pub fn opposite(&self) -> Self {
         match self {
             Direction::Up => Direction::Down,
@@ -249,7 +311,7 @@ impl Direction {
             Direction::Right => Direction::Left,
         }
     }
-    pub fn turn_to(&self, turn_to: LeftOrRight) -> Direction{
+    pub fn turn_to(&self, turn_to: LeftOrRight) -> Direction {
         match self {
             Direction::Up => {
                 match turn_to {
@@ -388,7 +450,7 @@ pub fn print_grid<T: std::fmt::Display>(grid: &Vec<Vec<T>>) -> () {
 
     for y in 0..grid.len() {
         for x in 0..grid[0].len() - 1 {
-            print!("{} ", grid[y][x]);
+            print!("{}", grid[y][x]);
         }
         println!("{}", grid[y].last().unwrap());
     }

@@ -7,7 +7,10 @@
 
 use std::fmt::{Display, Formatter};
 use std::time::Instant;
+
 use advent_2022::{Direction, LeftOrRight, print_grid};
+
+use crate::Tile::OffMap;
 
 /*
     Advent of Code 2022: Day 22
@@ -28,7 +31,7 @@ fn main() {
     println!("Advent of Code, Day 22");
     println!("    ---------------------------------------------");
     let start1 = Instant::now();
-    let answer1 = part1(_filename_test);
+    let answer1 = part1(filename_part1);
     let duration1 = start1.elapsed();
 
     println!("\t Part 1: {:14} time: {:?}", answer1, duration1);
@@ -52,46 +55,47 @@ fn main() {
     // }
     println!("    ---------------------------------------------");
 }
+
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 enum Tile {
     Open,
     Block,
-    OffMap
+    OffMap,
 }
+
 impl Display for Tile {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            Tile::Open => {'.'}
-            Tile::Block => {'#'}
-            Tile::OffMap => {' '}
+            Tile::Open => { '.' }
+            Tile::Block => { '#' }
+            Tile::OffMap => { ' ' }
         })
     }
 }
 
 
-
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 enum Code {
     Turn(LeftOrRight),
-    Forward(usize)
+    Forward(usize),
 }
 
 impl Display for Code {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let t =  match self {
-            Code::Turn(a) => {("Turn", (*a).to_string())}
-            Code::Forward(n) => {("Forword", (*n).to_string())}
-        } ;
-        write!(f, "{}:{}",t.0, t.1)
+        let t = match self {
+            Code::Turn(a) => { ("Turn", (*a).to_string()) }
+            Code::Forward(n) => { ("Forword", (*n).to_string()) }
+        };
+        write!(f, "{}:{}", t.0, t.1)
     }
 }
 
 fn part1(input_file: &str) -> String {
     let mut lines = advent_2022::file_to_lines(input_file);
-    let mut grid_lines:Vec<String> = Vec::new();
+    let mut grid_lines: Vec<String> = Vec::new();
     let mut instruction_lines = None;
-    let mut max_grid_line_length:usize = usize::MIN;
-    for i in 0..lines.len()-2 {
+    let mut max_grid_line_length: usize = usize::MIN;
+    for i in 0..lines.len() - 2 {
         let len = lines[i].len();
         max_grid_line_length = max_grid_line_length.max(len);
     }
@@ -104,8 +108,8 @@ fn part1(input_file: &str) -> String {
         }
         if lin.len() < max_grid_line_length {
             let diff = max_grid_line_length - lin.len();
-            let blanks_to_add =std::iter::repeat(" ").take(diff).collect::<String>();
-             lin.push_str(&blanks_to_add);
+            let blanks_to_add = std::iter::repeat(" ").take(diff).collect::<String>();
+            lin.push_str(&blanks_to_add);
         }
 
         grid_lines.push(lines[index].clone());
@@ -113,28 +117,28 @@ fn part1(input_file: &str) -> String {
     }
 
 
-
     let grid = advent_2022::parse_grid(&grid_lines);
+    let mut c_grid = grid.clone();
     let grid = advent_2022::convert_grid_using(&grid, |ch| match ch {
-        '.' => { Tile::Open}
-        '#' => {Tile::Block}
-        ' ' => {Tile::OffMap}
-        _ => {panic!("character for map tile unknown: {}", ch)}
+        '.' => { Tile::Open }
+        '#' => { Tile::Block }
+        ' ' => { Tile::OffMap }
+        _ => { panic!("character for map tile unknown: {}", ch) }
     });
-    print_grid(&grid);
-    println!();
+    //print_grid(&grid);
+    //println!();
     let mut instructions;
     if let Some(s_instructions) = instruction_lines {
-        instructions= s_instructions;
+        instructions = s_instructions;
     } else {
         panic!("no instruction line;")
     }
 
-    let codes :Vec<Code> = parse_codes(instructions);
+    let codes: Vec<Code> = parse_codes(instructions);
     let max_y = grid.len();
     let max_x = grid[0].len();
-
-    let mut pos:(usize,usize) = (0,0);  // (y,x) or (row, col)
+    println!("max row: {max_y:3} max_col: {max_x:3}");
+    let mut pos: (usize, usize) = (0, 0);  // (y,x) or (row, col)
     let mut dir = Direction::Right;
 
     loop {
@@ -145,38 +149,132 @@ fn part1(input_file: &str) -> String {
             break;
         }
     }
-    println!("starting pos: {:?}", pos);
 
 
+    let mut verbose_debug = true;
+    for (i, c) in codes.iter().enumerate() {
+        println!("_{i:5}: {}@{:?} code: {}", dir.to_arrow(), pos, c);
+        match c {
+            Code::Turn(l_or_r) => {
+                dir = dir.turn_to(*l_or_r);
+            }
+            Code::Forward(much) => {
+                //  print_grid(&c_grid);
+                if *much == 13 {
+                    println!();
+                    print_grid(&c_grid);
+                    verbose_debug = true;
+                }
 
+                let mut steps = *much;
+                if verbose_debug {
+                    print!("\t\t\t stepping from {:?}-> ", pos);
+                }
+                let mut ch = OffMap;
+                while steps > 0 {
+                    c_grid[pos.0][pos.1] = dir.to_arrow();
+                    let n_pos = dir.grid_go_in_dir_rc(pos, max_y, max_x);
+                    if verbose_debug {
+                        println!("\t\tpos: {:?},  n_pos = {:?}, step: {steps} much: {} ch: {:?}", pos, n_pos, *much, ch);
+                    }
 
+                    if let Some((r, c)) = n_pos {
+                        ch = {
+                            if r > grid.len() || c > grid[0].len() {
+                                OffMap
+                            } else {
+                                println!("\t getting grid character @ npos:(r,c): {:?}", (r, c));
+                                grid[r][c]
+                            }
+                        };
+                        match ch {
+                            Tile::Open => {
+                                println!("_ Tile open");
+                                pos = (r, c);
+                                steps -= 1;
+                                continue;
+                            }
+                            Tile::Block => {
+                                println!("_ Tile block");
+                                println!("\t\t stop at block with {} steps to go, {}@{:?}", steps, dir.to_arrow(), pos);
+                                break;
+                            }
+                            Tile::OffMap => {
+                                println!("_ Tile offmap");
+                                match dir {
+                                    Direction::Up => {
+                                        println!("Up {:?} step: {} ", pos, dir.to_arrow());
 
-    let answer = 0;
+                                        let mut s_scan = (grid.len() - 1, c);
+                                        println!("\t starting scan @ {:?}", s_scan);
+                                        while grid[s_scan.0][s_scan.1] == OffMap {
+                                            s_scan.0 = s_scan.0 - 1;
+                                        }
+                                        pos = s_scan;
+                                        println!("new pos: {:?}", pos);
+                                    }
+                                    Direction::Down => {
+                                        let mut s_scan = (0, c);
+                                        while grid[s_scan.0][s_scan.1] == OffMap {
+                                            s_scan.0 = s_scan.0 + 1;
+                                        }
+                                        pos = s_scan;
+                                    }
+                                    Direction::Left => {
+                                        let mut s_scan = (r, grid[0].len() - 1);
+                                        while grid[s_scan.0][s_scan.1] == OffMap {
+                                            s_scan.1 = s_scan.1 - 1;
+                                        }
+                                        pos = s_scan;
+                                    }
+                                    Direction::Right => {
+                                        let mut s_scan = (r, 0);
+                                        while grid[s_scan.0][s_scan.1] == OffMap {
+                                            s_scan.1 = s_scan.1 + 1;
+                                        }
+                                        pos = s_scan;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if verbose_debug {
+                    print!("{:?} ", pos);
+                }
+            }
+        }
+    }
+
+    println!("final pos: {:?}, facing {}", pos, dir);
+    let (r, c) = pos;
+    // print_grid(&c_grid);
+    let answer = (pos.0 + 1) * 1000 + 4 * (pos.1 + 1);
     return answer.to_string();
 }
 
 fn parse_codes(input: String) -> Vec<Code> {
-    let mut codes:Vec<Code> = Vec::new();
+    let mut codes: Vec<Code> = Vec::new();
     let array = advent_2022::str_to_char_vec(input.as_str());
-    let mut digits:Vec<usize> = Vec::new();
-   for c in array {
-       if c.is_numeric() {
-           let digit:usize = c.to_digit(10).unwrap()  as usize;
-           digits.push(digit);
-       } else {
-           let num:usize = digits.iter().fold(0,|num,digit| num * 10usize + digit);
-           digits.clear();
-           codes.push(Code::Forward(num));
-           let l_of_r = match c {
-             'L' => LeftOrRight::Left,
-               'R' => LeftOrRight::Right,
-               x => panic!("not left or right: {}", x)
-           };
-           codes.push(Code::Turn(l_of_r));
-       }
-   }
+    let mut digits: Vec<usize> = Vec::new();
+    for c in array {
+        if c.is_numeric() {
+            let digit: usize = c.to_digit(10).unwrap() as usize;
+            digits.push(digit);
+        } else {
+            let num: usize = digits.iter().fold(0, |num, digit| num * 10usize + digit);
+            digits.clear();
+            codes.push(Code::Forward(num));
+            let l_of_r = match c {
+                'L' => LeftOrRight::Left,
+                'R' => LeftOrRight::Right,
+                x => panic!("not left or right: {}", x)
+            };
+            codes.push(Code::Turn(l_of_r));
+        }
+    }
     if !digits.is_empty() {
-        let num = digits.iter().fold(0,|num,digit| num * 10 + digit);
+        let num = digits.iter().fold(0, |num, digit| num * 10 + digit);
         digits.clear();
         codes.push(Code::Forward(num));
     }
