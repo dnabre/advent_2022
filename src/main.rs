@@ -278,7 +278,7 @@ fn part1(input_file: &str) -> String {
     return answer.to_string();
 }
 
-const PART2_SIDE_SIZE:(usize,usize)=(5,50);
+const PART2_SIDE_SIZE:(usize,usize)=(4,50);
 
 fn part2(input_file: &str) -> String {
     let mut lines = advent_2022::file_to_lines(input_file);
