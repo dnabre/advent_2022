@@ -264,7 +264,7 @@ impl Direction {
             Direction::Right => {'>'}
         }
     }
-    pub fn grid_go_in_dir_rc(&self, (r, c):(usize, usize), max_y0: usize, max_y: usize) -> Option<(usize, usize)> {
+    pub fn grid_go_in_dir_rc(&self, (r, c):(usize, usize), max_y: usize, max_x: usize) -> Option<(usize, usize)> {
         match self {
             Direction::Up => {
                 if r > 0 {
@@ -274,8 +274,11 @@ impl Direction {
                 }
             }
             Direction::Down => {
-
+                if r + 1 < max_y {
                     Some((r + 1, c))
+                } else {
+                    None
+                }
 
             }
 
@@ -287,7 +290,12 @@ impl Direction {
                 }
             }
             Direction::Right => {
-                Some((r,c+1))
+                if c +1 < max_x {
+                    Some((r, c + 1))
+                } else {
+                    None
+                }
+
             }
         }
     }

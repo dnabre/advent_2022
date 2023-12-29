@@ -8,17 +8,17 @@
 use std::fmt::{Display, Formatter};
 use std::time::Instant;
 
-use advent_2022::{Direction, LeftOrRight, print_grid};
+use advent_2022::{Direction, LeftOrRight};
 
 use crate::Tile::OffMap;
 
 /*
     Advent of Code 2022: Day 22
-        part1 answer:   514786
+        part1 answer:   155060
         part2 answer:
 
 */
-const ANSWER: (&str, &str) = ("514786", "Button Pressed");
+const ANSWER: (&str, &str) = ("155060", "Button Pressed");
 
 fn main() {
     let _filename_test = "data/day22/test_input_01.txt";
@@ -135,9 +135,9 @@ fn part1(input_file: &str) -> String {
     }
 
     let codes: Vec<Code> = parse_codes(instructions);
-    let max_y = grid.len();
-    let max_x = grid[0].len();
-    println!("max row: {max_y:3} max_col: {max_x:3}");
+    let max_row = grid.len();
+    let max_col = grid[0].len();
+    println!("max row: {max_row:3} max_col: {max_col:3}");
     let mut pos: (usize, usize) = (0, 0);  // (y,x) or (row, col)
     let mut dir = Direction::Right;
 
@@ -159,92 +159,82 @@ fn part1(input_file: &str) -> String {
                 dir = dir.turn_to(*l_or_r);
             }
             Code::Forward(much) => {
-                //  print_grid(&c_grid);
-                if *much == 13 {
-                    println!();
-                    print_grid(&c_grid);
-                    verbose_debug = true;
-                }
-
+                c_grid[pos.0][pos.1] = dir.to_arrow();
                 let mut steps = *much;
-                if verbose_debug {
-                    print!("\t\t\t stepping from {:?}-> ", pos);
-                }
-                let mut ch = OffMap;
+                let mut n_pos = dir.grid_go_in_dir_rc(pos, max_row, max_col);
+                let mut wrapped_n_pos = None;
                 while steps > 0 {
-                    c_grid[pos.0][pos.1] = dir.to_arrow();
-                    let n_pos = dir.grid_go_in_dir_rc(pos, max_y, max_x);
-                    if verbose_debug {
-                        println!("\t\tpos: {:?},  n_pos = {:?}, step: {steps} much: {} ch: {:?}", pos, n_pos, *much, ch);
-                    }
-
-                    if let Some((r, c)) = n_pos {
-                        ch = {
-                            if r > grid.len() || c > grid[0].len() {
-                                OffMap
-                            } else {
-                                println!("\t getting grid character @ npos:(r,c): {:?}", (r, c));
-                                grid[r][c]
-                            }
-                        };
-                        match ch {
-                            Tile::Open => {
-                                println!("_ Tile open");
-                                pos = (r, c);
-                                steps -= 1;
-                                continue;
-                            }
-                            Tile::Block => {
-                                println!("_ Tile block");
-                                println!("\t\t stop at block with {} steps to go, {}@{:?}", steps, dir.to_arrow(), pos);
-                                break;
-                            }
-                            Tile::OffMap => {
-                                println!("_ Tile offmap");
-                                match dir {
-                                    Direction::Up => {
-                                        println!("Up {:?} step: {} ", pos, dir.to_arrow());
-
-                                        let mut s_scan = (grid.len() - 1, c);
-                                        println!("\t starting scan @ {:?}", s_scan);
-                                        while grid[s_scan.0][s_scan.1] == OffMap {
-                                            s_scan.0 = s_scan.0 - 1;
-                                        }
-                                        pos = s_scan;
-                                        println!("new pos: {:?}", pos);
-                                    }
-                                    Direction::Down => {
-                                        let mut s_scan = (0, c);
-                                        while grid[s_scan.0][s_scan.1] == OffMap {
-                                            s_scan.0 = s_scan.0 + 1;
-                                        }
-                                        pos = s_scan;
-                                    }
-                                    Direction::Left => {
-                                        let mut s_scan = (r, grid[0].len() - 1);
-                                        while grid[s_scan.0][s_scan.1] == OffMap {
-                                            s_scan.1 = s_scan.1 - 1;
-                                        }
-                                        pos = s_scan;
-                                    }
-                                    Direction::Right => {
-                                        let mut s_scan = (r, 0);
-                                        while grid[s_scan.0][s_scan.1] == OffMap {
-                                            s_scan.1 = s_scan.1 + 1;
-                                        }
-                                        pos = s_scan;
-                                    }
+                    if n_pos.is_none() || (grid[n_pos.unwrap().0][n_pos.unwrap().1] == OffMap) {
+                        // Either ran off grid or fit a place on the grid that is explicitly Off the Map.
+                        // Either way, we wrap:
+                        match dir {
+                            Direction::Up => {
+                                let mut wrap_r = max_row - 1;
+                                let c = pos.1;
+                                while grid[wrap_r][c] == Tile::OffMap {
+                                    wrap_r -= 1;
                                 }
+                                n_pos = Some((wrap_r, c));
+                            }
+                            Direction::Down => {
+                                let mut wrap_r = 0;
+                                let c = pos.1;
+                                while grid[wrap_r][c] == Tile::OffMap {
+                                    wrap_r += 1;
+                                }
+                                n_pos = Some((wrap_r, c))
+                            }
+                            Direction::Left => {
+                                let mut wrap_c = max_col - 1;
+                                let r = pos.0;
+                                while grid[r][wrap_c] == Tile::OffMap {
+                                    wrap_c -= 1;
+                                }
+                                n_pos = Some((r, wrap_c))
+                            }
+                            Direction::Right => {
+                                let mut wrap_c = 0;
+                                let r = pos.0;
+                                while grid[r][wrap_c] == Tile::OffMap {
+                                    wrap_c += 1;
+                                }
+                                n_pos = Some((r, wrap_c))
                             }
                         }
+                        wrapped_n_pos = n_pos;
+                    };
+                    n_pos = match wrapped_n_pos {
+                        None => { n_pos }
+                        Some(nw_pos) => {
+                            wrapped_n_pos = None;
+                            Some(nw_pos)
+                        }
+                    };
+                    if let Some((n_r,n_c)) = n_pos {
+                        let ch = grid[n_r][n_c];
+                        match ch {
+                            Tile::Open => {
+                                pos = (n_r,n_c);
+                                n_pos = dir.grid_go_in_dir_rc(pos, max_row, max_col);
+                                steps -= 1;
+                            }
+                            Tile::Block => {
+                                // We are blocked. Abort any steps left over
+                                break;
+                            }
+                            OffMap => {panic!("should have fixed this position to be on map")}
+                        }
+
+
+                    } else {
+                        panic!("n_pos should have a value at this point");
                     }
-                }
-                if verbose_debug {
-                    print!("{:?} ", pos);
+
                 }
             }
         }
     }
+
 
     println!("final pos: {:?}, facing {}", pos, dir);
     let (r, c) = pos;
