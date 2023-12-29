@@ -4,7 +4,6 @@
 #![allow(dead_code)]
 #![allow(unused_assignments)]
 
-
 use std::fmt::{Display, Formatter};
 use std::time::Instant;
 
@@ -41,18 +40,18 @@ fn main() {
             answer1, ANSWER.0
         );
     }
-    //
-    // let start2 = Instant::now();
-    // let answer2 = part2(_filename_test2);
-    // let duration2 = start2.elapsed();
-    //
-    // println!("\t Part 2: {:14} time: {:?}", answer2, duration2);
-    // if ANSWER.1 != answer2 {
-    //     println!(
-    //         "\t\t ERROR: Answer is WRONG. Got: {}, Expected {}",
-    //         answer2, ANSWER.1
-    //     );
-    // }
+
+    let start2 = Instant::now();
+    let answer2 = part2(_filename_test2);
+    let duration2 = start2.elapsed();
+
+    println!("\t Part 2: {:14} time: {:?}", answer2, duration2);
+    if ANSWER.1 != answer2 {
+        println!(
+            "\t\t ERROR: Answer is WRONG. Got: {}, Expected {}",
+            answer2, ANSWER.1
+        );
+    }
     println!("    ---------------------------------------------");
 }
 
@@ -72,7 +71,6 @@ impl Display for Tile {
         })
     }
 }
-
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 enum Code {
@@ -101,7 +99,7 @@ fn part1(input_file: &str) -> String {
     }
     let mut index = 0;
     while index < lines.len() {
-        let mut lin = &mut lines[index];
+        let  lin = &mut lines[index];
         if lin.is_empty() {
             instruction_lines = Some(lines[index + 1].clone());
             break;
@@ -111,12 +109,9 @@ fn part1(input_file: &str) -> String {
             let blanks_to_add = std::iter::repeat(" ").take(diff).collect::<String>();
             lin.push_str(&blanks_to_add);
         }
-
         grid_lines.push(lines[index].clone());
         index += 1;
     }
-
-
     let grid = advent_2022::parse_grid(&grid_lines);
     let mut c_grid = grid.clone();
     let grid = advent_2022::convert_grid_using(&grid, |ch| match ch {
@@ -125,22 +120,17 @@ fn part1(input_file: &str) -> String {
         ' ' => { Tile::OffMap }
         _ => { panic!("character for map tile unknown: {}", ch) }
     });
-    //print_grid(&grid);
-    //println!();
-    let mut instructions;
+    let  instructions;
     if let Some(s_instructions) = instruction_lines {
         instructions = s_instructions;
     } else {
         panic!("no instruction line;")
     }
-
     let codes: Vec<Code> = parse_codes(instructions);
     let max_row = grid.len();
     let max_col = grid[0].len();
-    println!("max row: {max_row:3} max_col: {max_col:3}");
-    let mut pos: (usize, usize) = (0, 0);  // (y,x) or (row, col)
+    let mut pos: (usize, usize) = (0, 0);
     let mut dir = Direction::Right;
-
     loop {
         let ch = grid[pos.0][pos.1];
         if ch != Tile::Open {
@@ -149,18 +139,15 @@ fn part1(input_file: &str) -> String {
             break;
         }
     }
-
-
-    let mut verbose_debug = true;
-    for (i, c) in codes.iter().enumerate() {
-        println!("_{i:5}: {}@{:?} code: {}", dir.to_arrow(), pos, c);
+    //for (i, c) in codes.iter().enumerate() {
+     for c in codes {
         match c {
             Code::Turn(l_or_r) => {
-                dir = dir.turn_to(*l_or_r);
+                dir = dir.turn_to(l_or_r);
             }
             Code::Forward(much) => {
                 c_grid[pos.0][pos.1] = dir.to_arrow();
-                let mut steps = *much;
+                let mut steps = much;
                 let mut n_pos = dir.grid_go_in_dir_rc(pos, max_row, max_col);
                 let mut wrapped_n_pos = None;
                 while steps > 0 {
@@ -224,21 +211,13 @@ fn part1(input_file: &str) -> String {
                             }
                             OffMap => {panic!("should have fixed this position to be on map")}
                         }
-
-
                     } else {
                         panic!("n_pos should have a value at this point");
                     }
-
                 }
             }
         }
     }
-
-
-    println!("final pos: {:?}, facing {}", pos, dir);
-    let (r, c) = pos;
-    // print_grid(&c_grid);
     let answer = (pos.0 + 1) * 1000 + 4 * (pos.1 + 1);
     return answer.to_string();
 }
