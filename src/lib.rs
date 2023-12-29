@@ -266,10 +266,6 @@ impl Direction {
     }
 
 
-
-
-
-
     pub fn grid_go_in_dir_rc(&self, (r, c):(usize, usize), max_y: usize, max_x: usize) -> Option<(usize, usize)> {
         match self {
             Direction::Up => {
