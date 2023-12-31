@@ -17,6 +17,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
+use std::iter::zip;
 use std::time::Instant;
 
 const ANSWER: (&str, &str) = ("2077", "2741");
@@ -29,7 +30,7 @@ fn main() {
     let filename_part2 = "data/day16/part2_input.txt";
 
     let start1 = Instant::now();
-    let answer1 = part1(_filename_test1);
+    let answer1 = part1(filename_part1);
     let duration1 = start1.elapsed();
 
     let start2 = Instant::now();
@@ -142,6 +143,7 @@ fn parse_valves(lines:& Vec<String>) -> (Vec<Node>, Vec<&str>, HashMap<&str, usi
             name: v_name.to_string(),
             flow: u_flow,
             edges: l_edges.clone(),
+            edge_weights: vec![ 1;l_edges.len()],
         };
         node_list.push(node);
     }
@@ -149,17 +151,30 @@ fn parse_valves(lines:& Vec<String>) -> (Vec<Node>, Vec<&str>, HashMap<&str, usi
 }
 
 #[derive(Debug, Hash,  Clone)]
+struct State {
+    room: usize,
+    time: usize,
+    valves: Vec<usize>
+}
+
+
+
+#[derive(Debug, Hash,  Clone)]
 struct Node {
     id:usize,
     name: String,
     flow: usize,
-    edges:Vec<usize>
+    edges:Vec<usize>,
+    edge_weights: Vec<usize>
 }
 
 impl Display for Node {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"Valve[{}] {} has flow: {}, with edges {}", self.id, self.name, self.flow,
-               advent_2022::list_displayables_to_string(&self.edges))
+
+        let e_list:Vec<String> = zip(self.edges.clone(), self.edge_weights.clone())
+            .map(|(e, w)| format!("({e}:{w})")).collect();
+        write!(f,"Valve[{}] {} has flow: {}, with edges [{}]", self.id, self.name, self.flow,
+              e_list.join(","))
     }
 }
 
