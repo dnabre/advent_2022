@@ -21,7 +21,7 @@
 | [Day 13: Distress Signal ](https://adventofcode.com/2022/day/13)  | nested list parsing             | * | * |
 | [Day 14: Regolith Reservoir](https://adventofcode.com/2022/day/14)  | sand sim                        | * | * |
 | [Day 15: Beacon Exclusion Zone ](https://adventofcode.com/2022/day/15)  | sensor geometry                 | * | * |
-| [Day 16: Proboscidea Volcanium](https://adventofcode.com/2022/day/16)  | graph flow/DP                   | _ | _ |
+| [Day 16: Proboscidea Volcanium](https://adventofcode.com/2022/day/16)  | graph flow/DP                   | * | * |
 | [Day 17: Pyroclastic Flow ](https://adventofcode.com/2022/day/17)  | tetris                          | * | * |
 | [Day 18: Boiling Boulders: ](https://adventofcode.com/2022/day/18)  | 3d-array manip                  | * | * |
 | [Day 19: Not Enough Minerals: ](https://adventofcode.com/2022/day/19)  | culling search space            | * | * |
@@ -30,6 +30,6 @@
 | [Day 22: Monkey Map ](https://adventofcode.com/2022/day/22)  | mapping 2D to Cube              | * | * |
 | [Day 23: Unstable Diffusion ](https://adventofcode.com/2022/day/23)  | automata                        | * | * |
 | [Day 24: Blizzard Basin  ](https://adventofcode.com/2022/day/24)  | maze search                     | * | * |
-| [Day 25: Full of Hot Air](https://adventofcode.com/2022/day/25)  | base conversion                 | * | _ |
+| [Day 25: Full of Hot Air](https://adventofcode.com/2022/day/25)  | base conversion                 | * | * |
 
 Learning Rust as I go, so this code will likely be messy and non-idiomatic. Not recommended as good examples of the language.

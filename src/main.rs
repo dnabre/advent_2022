@@ -1,26 +1,26 @@
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(unused_mut)]
-#![allow(dead_code)]
-#![allow(unused_assignments)]
-#![allow(unreachable_code)]
-#[allow(unused_variables)]
+// #![allow(unused_variables)]
+// #![allow(unused_imports)]
+// #![allow(unused_mut)]
+// #![allow(dead_code)]
+// #![allow(unused_assignments)]
+// #![allow(unreachable_code)]
+// #[allow(unused_variables)]
 
 /*
     Advent of Code 2023: Day 16
         part1 answer:   2077
-        part2 answer:
+        part2 answer:   2741
 
-
-part2: 2593 is too low
  */
 
 
 use std::collections::{HashMap, HashSet};
-use std::collections::VecDeque;
+use std::collections::{BTreeSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::time::Instant;
+
+use itertools::Itertools;
 
 const ANSWER: (&str, &str) = ("2077", "2741");
 
@@ -31,9 +31,9 @@ fn main() {
     let filename_part1 = "data/day16/part1_input.txt";
     let filename_part2 = "data/day16/part2_input.txt";
 
-    // let start1 = Instant::now();
-    // let answer1 = part1(filename_part1);
-    // let duration1 = start1.elapsed();
+    let start1 = Instant::now();
+    let answer1 = part1(filename_part1);
+    let duration1 = start1.elapsed();
 
     let start2 = Instant::now();
     let answer2 = part2(filename_part2);
@@ -42,10 +42,10 @@ fn main() {
     println!("Advent of Code, Day 16");
     println!("    ---------------------------------------------");
 
-    // println!("\t Part 1: {:14} time: {:?}", answer1, duration1);
-    // if ANSWER.0 != answer1 {
-    //     println!("\t\t ERROR: Answer is WRONG. Got: {}, Expected {}", answer1, ANSWER.0);
-    // }
+    println!("\t Part 1: {:14} time: {:?}", answer1, duration1);
+    if ANSWER.0 != answer1 {
+        println!("\t\t ERROR: Answer is WRONG. Got: {}, Expected {}", answer1, ANSWER.0);
+    }
 
     println!("\t Part 2: {:14} time: {:?}", answer2, duration2);
     if ANSWER.1 != answer2 {
@@ -290,6 +290,19 @@ struct PseudoPrimeState {
     valve_offset: usize,
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
+struct State {
+    opened: BTreeSet<usize>,
+    curr: usize,
+    elapsed: usize,
+    relieved: usize,
+}
+
+#[derive(Debug)]
+struct Valve {
+    flow: usize,
+}
+
 
 #[derive(Debug, Clone)]
 struct Node {
@@ -329,53 +342,103 @@ fn part1(input_file: &str) -> String {
 
 fn part2(input_file: &str) -> String {
     let lines = advent_2022::file_to_lines(input_file);
-    let (node_list, valve_name_list, id_lookup_by_name, edge_lists) = parse_valves(&lines);
+    let (node_list, _, _, _) = parse_valves(&lines);
 
 
     let mut valves: HashMap<Id, Node> = HashMap::with_capacity(node_list.len());
     for i in 0..node_list.len() {
         valves.insert(i, node_list[i].clone());
     }
-    let mut small_graph = compact_graph(valves);
+    let  small_graph = compact_graph(valves);
 
-   let keys:Vec<Id> = small_graph.clone().into_iter().map(|(k,v)|k).collect();
-    println!("keys: {}", advent_2022::list_displayables_to_string(&keys));
-    let rename:Vec<(usize,&usize)> = keys.iter().enumerate().collect();
-    let mut rename_map:Vec<(usize,usize)> = Vec::with_capacity(rename.len());
-    for (left,right) in &rename {
-        rename_map.push((*left, **right));
-    }
-    let mut old_to_new_id:HashMap<usize,usize> = HashMap::new();
+    let mut map: HashMap<usize, Valve> = HashMap::new();
+    for (k, v) in &small_graph {
+        let o_flow = v.flow;
+        let mut o_neigh: HashSet<usize> = HashSet::new();
+        for c in &v.edges {
+            o_neigh.insert(c.id);
+        }
+        let val = Valve {
+            flow: o_flow,
 
-
-    println!("{:?}", rename_map);
-    let mut n_graph:HashMap<Id,Node> = HashMap::with_capacity(small_graph.len());
-    for i in 0..rename_map.len() {
-        let (new_key,old_key) = rename_map[i];
-        old_to_new_id.insert(old_key,new_key);
-        let mut nn = small_graph.get(&old_key).unwrap().clone();
-        nn.id = new_key;
-        n_graph.insert(i,nn);
-
+        };
+        map.insert(*k, val);
     }
 
 
-    for (k,v) in n_graph.clone().iter() {
-        let mut v = n_graph.get_mut(&k).unwrap();
-        for con in &mut v.edges {
-            let n_k = old_to_new_id[&con.id];
-            con.id = n_k;
+    let mut dist_map: HashMap<(usize, usize), usize> = HashMap::new();
+    for (k, _) in &small_graph {
+        let c_node = &small_graph[&k];
+        let from = c_node.id;
+        for con in &c_node.edges {
+            let to = con.id;
+            let move_cost = con.cost;
+            dist_map.insert((from, to), move_cost);
         }
     }
 
 
-    for n in &n_graph {
-            println!("{:?}", n);
+    let flowing: HashSet<_> = map.iter().filter(|(_, valve)| valve.flow > 0).map(|(&name, _)| name).collect();
 
+
+    let mut max_relieved_states: HashMap<BTreeSet<usize>, usize> = HashMap::new();
+
+    let mut q = VecDeque::new();
+
+    q.push_back(State {
+        opened: BTreeSet::new(),
+        curr: 0,
+        elapsed: 0,
+        relieved: 0,
+    });
+
+    while let Some(State {
+                       opened, curr, elapsed, relieved
+                   }) = q.pop_front() {
+        let relieved_at_end = wait_until_ending(26, elapsed, relieved, &opened, &small_graph);
+        max_relieved_states.entry(opened.clone()).and_modify(|val| *val = relieved_at_end.max(*val)).or_insert(relieved_at_end);
+
+        if opened.len() == flowing.len() || elapsed > 26 {
+            continue;
+        }
+
+        let unopened = flowing.iter().filter(|id| !opened.contains(*id));
+        for dest in unopened {
+            let cost = dist_map[&(curr, *dest)];  // this may need +1
+            let new_elapsed = elapsed + cost;
+            if new_elapsed >= 26 {
+                continue;
+            }
+
+            let relieved_per_min: usize = opened.iter().map(|id| &map[id].flow).sum();
+            let new_relieved = relieved + (relieved_per_min * cost);
+
+            let mut new_opened = opened.clone();
+            new_opened.insert(*dest);
+
+            q.push_back(State {
+                opened: new_opened,
+                curr: *dest,
+                elapsed: new_elapsed,
+                relieved: new_relieved,
+            });
+        }
     }
-    let r = solve(&n_graph,30);
+    let answer = max_relieved_states.iter().tuple_combinations().filter(|(human, elephant)| human.0.is_disjoint(elephant.0)).map(|(human, elephant)| human.1 + elephant.1).max().unwrap();
 
 
-    let answer = r.unwrap().score;
     return answer.to_string();
+}
+
+fn wait_until_ending(
+    max_time: usize,
+    elapsed: usize,
+    relieved: usize,
+    opened: &BTreeSet<usize>,
+    map: &HashMap<usize, Node>,
+) -> usize {
+    let time_left = max_time - elapsed;
+    let relieved_per_min: usize = opened.iter().map(|name| &map[name].flow).sum();
+    let result: usize = relieved + (relieved_per_min * time_left);
+    return result;
 }
