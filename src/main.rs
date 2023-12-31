@@ -11,6 +11,8 @@
         part1 answer:   2077
         part2 answer:
 
+
+part2: 2593 is too low
  */
 
 
@@ -35,7 +37,7 @@ fn main() {
     let duration1 = start1.elapsed();
 
     let start2 = Instant::now();
-    let answer2 = part2(_filename_test2);
+    let answer2 = part2(filename_part2);
     let duration2 = start2.elapsed();
 
     println!("Advent of Code, Day 16");
@@ -55,7 +57,7 @@ fn main() {
 
 type Id = usize;
 
-fn solve(map: &HashMap<usize, Node>,  rounds: usize) -> usize {
+fn solve(map: &HashMap<usize, Node>, rounds: usize) -> Option<State> {
     let start = State {
         score: 0,
         position: START,
@@ -109,9 +111,9 @@ fn solve(map: &HashMap<usize, Node>,  rounds: usize) -> usize {
     let mut vect: Vec<(&State, &usize)> = cost_map.iter().collect();
     vect.sort_unstable();
     if let Some((result, _)) = vect.last() {
-        return result.score
+        return Some(**result);
     }
-    0
+    None
 }
 
 
@@ -372,11 +374,10 @@ fn part1(input_file: &str) -> String {
 
 
     let r = compact_graph(valves) ;
-    let mut keys:Vec<usize> = r.keys().map(|k| *k).collect();
-    keys.sort();
 
+     let final_state = solve(&r, 30).unwrap();
 
-    let answer =solve(&r,30);
+    let answer = final_state.score;
     return answer.to_string();
 }
 
@@ -384,7 +385,16 @@ fn part1(input_file: &str) -> String {
 
 fn part2(input_file: &str) -> String {
     let lines = advent_2022::file_to_lines(input_file);
+    let (node_list, valve_name_list, id_lookup_by_name, edge_lists) =
+        parse_valves(&lines);
 
-    let answer = 0;
+
+    let mut valves:HashMap<Id,Node> = HashMap::with_capacity(node_list.len());
+    for i in 0..node_list.len() {
+        valves.insert(i,node_list[i].clone());
+    }
+    let small_graph = compact_graph(valves) ;
+
+    let answer =0;
     return answer.to_string();
 }
