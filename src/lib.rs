@@ -503,6 +503,9 @@ pub fn parse_grid(lines: &Vec<String>) -> Vec<Vec<char>> {
     grid
 }
 
+pub fn bar() {
+    println!("    ---------------------------------------------");
+}
 pub fn convert_grid_using<T: Copy, O>(grid: &Vec<Vec<T>>, convert: fn(T) -> O) -> Vec<Vec<O>> {
     let mut o_grid = Vec::with_capacity(grid.len());
     for row in grid {
@@ -523,6 +526,9 @@ pub struct Coord {
 
 pub fn list_displayables_to_string<T: Display>(parts: &Vec<T>) -> String {
     let mut sb = String::new();
+    if parts.len() == 0 {
+        return "[]".to_string();
+    }
     if parts.len() == 1 {
         return format!("[{}]", parts[0]);
     }
