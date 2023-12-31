@@ -8,7 +8,7 @@
 
 /*
     Advent of Code 2023: Day 16
-        part1 answer:
+        part1 answer:   2077
         part2 answer:
 
  */
@@ -119,34 +119,55 @@ fn solve(map: &HashMap<usize, Node>,  rounds: usize) -> usize {
 
 const START: usize = 0;
 
-fn compact_graph(graph_node_list:&Vec<Node>) -> HashMap<usize, Node> {
-    println!("compacting graph");
-    let mut map: HashMap<usize, Node> = HashMap::new();
-   let mut node_list: Vec<usize> = Vec::new();
-   let mut node_set: HashSet<usize> = HashSet::new();
+// fn compact_graph2(graph_node_list:&Vec<Node>) -> HashMap<usize, Node> {
+//     println!("compacting graph");
+//     let mut map: HashMap<usize, Node> = HashMap::new();
+//    let mut node_list: Vec<usize> = Vec::new();
+//    let mut node_set: HashSet<usize> = HashSet::new();
+//
+//
+//     graph_node_list.iter().filter(|n| n.flow > 0)
+//         .for_each(|n|{
+//             node_list.push(n.id);
+//             node_set.insert(n.id);
+//     });
+//     for n in node_list.iter() {
+//         println!("{n:3}\t {}", graph_node_list[*n]);
+//     }
+//
+//     node_set.insert(START);
+//     node_list.push(START);
+//     for i in 0..node_list.len() {
+//         add_paths_for_value(&mut map, node_list[i], &node_set, &graph_node_list);
+//     }
+//     return map;
+// }
 
 
-    graph_node_list.iter().filter(|n| n.flow > 0)
-        .for_each(|n|{
-            node_list.push(n.id);
-            node_set.insert(n.id);
-    });
-    for n in node_list.iter() {
-        println!("{n:3}\t {}", graph_node_list[*n]);
-    }
+fn compact_graph(valves: HashMap<Id, Node>) -> HashMap<Id, Node> {
+    let mut map: HashMap<Id, Node> = HashMap::new();
+    let mut node_list: Vec<Id> = Vec::new();
+    let mut node_set: HashSet<Id> = HashSet::new();
+
+    valves
+        .iter()
+        .filter(|(_, valve)| valve.flow > 0)
+        .for_each(|(id, _)| {
+            node_list.push(*id);
+            node_set.insert(*id);
+        });
 
     node_set.insert(START);
     node_list.push(START);
+
     for i in 0..node_list.len() {
-        add_paths_for_value(&mut map, node_list[i], &node_set, &graph_node_list);
+        add_paths_for_valve(&mut map, node_list[i], &node_set, &valves);
     }
 
-
-
-
-    return map;
-
+    map
 }
+
+
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 struct Connection {
@@ -160,7 +181,10 @@ impl Display for Connection {
     }
 }
 
-fn add_paths_for_value(map: &mut HashMap<usize, Node>, id: usize, points_of_interest: &HashSet<usize>, graph_node_list: &&Vec<Node>) {
+
+
+
+fn add_paths_for_value2(map: &mut HashMap<usize, Node>, id: usize, points_of_interest: &HashSet<usize>, valves: &HashMap<Id, Node>) {
     let mut visited: HashSet<usize> = HashSet::new();
     let mut list: VecDeque<Connection> = VecDeque::new();
     let mut connections : Vec<Connection> = Vec::new();
@@ -168,7 +192,7 @@ fn add_paths_for_value(map: &mut HashMap<usize, Node>, id: usize, points_of_inte
     list.push_back(Connection{ id: id, cost: 0});
 
     while let Some(current) = list.pop_back() {
-        let valve = &graph_node_list[current.id];
+        let valve = &valves[&current.id];
         for i in 0..valve.edges.len() {
             let connection = valve.edges[i];
 
@@ -183,16 +207,58 @@ fn add_paths_for_value(map: &mut HashMap<usize, Node>, id: usize, points_of_inte
         }
     }
 
+
     map.insert(id, Node {
         id: id,
         name: String::from(""),
-        flow: graph_node_list[id].flow,
+        flow: valves[&id].flow,
         edges: connections
     }.clone());
 
 
 
             }
+fn add_paths_for_valve(map: &mut HashMap<Id, Node>, id: Id, points_of_interest: &HashSet<Id>, valves: &HashMap<Id, Node>, ) {
+    let mut visited: HashSet<Id> = HashSet::new();
+    let mut list: VecDeque<Connection> = VecDeque::new();
+    let mut connections: Vec<Connection> = Vec::new();
+
+    list.push_back(Connection { id: id, cost: 0 });
+
+    while let Some(current) = list.pop_front() {
+        let valve = &valves[&current.id];
+        for i in 0..valve.edges.len() {
+            let connection = valve.edges[i];
+
+            if !visited.contains(&connection.id) {
+                visited.insert(connection.id);
+                list.push_back(Connection {
+                    id: connection.id,
+                    cost: current.cost + connection.cost,
+                });
+
+                if connection.id != id && points_of_interest.contains(&connection.id) {
+                    connections.push(Connection {
+                        id: connection.id,
+                        cost: current.cost + connection.cost + 1,
+                    });
+                }
+            }
+        }
+    }
+
+    map.insert(
+        id, Node {
+            id,
+            name: "".to_string(),
+            flow: valves[&id].flow,
+            edges: connections
+        }
+    );
+
+
+
+}
 
 
 
@@ -212,7 +278,13 @@ fn part1(input_file: &str) -> String {
     //     r.insert(i, node_list[i].clone());
     // }
 
- let r = compact_graph(&node_list) ;
+    let mut valves:HashMap<Id,Node> = HashMap::with_capacity(node_list.len());
+    for i in 0..node_list.len() {
+        valves.insert(i,node_list[i].clone());
+    }
+
+
+ let r = compact_graph(valves) ;
     let mut keys:Vec<usize> = r.keys().map(|k| *k).collect();
     keys.sort();
 println!("keys: {}", keys.len());
