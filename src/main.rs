@@ -122,8 +122,8 @@ const START: usize = 0;
 fn compact_graph(graph_node_list:&Vec<Node>) -> HashMap<usize, Node> {
     println!("compacting graph");
     let mut map: HashMap<usize, Node> = HashMap::new();
-    let mut node_list: Vec<usize> = Vec::new();
-    let mut node_set: HashSet<usize> = HashSet::new();
+   let mut node_list: Vec<usize> = Vec::new();
+   let mut node_set: HashSet<usize> = HashSet::new();
 
 
     graph_node_list.iter().filter(|n| n.flow > 0)
@@ -143,7 +143,7 @@ fn compact_graph(graph_node_list:&Vec<Node>) -> HashMap<usize, Node> {
 
 
 
-    advent_2022::bar();
+
     return map;
 
 }
@@ -207,8 +207,12 @@ fn part1(input_file: &str) -> String {
     //     println!("{}", n );
     // }
     advent_2022::bar();
+    // let mut r:HashMap<usize,Node> = HashMap::with_capacity(node_list.len());
+    // for i in 0..node_list.len() {
+    //     r.insert(i, node_list[i].clone());
+    // }
 
-    let r = compact_graph(&node_list) ;
+ let r = compact_graph(&node_list) ;
     let mut keys:Vec<usize> = r.keys().map(|k| *k).collect();
     keys.sort();
 println!("keys: {}", keys.len());
@@ -222,13 +226,13 @@ println!("keys: {}", keys.len());
      }
 
 
-//    let q = solve(&r,30);
+  let q = solve(&r,30);
 
 
 
 
 
-    let answer = 0;
+    let answer = q;
     return answer.to_string();
 }
 
