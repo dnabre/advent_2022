@@ -15,6 +15,7 @@
 
 
 use std::collections::{HashMap, HashSet};
+use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::iter::zip;
@@ -52,15 +53,178 @@ fn main() {
     println!("    ---------------------------------------------");
 }
 
+type Id = usize;
+
+fn solve(map: &HashMap<usize, Node>,  rounds: usize) -> usize {
+    let start = State {
+        score: 0,
+        position: START,
+        opened_valves: [0;50],
+        valve_offset: 0,
+    };
+
+    let mut cost_map: HashMap<State, usize> = HashMap::new();
+    let mut list: Vec<(State, usize)> = Vec::new();
+
+    list.push((start, 0));
+
+    while let Some((state, cost)) = list.pop() {
+        if let Some(valve) = &map.get(&state.position) {
+            for i in 0..valve.edges.len() {
+                let connection = valve.edges[i];
+
+                if state.opened_valves.contains(&connection.id) {
+                    continue;
+                }
+
+                let next_cost = cost + connection.cost;
+
+                if let Some(remaining) = rounds.checked_sub(next_cost) {
+                    if let Some(next_value) = &map.get(&connection.id) {
+                        let mut opened_valves = state.opened_valves.clone();
+                        opened_valves[state.valve_offset] = connection.id;
+
+
+                        let next_state = State {
+                            score: state.score + next_value.flow * remaining,
+                            position: connection.id,
+                            opened_valves: opened_valves,
+                            valve_offset: state.valve_offset + 1
+                        };
+
+                        if let Some(cached_cost) = cost_map.get(&next_state) {
+                            if cached_cost <= &next_cost {
+                                continue;
+                            }
+                        }
+                        list.push((next_state, next_cost));
+                        cost_map.insert(next_state, next_cost);
+                    }
+                }
+            }
+        } else {
+            dbg!(state,cost,map.keys());
+        }
+    }
+    let mut vect: Vec<(&State, &usize)> = cost_map.iter().collect();
+    vect.sort_unstable();
+    if let Some((result, _)) = vect.last() {
+        return result.score
+    }
+    0
+}
+
+
+
+
+const START: usize = 0;
+
+fn compact_graph(graph_node_list:&Vec<Node>) -> HashMap<usize, Node> {
+    println!("compacting graph");
+    let mut map: HashMap<usize, Node> = HashMap::new();
+    let mut node_list: Vec<usize> = Vec::new();
+    let mut node_set: HashSet<usize> = HashSet::new();
+
+
+    graph_node_list.iter().filter(|n| n.flow > 0)
+        .for_each(|n|{
+            node_list.push(n.id);
+            node_set.insert(n.id);
+    });
+    for n in node_list.iter() {
+        println!("{n:3}\t {}", graph_node_list[*n]);
+    }
+
+    node_set.insert(START);
+    node_list.push(START);
+    for i in 0..node_list.len() {
+        add_paths_for_value(&mut map, node_list[i], &node_set, &graph_node_list);
+    }
+
+
+
+    advent_2022::bar();
+    return map;
+
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+struct Connection {
+    id: Id,
+    cost: usize,
+}
+
+impl Display for Connection {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}@{}]", self.id, self.cost)
+    }
+}
+
+fn add_paths_for_value(map: &mut HashMap<usize, Node>, id: usize, points_of_interest: &HashSet<usize>, graph_node_list: &&Vec<Node>) {
+    let mut visited: HashSet<usize> = HashSet::new();
+    let mut list: VecDeque<Connection> = VecDeque::new();
+    let mut connections : Vec<Connection> = Vec::new();
+
+    list.push_back(Connection{ id: id, cost: 0});
+
+    while let Some(current) = list.pop_back() {
+        let valve = &graph_node_list[current.id];
+        for i in 0..valve.edges.len() {
+            let connection = valve.edges[i];
+
+            if !visited.contains(&connection.id) {
+                visited.insert(connection.id);
+                list.push_back(Connection { id: connection.id, cost: current.cost + connection.cost });
+
+                if connection.id != id && points_of_interest.contains(&connection.id) {
+                    connections.push(Connection { id: connection.id, cost: current.cost + connection.cost + 1 });
+                }
+            }
+        }
+    }
+
+    map.insert(id, Node {
+        id: id,
+        name: String::from(""),
+        flow: graph_node_list[id].flow,
+        edges: connections
+    }.clone());
+
+
+
+            }
+
+
+
+
 
 fn part1(input_file: &str) -> String {
     let lines = advent_2022::file_to_lines(input_file);
     let (node_list, valve_name_list, id_lookup_by_name, edge_lists) =
     parse_valves(&lines);
 
-    for n in node_list.iter() {
-        println!("{}", n );
-    }
+    // for n in node_list.iter() {
+    //     println!("{}", n );
+    // }
+    advent_2022::bar();
+
+    let r = compact_graph(&node_list) ;
+    let mut keys:Vec<usize> = r.keys().map(|k| *k).collect();
+    keys.sort();
+println!("keys: {}", keys.len());
+    println!("{:?}",r);
+
+     for k in keys.iter(){
+         let v = &r[k];
+         println!("[{}]{k:3}: \t {}",valve_name_list[*k]
+             , v);
+
+     }
+
+
+//    let q = solve(&r,30);
+
+
 
 
 
@@ -138,43 +302,50 @@ fn parse_valves(lines:& Vec<String>) -> (Vec<Node>, Vec<&str>, HashMap<&str, usi
         let v_name = valve_name_list[u];
         let l_edges = &edge_lists[u];
         let u_flow = flow_rate[u];
+        let mut cons: Vec<Connection> = Vec::new();
+        for i in 0..l_edges.len() {
+            let n_c = Connection {
+                id: l_edges[i],
+                cost: 1,
+            };
+            cons.push(n_c)
+        };
+
         let node = Node {
             id: u,
             name: v_name.to_string(),
             flow: u_flow,
-            edges: l_edges.clone(),
-            edge_weights: vec![ 1;l_edges.len()],
+            edges: cons
         };
         node_list.push(node);
     }
     return (node_list, valve_name_list, id_lookup_by_name, edge_lists);
 }
 
-#[derive(Debug, Hash,  Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone,Copy,  Debug)]
 struct State {
-    room: usize,
-    time: usize,
-    valves: Vec<usize>
+    score: usize,
+    position: Id,
+    opened_valves: [Id; 50],
+    valve_offset:usize
 }
 
 
 
-#[derive(Debug, Hash,  Clone)]
+#[derive(Debug,  Clone)]
 struct Node {
     id:usize,
     name: String,
     flow: usize,
-    edges:Vec<usize>,
-    edge_weights: Vec<usize>
+    edges: Vec<Connection>
 }
 
 impl Display for Node {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
 
-        let e_list:Vec<String> = zip(self.edges.clone(), self.edge_weights.clone())
-            .map(|(e, w)| format!("({e}:{w})")).collect();
-        write!(f,"Valve[{}] {} has flow: {}, with edges [{}]", self.id, self.name, self.flow,
-              e_list.join(","))
+
+        write!(f,"Valve[{}] {} has flow: {}, with edges ({}) [{}]", self.id, self.name, self.flow,
+               self.edges.len(), advent_2022::list_displayables_to_string(&self.edges))
     }
 }
 
@@ -184,4 +355,3 @@ fn part2(input_file: &str) -> String {
     let answer = 0;
     return answer.to_string();
 }
-
