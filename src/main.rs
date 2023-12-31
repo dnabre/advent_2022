@@ -45,11 +45,11 @@ fn main() {
     if ANSWER.0 != answer1 {
         println!("\t\t ERROR: Answer is WRONG. Got: {}, Expected {}", answer1, ANSWER.0);
     }
-    //
-    // println!("\t Part 2: {:14} time: {:?}", answer2, duration2);
-    // if ANSWER.1 != answer2 {
-    //     println!("\t\t ERROR: Answer is WRONG. Got: {}, Expected {}", answer2, ANSWER.1);
-    // }
+
+    println!("\t Part 2: {:14} time: {:?}", answer2, duration2);
+    if ANSWER.1 != answer2 {
+        println!("\t\t ERROR: Answer is WRONG. Got: {}, Expected {}", answer2, ANSWER.1);
+    }
     println!("    ---------------------------------------------");
 }
 
@@ -118,30 +118,6 @@ fn solve(map: &HashMap<usize, Node>,  rounds: usize) -> usize {
 
 
 const START: usize = 0;
-
-// fn compact_graph2(graph_node_list:&Vec<Node>) -> HashMap<usize, Node> {
-//     println!("compacting graph");
-//     let mut map: HashMap<usize, Node> = HashMap::new();
-//    let mut node_list: Vec<usize> = Vec::new();
-//    let mut node_set: HashSet<usize> = HashSet::new();
-//
-//
-//     graph_node_list.iter().filter(|n| n.flow > 0)
-//         .for_each(|n|{
-//             node_list.push(n.id);
-//             node_set.insert(n.id);
-//     });
-//     for n in node_list.iter() {
-//         println!("{n:3}\t {}", graph_node_list[*n]);
-//     }
-//
-//     node_set.insert(START);
-//     node_list.push(START);
-//     for i in 0..node_list.len() {
-//         add_paths_for_value(&mut map, node_list[i], &node_set, &graph_node_list);
-//     }
-//     return map;
-// }
 
 
 fn compact_graph(valves: HashMap<Id, Node>) -> HashMap<Id, Node> {
@@ -264,49 +240,6 @@ fn add_paths_for_valve(map: &mut HashMap<Id, Node>, id: Id, points_of_interest: 
 
 
 
-fn part1(input_file: &str) -> String {
-    let lines = advent_2022::file_to_lines(input_file);
-    let (node_list, valve_name_list, id_lookup_by_name, edge_lists) =
-    parse_valves(&lines);
-
-    // for n in node_list.iter() {
-    //     println!("{}", n );
-    // }
-    advent_2022::bar();
-    // let mut r:HashMap<usize,Node> = HashMap::with_capacity(node_list.len());
-    // for i in 0..node_list.len() {
-    //     r.insert(i, node_list[i].clone());
-    // }
-
-    let mut valves:HashMap<Id,Node> = HashMap::with_capacity(node_list.len());
-    for i in 0..node_list.len() {
-        valves.insert(i,node_list[i].clone());
-    }
-
-
- let r = compact_graph(valves) ;
-    let mut keys:Vec<usize> = r.keys().map(|k| *k).collect();
-    keys.sort();
-println!("keys: {}", keys.len());
-    println!("{:?}",r);
-
-     for k in keys.iter(){
-         let v = &r[k];
-         println!("[{}]{k:3}: \t {}",valve_name_list[*k]
-             , v);
-
-     }
-
-
-  let q = solve(&r,30);
-
-
-
-
-
-    let answer = q;
-    return answer.to_string();
-}
 
 fn parse_valves(lines:& Vec<String>) -> (Vec<Node>, Vec<&str>, HashMap<&str, usize>, Vec<Vec<usize>>) {
     let mut valve_set: HashSet<&str> = HashSet::new();
@@ -424,6 +357,30 @@ impl Display for Node {
                self.edges.len(), advent_2022::list_displayables_to_string(&self.edges))
     }
 }
+
+
+fn part1(input_file: &str) -> String {
+    let lines = advent_2022::file_to_lines(input_file);
+    let (node_list, valve_name_list, id_lookup_by_name, edge_lists) =
+        parse_valves(&lines);
+
+
+    let mut valves:HashMap<Id,Node> = HashMap::with_capacity(node_list.len());
+    for i in 0..node_list.len() {
+        valves.insert(i,node_list[i].clone());
+    }
+
+
+    let r = compact_graph(valves) ;
+    let mut keys:Vec<usize> = r.keys().map(|k| *k).collect();
+    keys.sort();
+
+
+    let answer =solve(&r,30);
+    return answer.to_string();
+}
+
+
 
 fn part2(input_file: &str) -> String {
     let lines = advent_2022::file_to_lines(input_file);
